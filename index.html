@@ -6855,6 +6855,27 @@ function getSignerTeacherOptionsHtml(selectedName = ''){
   return options.join('');
 }
 
+function getSignerPrefixOptionsHtml(selectedPrefix = ''){
+  const selected = String(selectedPrefix || '').trim();
+
+  const prefixes = [
+    '',
+    'นาย',
+    'นาง',
+    'นางสาว',
+
+  ];
+
+  return prefixes.map(prefix => {
+    const label = prefix || '-';
+    return `
+      <option value="${escapeHtml(prefix)}" ${selected === prefix ? 'selected' : ''}>
+        ${escapeHtml(label)}
+      </option>
+    `;
+  }).join('');
+}
+
 function renderSignerRows(){
   const tbody = el('signerTbody');
   const rows = state.reportSignerRows || [];
