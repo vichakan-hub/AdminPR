@@ -6930,19 +6930,17 @@ async function loadReportSigners(){
 
     let query = supabaseClient
       .from('academic_report_signers')
-      .select(`
-        id,
-        academic_year,
-        term,
-        learning_area,
-        position_key,
-        position_title,
-        person_name,
-        sort_order,
-        is_active,
-        created_at,
-        updated_at
-      `)
+     .select(`
+  id,
+  academic_year,
+  term,
+  learning_area,
+  position_key,
+  position_title,
+  person_name,
+  sort_order,
+  is_active
+`)
       .eq('academic_year', filters.academicYear)
       .eq('term', filters.term)
       .order('sort_order', { ascending:true });
