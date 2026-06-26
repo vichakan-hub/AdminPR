@@ -2352,6 +2352,16 @@ body.app-booting #appView{
         <h2>รายงานผลการเรียน</h2>
         <div class="sub">ติดตามสถานะการรายงานของครูทุกคน ตรวจสอบรายการสอนที่รายงานแล้วหรือยังไม่รายงาน และสามารถนำเข้าผลการเรียนแทนครูได้</div>
 
+        <div class="teacher-page-tabs">
+  <button id="reportSubTrackingBtn" class="teacher-sub-btn active" type="button">
+    📊 ติดตามการรายงานผลการเรียน
+  </button>
+  <button id="reportSubSignerBtn" class="teacher-sub-btn" type="button">
+    ✍️ ตั้งค่าผู้อนุมัติผลการเรียน
+  </button>
+</div>
+        
+        <section id="reportSubTrackingPage">
         <div class="report-summary-box">
           <div style="font-size:18px;font-weight:700;margin-bottom:4px;">ภาพรวมการรายงานผลการเรียน</div>
           <div class="small">สถานะระดับครูแบ่งเป็น <strong>รายงานครบแล้ว</strong> <strong>รายงานบางส่วน</strong> และ <strong>ยังไม่รายงาน</strong> ส่วนระดับรายการสอนแบ่งเป็น <strong>รายงานแล้ว</strong> และ <strong>ยังไม่รายงาน</strong></div>
@@ -2556,6 +2566,7 @@ body.app-booting #appView{
           </div>
         </section>
       </section>
+     </section>
 
       <section id="pageGradeManage" class="card hidden">
   <h2>จัดการผลการเรียน</h2>
