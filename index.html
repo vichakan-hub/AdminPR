@@ -6884,65 +6884,52 @@ function renderSignerRows(){
   tbody.innerHTML = rows.map(row => {
     const activeValue = row.is_active === false ? 'false' : 'true';
 
-    return `
-      <tr class="${row.is_active === false ? 'signer-row-inactive' : ''}">
-        <td>
-          <span class="signer-sort-box">${escapeHtml(String(row.sort_order || '-'))}</span>
-        </td>
+return `
+  <tr class="${row.is_active === false ? 'signer-row-inactive' : ''}">
+    <td>
+      <span class="signer-sort-box">${escapeHtml(row.sort_order || '-')}</span>
+    </td>
 
-        <td>
-          <div class="signer-position-main">
-            ${escapeHtml(row.position_title || '-')}
-          </div>
-          <div class="signer-position-key">
-            ${escapeHtml(row.position_key || '-')}
-          </div>
-        </td>
+    <td>
+      <div class="signer-position-main">${escapeHtml(row.position_title || '-')}</div>
+      <div class="signer-position-key">${escapeHtml(row.position_key || '-')}</div>
+    </td>
 
-        <td>
-          <span class="signer-area-pill">
-            ${escapeHtml(row.learning_area || '-')}
-          </span>
-        </td>
+    <td>
+      <span class="signer-area-pill">${escapeHtml(row.learning_area || 'ALL')}</span>
+    </td>
 
-        <td>
-<td>
-  <select
-    class="signer-prefix-select"
-    data-signer-prefix="${escapeHtml(row.position_key || '')}"
-  >
-    <option value="">-</option>
-    <option value="นาย" ${row.person_prefix === 'นาย' ? 'selected' : ''}>นาย</option>
-    <option value="นาง" ${row.person_prefix === 'นาง' ? 'selected' : ''}>นาง</option>
-    <option value="นางสาว" ${row.person_prefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
-    <option value="ว่าที่ร้อยตรี" ${row.person_prefix === 'ว่าที่ร้อยตรี' ? 'selected' : ''}>ว่าที่ร้อยตรี</option>
-    <option value="ดร." ${row.person_prefix === 'ดร.' ? 'selected' : ''}>ดร.</option>
-  </select>
-</td>
+    <td>
+      <select
+        class="signer-prefix-select"
+        data-signer-prefix="${escapeHtml(row.position_key || '')}"
+      >
+        ${getSignerPrefixOptionsHtml(row.person_prefix || '')}
+      </select>
+    </td>
 
-<td>
-  <select
-    class="signer-teacher-select"
-    data-signer-id="${escapeHtml(row.id || '')}"
-    data-signer-key="${escapeHtml(row.position_key || '')}"
-  >
-    ${getSignerTeacherOptionsHtml(row.person_name || '')}
-  </select>
-</td>
-     
+    <td>
+      <select
+        class="signer-teacher-select"
+        data-signer-id="${escapeHtml(row.id || '')}"
+        data-signer-key="${escapeHtml(row.position_key || '')}"
+      >
+        ${getSignerTeacherOptionsHtml(row.person_name || '')}
+      </select>
+    </td>
 
-        <td>
-          <select
-            class="signer-status-select"
-            data-signer-active="${escapeHtml(row.id || '')}"
-            data-signer-key="${escapeHtml(row.position_key || '')}"
-          >
-            <option value="true" ${activeValue === 'true' ? 'selected' : ''}>ใช้งาน</option>
-            <option value="false" ${activeValue === 'false' ? 'selected' : ''}>ปิดใช้งาน</option>
-          </select>
-        </td>
-      </tr>
-    `;
+    <td>
+      <select
+        class="signer-status-select"
+        data-signer-active="${escapeHtml(row.id || '')}"
+        data-signer-key="${escapeHtml(row.position_key || '')}"
+      >
+        <option value="true" ${activeValue === 'true' ? 'selected' : ''}>ใช้งาน</option>
+        <option value="false" ${activeValue === 'false' ? 'selected' : ''}>ปิดใช้งาน</option>
+      </select>
+    </td>
+  </tr>
+`;
   }).join('');
 
   bindSignerRowInputs();
