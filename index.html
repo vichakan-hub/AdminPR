@@ -6945,11 +6945,9 @@ async function loadReportSigners(){
       .eq('term', filters.term)
       .order('sort_order', { ascending:true });
 
-    if(filters.learningArea === 'ALL'){
-      query = query.eq('learning_area', 'ALL');
-    }else{
-      query = query.in('learning_area', ['ALL', filters.learningArea]);
-    }
+if(filters.learningArea && filters.learningArea !== 'ALL'){
+  query = query.in('learning_area', ['ALL', filters.learningArea]);
+}
 
     const { data, error } = await query;
 
