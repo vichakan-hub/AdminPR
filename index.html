@@ -6805,9 +6805,7 @@ if(filters.learningArea){
   rows = rows.filter(row => getGradeManageRowLearningArea(row) === filters.learningArea);
 }
 
-    if(filters.learningArea){
-      rows = rows.filter(row => getGradeManageRowLearningArea(row) === filters.learningArea);
-    }
+
 
     rows = rows
       .map(row => ({
@@ -7006,6 +7004,25 @@ function bindGradeManageRowActions(){
       saveGradeManageEdit(btn.dataset.gradeManageSave);
     });
   });
+
+  tbody.querySelectorAll('[data-grade-manage-edit-grade]').forEach(select => {
+  select.addEventListener('change', () => {
+    const id = select.dataset.gradeManageEditGrade;
+
+    const retestSelect = document.querySelector(
+      `[data-grade-manage-edit-retest="${CSS.escape(String(id))}"]`
+    );
+
+    if(retestSelect){
+      retestSelect.innerHTML = getRetestGradeOptionsHtml(select.value, '');
+
+      const meta = retestSelect.nextElementSibling;
+      if(meta && meta.classList.contains('grade-manage-meta')){
+        meta.textContent = getRetestRuleText(select.value);
+      }
+    }
+  });
+});
 }
 
 function startGradeManageEdit(id){
@@ -7054,6 +7071,14 @@ async function saveGradeManageEdit(id){
       showToast('ยังบันทึกไม่ได้', 'ผลการเรียนแก้ตัวไม่ถูกต้อง', 'warning');
       return;
     }
+
+    if(newRetestGrade && !isValidRetestGradeByOriginalGrade(newGrade, newRetestGrade)){
+  const ruleText = getRetestRuleText(newGrade);
+
+  setStatus('gradeManageStatus', ruleText, 'error');
+  showToast('ยังบันทึกไม่ได้', ruleText, 'warning');
+  return;
+}
 
     if(newGrade === row.grade_code && newRetestGrade === row.retest_grade_code){
       state.gradeManageEditingId = null;
@@ -8063,9 +8088,7 @@ function bindGradeTransferEvents(){
   }
 }
 
-  function normalizeGradeValue(value){
-  return String(value ?? '').trim();
-}
+
 
 function isRiskGrade(value){
   const grade = normalizeGradeValue(value);
@@ -10750,51 +10773,107 @@ function parseImportFilename(filename){
   };
 }
 
-  function extractRowsFromSheet(ws, subjectType){
-    const rows = XLSX.utils.sheet_to_json(ws, { header:1, raw:true });
-    if(rows.length < 3) throw new Error('ไม่พบข้อมูลในไฟล์');
+function normalizeHeaderText(value){
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/-/g, '');
+}
 
-    const headerRow = rows[1] || [];
-    const headers = headerRow.map(v => String(v || '').trim());
-    const expected = ['เลขประจำตัว','ชื่อสกุล','ห้อง','เลขที่','หน่วยการเรียน','กลางภาค','ปลายภาค','คะแนนรวม','ผลการเรียน'];
-    const found = expected.filter(name => headers.includes(name)).length;
-    if(found < 7){
-      throw new Error('รูปแบบไฟล์ไม่ตรงกับที่ระบบรองรับ');
-    }
+function findHeaderIndex(headers, aliases){
+  const normalizedHeaders = headers.map(normalizeHeaderText);
+  const normalizedAliases = aliases.map(normalizeHeaderText);
 
-    const result = [];
-    for(let i = 2; i < rows.length; i++){
-      const r = rows[i] || [];
-      const studentCode = r[0];
-      const studentName = r[1];
-      if(studentCode === null || studentCode === undefined || studentCode === '') continue;
-      if(studentName === null || studentName === undefined || String(studentName).trim() === '') continue;
-
-      const rowObj = {
-        student_code: String(studentCode).replace(/\.0$/,'').trim(),
-        student_name: String(studentName || '').trim(),
-        room: String(r[2] ?? '').trim(),
-        student_no: safeNumber(r[3], null),
-        study_unit_score: safeNumber(r[4], null),
-        midterm_score: safeNumber(r[5], null),
-        final_score: safeNumber(r[6], null),
-        total_score: safeNumber(r[8], null),
-        grade_code: String(r[9] ?? '').trim(),
-        student_id: null,
-        student_map_error: ''
-      };
-
-      result.push({
-        ...rowObj,
-        ...validateImportedRow(rowObj, subjectType)
-      });
-    }
-
-    return {
-      header_text: String((rows[0] || [])[0] || '').trim(),
-      rows: result
-    };
+  for(const alias of normalizedAliases){
+    const index = normalizedHeaders.indexOf(alias);
+    if(index !== -1) return index;
   }
+
+  return -1;
+}
+
+function getSheetCell(row, index){
+  if(index < 0) return '';
+  return row[index];
+}
+
+function extractRowsFromSheet(ws, subjectType){
+  const rows = XLSX.utils.sheet_to_json(ws, { header:1, raw:true });
+
+  if(rows.length < 3){
+    throw new Error('ไม่พบข้อมูลในไฟล์');
+  }
+
+  const headerRowIndex = 1;
+  const headerRow = rows[headerRowIndex] || [];
+  const headers = headerRow.map(v => String(v || '').trim());
+
+  const idx = {
+    studentCode: findHeaderIndex(headers, ['เลขประจำตัว', 'เลขประจำตัวนักเรียน', 'รหัสนักเรียน']),
+    studentName: findHeaderIndex(headers, ['ชื่อสกุล', 'ชื่อ-สกุล', 'ชื่อ-นามสกุล']),
+    room: findHeaderIndex(headers, ['ห้อง']),
+    studentNo: findHeaderIndex(headers, ['เลขที่']),
+    studyUnit: findHeaderIndex(headers, ['หน่วยการเรียน', 'หน่วยการเรียนรู้', 'คะแนนหน่วยการเรียน']),
+    midterm: findHeaderIndex(headers, ['กลางภาค', 'คะแนนกลางภาค']),
+    finalScore: findHeaderIndex(headers, ['ปลายภาค', 'คะแนนปลายภาค']),
+    total: findHeaderIndex(headers, ['คะแนนรวม', 'รวม', 'รวมคะแนน']),
+    grade: findHeaderIndex(headers, ['ผลการเรียน', 'เกรด', 'grade'])
+  };
+
+  const requiredKeys = [
+    'studentCode',
+    'studentName',
+    'room',
+    'studentNo',
+    'studyUnit',
+    'midterm',
+    'finalScore',
+    'total',
+    'grade'
+  ];
+
+  const missing = requiredKeys.filter(key => idx[key] === -1);
+
+  if(missing.length){
+    throw new Error('รูปแบบไฟล์ไม่ตรงกับที่ระบบรองรับ กรุณาตรวจสอบหัวคอลัมน์');
+  }
+
+  const result = [];
+
+  for(let i = headerRowIndex + 1; i < rows.length; i++){
+    const r = rows[i] || [];
+
+    const studentCode = getSheetCell(r, idx.studentCode);
+    const studentName = getSheetCell(r, idx.studentName);
+
+    if(studentCode === null || studentCode === undefined || studentCode === '') continue;
+    if(studentName === null || studentName === undefined || String(studentName).trim() === '') continue;
+
+    const rowObj = {
+      student_code: String(studentCode).replace(/\.0$/,'').trim(),
+      student_name: String(studentName || '').trim(),
+      room: String(getSheetCell(r, idx.room) ?? '').trim(),
+      student_no: safeNumber(getSheetCell(r, idx.studentNo), null),
+      study_unit_score: safeNumber(getSheetCell(r, idx.studyUnit), null),
+      midterm_score: safeNumber(getSheetCell(r, idx.midterm), null),
+      final_score: safeNumber(getSheetCell(r, idx.finalScore), null),
+      total_score: safeNumber(getSheetCell(r, idx.total), null),
+      grade_code: String(getSheetCell(r, idx.grade) ?? '').trim(),
+      student_id: null,
+      student_map_error: ''
+    };
+
+    result.push({
+      ...rowObj,
+      ...validateImportedRow(rowObj, subjectType)
+    });
+  }
+
+  return {
+    header_text: String((rows[0] || [])[0] || '').trim(),
+    rows: result
+  };
+}
 
   async function mapStudentsForReportPreview(rows){
     if(!rows.length) return rows;
