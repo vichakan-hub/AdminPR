@@ -1932,6 +1932,23 @@ body.app-booting #appView{
   }
 }
 
+  .signer-teacher-select{
+  width:100%;
+  height:42px;
+  border:1px solid #c8d6e4;
+  border-radius:14px;
+  padding:0 14px;
+  font-family:inherit;
+  font-size:15px;
+  outline:none;
+  background:#fff;
+}
+
+.signer-teacher-select:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 4px rgba(37,99,235,.12);
+}
+
 
 
 </style>
@@ -6806,6 +6823,47 @@ async function checkEmptysecImportDuplicatesOnPreview(){
   };
 }
 
+function getSignerTeacherOptionsHtml(selectedName = ''){
+  const selected = normalizeName(selectedName);
+
+  const teachers = (state.teachers || [])
+    .filter(t => t.is_active !== false)
+    .sort((a,b) => String(a.teacher_code || '').localeCompare(String(b.teacher_code || ''), 'th'));
+
+  const options = [
+    `<option value="">-- เลือกครู/ผู้ลงนาม --</option>`
+  ];
+
+  teachers.forEach(t => {
+    const fullName = normalizeName(
+      t.full_name || [t.first_name, t.last_name].filter(Boolean).join(' ')
+    );
+
+    const label = `${t.teacher_code || '-'} | ${fullName || '-'}`;
+
+    options.push(`
+      <option value="${escapeHtml(fullName)}" ${selected === fullName ? 'selected' : ''}>
+        ${escapeHtml(label)}
+      </option>
+    `);
+  });
+
+  if(selected && !teachers.some(t => {
+    const fullName = normalizeName(
+      t.full_name || [t.first_name, t.last_name].filter(Boolean).join(' ')
+    );
+    return fullName === selected;
+  })){
+    options.push(`
+      <option value="${escapeHtml(selected)}" selected>
+        ${escapeHtml(selected)} (ชื่อเดิม)
+      </option>
+    `);
+  }
+
+  return options.join('');
+}
+
 function renderSignerRows(){
   const tbody = el('signerTbody');
   const rows = state.reportSignerRows || [];
@@ -6857,13 +6915,9 @@ function renderSignerRows(){
         </td>
 
         <td>
-          <input
-            class="signer-name-input"
-            data-signer-id="${escapeHtml(row.id || '')}"
-            data-signer-key="${escapeHtml(row.position_key || '')}"
-            value="${escapeHtml(row.person_name || '')}"
-            placeholder="กรอกชื่อ-สกุล"
-          >
+<select class="signer-teacher-select" data-signer-id="${escapeHtml(row.id || '')}" data-signer-key="${escapeHtml(row.position_key || '')}">
+  ${getSignerTeacherOptionsHtml(row.person_name || '')}
+</select>
         </td>
 
         <td>
