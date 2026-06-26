@@ -9345,7 +9345,14 @@ function clearGradeManageTeacherFilter(){
   }
 
   function applyAcademicYearDefaults(){
-    if(!state.academicYears.length) return;
+    if(!state.academicYears.length){
+  const fallbackYear = getCurrentThaiAcademicYear();
+
+  if(el('signerFilterYear')) el('signerFilterYear').value = fallbackYear;
+  if(el('signerFilterTerm')) el('signerFilterTerm').value = '1';
+
+  return;
+}
     const current = state.academicYears[0];
     if(!current) return;
 
@@ -9355,6 +9362,8 @@ function clearGradeManageTeacherFilter(){
     if(el('reportFilterYear')) el('reportFilterYear').value = current.academic_year ?? '2568';
     if(el('gradeManageYearFilter')) el('gradeManageYearFilter').value = current.academic_year ?? '2568';
     if(el('gradeManageTermFilter')) el('gradeManageTermFilter').value = String(current.term ?? '1');
+    if(el('signerFilterYear')) el('signerFilterYear').value = current.academic_year ?? '2568';
+    if(el('signerFilterTerm')) el('signerFilterTerm').value = String(current.term ?? '1');
     if(el('adviserAcademicYearInput')) el('adviserAcademicYearInput').value = current.academic_year ?? '2568';
     if(el('adviserTermInput')) el('adviserTermInput').value = String(current.term ?? '1');
     if(el('adviserYearFilter')) el('adviserYearFilter').value = current.academic_year ?? '2568';
@@ -12520,6 +12529,14 @@ el('adviserEditCancelBtn').addEventListener('click', closeAdviserEditModal);
 if(el('reportSubSignerBtn')){
   el('reportSubSignerBtn').addEventListener('click', async () => {
     setReportSubPage('signer');
+
+    if(!el('signerFilterYear')?.value){
+      el('signerFilterYear').value = el('reportFilterYear')?.value || getCurrentThaiAcademicYear();
+    }
+
+    if(!el('signerFilterTerm')?.value){
+      el('signerFilterTerm').value = el('reportFilterTerm')?.value || '1';
+    }
 
     if(!(state.reportSignerRows || []).length){
       await loadReportSigners();
