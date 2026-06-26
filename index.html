@@ -1817,57 +1817,50 @@ body.app-booting #appView{
   }
 }
 
-
-  /* =========================================================
+/* =========================================================
    Report Signer Page: ตั้งค่าผู้อนุมัติผลการเรียน
    ========================================================= */
 
 .report-signer-table{
-  min-width:980px;
+  min-width:1180px;
+  table-layout:fixed;
 }
 
-.report-signer-table th:nth-child(1){
+.report-signer-table th:nth-child(1),
+.report-signer-table td:nth-child(1){
   width:80px;
   text-align:center;
 }
 
-.report-signer-table th:nth-child(2){
+.report-signer-table th:nth-child(2),
+.report-signer-table td:nth-child(2){
+  width:290px;
+}
+
+.report-signer-table th:nth-child(3),
+.report-signer-table td:nth-child(3){
   width:280px;
 }
 
-.report-signer-table th:nth-child(3){
-  width:260px;
+.report-signer-table th:nth-child(4),
+.report-signer-table td:nth-child(4){
+  width:190px;
 }
 
-.report-signer-table th:nth-child(4){
-  width:320px;
-}
-
-.report-signer-table th:nth-child(5){
-  width:120px;
-  text-align:center;
-}
-
-.report-signer-table td:nth-child(1),
+.report-signer-table th:nth-child(5),
 .report-signer-table td:nth-child(5){
+  width:340px;
+}
+
+.report-signer-table th:nth-child(6),
+.report-signer-table td:nth-child(6){
+  width:130px;
   text-align:center;
 }
 
-.signer-name-input{
-  width:100%;
-  height:42px;
-  border:1px solid #c8d6e4;
-  border-radius:14px;
-  padding:0 14px;
-  font-family:inherit;
-  font-size:15px;
-  outline:none;
-  background:#fff;
-}
-
-.signer-name-input:focus{
-  border-color:var(--primary);
-  box-shadow:0 0 0 4px rgba(37,99,235,.12);
+.report-signer-table th,
+.report-signer-table td{
+  vertical-align:middle;
 }
 
 .signer-position-main{
@@ -1894,6 +1887,7 @@ body.app-booting #appView{
   border:1px solid #cfe0ff;
   font-size:12px;
   font-weight:700;
+  white-space:normal;
 }
 
 .signer-sort-box{
@@ -1909,46 +1903,9 @@ body.app-booting #appView{
   color:#24405f;
 }
 
-.signer-row-inactive{
-  opacity:.58;
-  background:#fbfbfb;
-}
-
+.signer-prefix-select,
+.signer-teacher-select,
 .signer-status-select{
-  width:100%;
-  height:38px;
-  border:1px solid #c8d6e4;
-  border-radius:12px;
-  padding:0 10px;
-  font-family:inherit;
-  font-size:14px;
-  outline:none;
-  background:#fff;
-}
-
-@media (max-width:720px){
-  .report-signer-table{
-    min-width:860px;
-  }
-}
-
-  .signer-teacher-select{
-  width:100%;
-  height:42px;
-  border:1px solid #c8d6e4;
-  border-radius:14px;
-  padding:0 14px;
-  font-family:inherit;
-  font-size:15px;
-  outline:none;
-  background:#fff;
-}
-
-.signer-teacher-select:focus{
-  border-color:var(--primary);
-  box-shadow:0 0 0 4px rgba(37,99,235,.12);
-}
-.signer-prefix-select{
   width:100%;
   height:42px;
   border:1px solid #c8d6e4;
@@ -1960,10 +1917,26 @@ body.app-booting #appView{
   background:#fff;
 }
 
-.signer-prefix-select:focus{
+.signer-prefix-select:focus,
+.signer-teacher-select:focus,
+.signer-status-select:focus{
   border-color:var(--primary);
   box-shadow:0 0 0 4px rgba(37,99,235,.12);
 }
+
+.signer-row-inactive{
+  opacity:.58;
+  background:#fbfbfb;
+}
+
+@media (max-width:720px){
+  .report-signer-table{
+    min-width:1120px;
+  }
+}
+  
+
+
 
 .report-signer-table th:nth-child(4){
   width:170px;
