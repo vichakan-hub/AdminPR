@@ -1818,6 +1818,121 @@ body.app-booting #appView{
 }
 
 
+  /* =========================================================
+   Report Signer Page: ตั้งค่าผู้อนุมัติผลการเรียน
+   ========================================================= */
+
+.report-signer-table{
+  min-width:980px;
+}
+
+.report-signer-table th:nth-child(1){
+  width:80px;
+  text-align:center;
+}
+
+.report-signer-table th:nth-child(2){
+  width:280px;
+}
+
+.report-signer-table th:nth-child(3){
+  width:260px;
+}
+
+.report-signer-table th:nth-child(4){
+  width:320px;
+}
+
+.report-signer-table th:nth-child(5){
+  width:120px;
+  text-align:center;
+}
+
+.report-signer-table td:nth-child(1),
+.report-signer-table td:nth-child(5){
+  text-align:center;
+}
+
+.signer-name-input{
+  width:100%;
+  height:42px;
+  border:1px solid #c8d6e4;
+  border-radius:14px;
+  padding:0 14px;
+  font-family:inherit;
+  font-size:15px;
+  outline:none;
+  background:#fff;
+}
+
+.signer-name-input:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 4px rgba(37,99,235,.12);
+}
+
+.signer-position-main{
+  font-weight:800;
+  color:#17324a;
+  line-height:1.45;
+}
+
+.signer-position-key{
+  margin-top:3px;
+  font-size:12px;
+  color:#6b7a90;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+
+.signer-area-pill{
+  display:inline-flex;
+  align-items:center;
+  min-height:30px;
+  padding:4px 10px;
+  border-radius:999px;
+  background:#eef4ff;
+  color:#1d4ed8;
+  border:1px solid #cfe0ff;
+  font-size:12px;
+  font-weight:700;
+}
+
+.signer-sort-box{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border-radius:12px;
+  background:#f8fbff;
+  border:1px solid #dbe7f3;
+  font-weight:800;
+  color:#24405f;
+}
+
+.signer-row-inactive{
+  opacity:.58;
+  background:#fbfbfb;
+}
+
+.signer-status-select{
+  width:100%;
+  height:38px;
+  border:1px solid #c8d6e4;
+  border-radius:12px;
+  padding:0 10px;
+  font-family:inherit;
+  font-size:14px;
+  outline:none;
+  background:#fff;
+}
+
+@media (max-width:720px){
+  .report-signer-table{
+    min-width:860px;
+  }
+}
+
+
 
 </style>
 </head>
@@ -2566,6 +2681,114 @@ body.app-booting #appView{
           </div>
         </section>
       </section>
+        <section id="reportSubSignerPage" class="hidden">
+  <div class="report-summary-box">
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px;">
+      ตั้งค่าผู้อนุมัติผลการเรียน
+    </div>
+    <div class="small">
+      ใช้กำหนดรายชื่อผู้ลงนาม/ผู้อนุมัติในรายงานผลการเรียน แยกตามปีการศึกษา ภาคเรียน และกลุ่มสาระการเรียนรู้
+    </div>
+  </div>
+
+  <div class="report-toolbar">
+    <div class="field">
+      <span class="label-in-form">ปีการศึกษา</span>
+      <input id="signerFilterYear" class="std" type="number" value="2568">
+    </div>
+
+    <div class="field">
+      <span class="label-in-form">ภาคเรียน</span>
+      <select id="signerFilterTerm" class="std">
+        <option value="1">1</option>
+        <option value="2">2</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <span class="label-in-form">กลุ่มสาระ</span>
+      <select id="signerFilterLearningArea" class="std">
+        <option value="ALL">ทั้งหมด/ตำแหน่งกลาง</option>
+        <option value="ภาษาไทย">ภาษาไทย</option>
+        <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+        <option value="วิทยาศาสตร์และเทคโนโลยี">วิทยาศาสตร์และเทคโนโลยี</option>
+        <option value="สังคมศึกษา ศาสนา และวัฒนธรรม">สังคมศึกษา ศาสนา และวัฒนธรรม</option>
+        <option value="สุขศึกษาและพลศึกษา">สุขศึกษาและพลศึกษา</option>
+        <option value="ศิลปะ">ศิลปะ</option>
+        <option value="การงานอาชีพ">การงานอาชีพ</option>
+        <option value="ภาษาต่างประเทศ">ภาษาต่างประเทศ</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <span class="label-in-form">โหลดข้อมูล</span>
+      <button id="signerReloadBtn" class="btn-secondary" type="button" style="width:100%;">
+        โหลดรายชื่อ
+      </button>
+    </div>
+
+    <div class="field">
+      <span class="label-in-form">สร้างรายการตั้งต้น</span>
+      <button id="signerSeedBtn" class="btn-primary" type="button" style="width:100%;">
+        สร้าง/เติมรายการตั้งต้น
+      </button>
+    </div>
+
+    <div class="field">
+      <span class="label-in-form">บันทึก</span>
+      <button id="signerSaveAllBtn" class="btn-success" type="button" style="width:100%;">
+        บันทึกทั้งหมด
+      </button>
+    </div>
+  </div>
+
+  <div class="grade-manage-active-filter">
+    <div class="grade-manage-filter-left">
+      <div class="grade-manage-pill">
+        จำนวนรายการ:
+        <span id="signerVisibleCount" style="margin-left:6px;">0</span>
+      </div>
+      <div class="grade-manage-pill">
+        สถานะ:
+        <span id="signerStatusLabel" style="margin-left:6px;">ยังไม่ได้โหลดข้อมูล</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="signerStatus" class="status info">
+    เลือกปีการศึกษา ภาคเรียน และกลุ่มสาระ แล้วกดโหลดรายชื่อ
+  </div>
+
+  <div class="table-wrap">
+    <table class="report-signer-table">
+      <thead>
+        <tr>
+          <th>ลำดับ</th>
+          <th>ตำแหน่ง</th>
+          <th>กลุ่มสาระ</th>
+          <th>ชื่อ-สกุลผู้อนุมัติ/ผู้ลงนาม</th>
+          <th>สถานะ</th>
+        </tr>
+      </thead>
+      <tbody id="signerTbody">
+        <tr class="filter-empty-row">
+          <td colspan="5">
+            <div class="filter-empty-state">
+              <div class="filter-empty-card">
+                <div class="filter-empty-icon">✍️</div>
+                <div class="filter-empty-title">ยังไม่ได้โหลดรายชื่อผู้อนุมัติ</div>
+                <div class="filter-empty-text">
+                  กรุณาเลือกปีการศึกษา ภาคเรียน และกลุ่มสาระ แล้วกดโหลดรายชื่อ
+                </div>
+                <div class="filter-empty-hint">ใช้สำหรับรายงานผลการเรียน</div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
      </section>
 
       <section id="pageGradeManage" class="card hidden">
@@ -4322,6 +4545,75 @@ body.app-booting #appView{
     'ภาษาต่างประเทศ'
   ];
 
+    const REPORT_SIGNER_DEFAULTS = [
+  {
+    learning_area: 'ALL',
+    position_key: 'SCHOOL_DIRECTOR',
+    position_title: 'ผู้อำนวยการโรงเรียน',
+    sort_order: 1
+  },
+  {
+    learning_area: 'ALL',
+    position_key: 'ACADEMIC_HEAD',
+    position_title: 'หัวหน้างานฝ่ายบริหารงานวิชาการ',
+    sort_order: 2
+  },
+  {
+    learning_area: 'ALL',
+    position_key: 'EVALUATION_HEAD',
+    position_title: 'หัวหน้างานวัดผล',
+    sort_order: 3
+  },
+  {
+    learning_area: 'ภาษาไทย',
+    position_key: 'AREA_HEAD_THAI',
+    position_title: 'ประธานกลุ่มสาระการเรียนรู้',
+    sort_order: 4
+  },
+  {
+    learning_area: 'คณิตศาสตร์',
+    position_key: 'AREA_HEAD_MATH',
+    position_title: 'ประธานกลุ่มสาระการเรียนรู้',
+    sort_order: 5
+  },
+  {
+    learning_area: 'วิทยาศาสตร์และเทคโนโลยี',
+    position_key: 'AREA_HEAD_SCIENCE',
+    position_title: 'ประธานกลุ่มสาระการเรียนรู้',
+    sort_order: 6
+  },
+  {
+    learning_area: 'สังคมศึกษา ศาสนา และวัฒนธรรม',
+    position_key: 'AREA_HEAD_SOCIAL',
+    position_title: 'ประธานกลุ่มสาระการเรียนรู้',
+    sort_order: 7
+  },
+  {
+    learning_area: 'สุขศึกษาและพลศึกษา',
+    position_key: 'AREA_HEAD_HEALTH',
+    position_title: 'ประธานกลุ่มสาระการเรียนรู้',
+    sort_order: 8
+  },
+  {
+    learning_area: 'ศิลปะ',
+    position_key: 'AREA_HEAD_ART',
+    position_title: 'ประธานกลุ่มสาระการเรียนรู้',
+    sort_order: 9
+  },
+  {
+    learning_area: 'การงานอาชีพ',
+    position_key: 'AREA_HEAD_CAREER',
+    position_title: 'ประธานกลุ่มสาระการเรียนรู้',
+    sort_order: 10
+  },
+  {
+    learning_area: 'ภาษาต่างประเทศ',
+    position_key: 'AREA_HEAD_FOREIGN',
+    position_title: 'ประธานกลุ่มสาระการเรียนรู้',
+    sort_order: 11
+  }
+];
+
   const state = {
     allSubjects: [],
     subjects: [],
@@ -4379,6 +4671,8 @@ transferRows: [],
 transferValidatedRows: [],
 transferPendingDuplicateRows: [],
 transferPendingPayloadRows: []
+reportSubPage: 'tracking',
+reportSignerRows: [],
   };
 
   function setStatus(id, text, type = 'info'){
@@ -6476,6 +6770,319 @@ async function checkEmptysecImportDuplicatesOnPreview(){
     el('studentSubCrudBtn').className = isCrud ? 'student-sub-btn active' : 'student-sub-btn';
     el('studentSubImportBtn').className = isImport ? 'student-sub-btn active' : 'student-sub-btn';
   }
+
+    function setReportSubPage(page){
+  state.reportSubPage = page;
+
+  const isTracking = page === 'tracking';
+  const isSigner = page === 'signer';
+
+  if(el('reportSubTrackingPage')){
+    el('reportSubTrackingPage').classList.toggle('hidden', !isTracking);
+  }
+
+  if(el('reportSubSignerPage')){
+    el('reportSubSignerPage').classList.toggle('hidden', !isSigner);
+  }
+
+  if(el('reportSubTrackingBtn')){
+    el('reportSubTrackingBtn').className = isTracking
+      ? 'teacher-sub-btn active'
+      : 'teacher-sub-btn';
+  }
+
+  if(el('reportSubSignerBtn')){
+    el('reportSubSignerBtn').className = isSigner
+      ? 'teacher-sub-btn active'
+      : 'teacher-sub-btn';
+  }
+}
+
+    function getSignerFilterValues(){
+  return {
+    academicYear: safeNumber(el('signerFilterYear')?.value, null),
+    term: safeNumber(el('signerFilterTerm')?.value, null),
+    learningArea: String(el('signerFilterLearningArea')?.value || 'ALL').trim()
+  };
+}
+
+function renderSignerRows(){
+  const tbody = el('signerTbody');
+  const rows = state.reportSignerRows || [];
+
+  if(el('signerVisibleCount')){
+    el('signerVisibleCount').textContent = String(rows.length);
+  }
+
+  if(!tbody) return;
+
+  if(!rows.length){
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="small">
+          ไม่พบรายการผู้อนุมัติ กรุณากด “สร้าง/เติมรายการตั้งต้น”
+        </td>
+      </tr>
+    `;
+
+    if(el('signerStatusLabel')){
+      el('signerStatusLabel').textContent = 'ไม่พบข้อมูล';
+    }
+
+    return;
+  }
+
+  tbody.innerHTML = rows.map(row => {
+    const activeValue = row.is_active === false ? 'false' : 'true';
+
+    return `
+      <tr class="${row.is_active === false ? 'signer-row-inactive' : ''}">
+        <td>
+          <span class="signer-sort-box">${escapeHtml(String(row.sort_order || '-'))}</span>
+        </td>
+
+        <td>
+          <div class="signer-position-main">
+            ${escapeHtml(row.position_title || '-')}
+          </div>
+          <div class="signer-position-key">
+            ${escapeHtml(row.position_key || '-')}
+          </div>
+        </td>
+
+        <td>
+          <span class="signer-area-pill">
+            ${escapeHtml(row.learning_area || '-')}
+          </span>
+        </td>
+
+        <td>
+          <input
+            class="signer-name-input"
+            data-signer-id="${escapeHtml(row.id || '')}"
+            data-signer-key="${escapeHtml(row.position_key || '')}"
+            value="${escapeHtml(row.person_name || '')}"
+            placeholder="กรอกชื่อ-สกุล"
+          >
+        </td>
+
+        <td>
+          <select
+            class="signer-status-select"
+            data-signer-active="${escapeHtml(row.id || '')}"
+            data-signer-key="${escapeHtml(row.position_key || '')}"
+          >
+            <option value="true" ${activeValue === 'true' ? 'selected' : ''}>ใช้งาน</option>
+            <option value="false" ${activeValue === 'false' ? 'selected' : ''}>ปิดใช้งาน</option>
+          </select>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  bindSignerRowInputs();
+
+  if(el('signerStatusLabel')){
+    el('signerStatusLabel').textContent = `แสดง ${rows.length} รายการ`;
+  }
+}
+
+function bindSignerRowInputs(){
+  document.querySelectorAll('[data-signer-id]').forEach(input => {
+    input.addEventListener('input', () => {
+      const key = input.dataset.signerKey;
+      const row = (state.reportSignerRows || []).find(r =>
+        String(r.position_key) === String(key)
+      );
+
+      if(row){
+        row.person_name = input.value;
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-signer-active]').forEach(select => {
+    select.addEventListener('change', () => {
+      const key = select.dataset.signerKey;
+      const row = (state.reportSignerRows || []).find(r =>
+        String(r.position_key) === String(key)
+      );
+
+      if(row){
+        row.is_active = String(select.value) === 'true';
+      }
+
+      renderSignerRows();
+    });
+  });
+}
+
+async function loadReportSigners(){
+  try{
+    const filters = getSignerFilterValues();
+
+    if(!filters.academicYear || !filters.term){
+      setStatus('signerStatus', 'กรุณาเลือกปีการศึกษาและภาคเรียน', 'warning');
+      return;
+    }
+
+    setStatus('signerStatus', 'กำลังโหลดรายชื่อผู้อนุมัติ...', 'info');
+
+    let query = supabaseClient
+      .from('academic_report_signers')
+      .select(`
+        id,
+        academic_year,
+        term,
+        learning_area,
+        position_key,
+        position_title,
+        person_name,
+        sort_order,
+        is_active,
+        created_at,
+        updated_at
+      `)
+      .eq('academic_year', filters.academicYear)
+      .eq('term', filters.term)
+      .order('sort_order', { ascending:true });
+
+    if(filters.learningArea === 'ALL'){
+      query = query.eq('learning_area', 'ALL');
+    }else{
+      query = query.in('learning_area', ['ALL', filters.learningArea]);
+    }
+
+    const { data, error } = await query;
+
+    if(error) throw error;
+
+    state.reportSignerRows = data || [];
+    renderSignerRows();
+
+    setStatus(
+      'signerStatus',
+      state.reportSignerRows.length
+        ? `โหลดรายชื่อผู้อนุมัติแล้ว ${state.reportSignerRows.length} รายการ`
+        : 'ไม่พบรายการผู้อนุมัติ กรุณากดสร้าง/เติมรายการตั้งต้น',
+      state.reportSignerRows.length ? 'success' : 'warning'
+    );
+  }catch(err){
+    state.reportSignerRows = [];
+    renderSignerRows();
+
+    setStatus(
+      'signerStatus',
+      err.message || 'โหลดรายชื่อผู้อนุมัติไม่สำเร็จ',
+      'error'
+    );
+
+    showToast(
+      'โหลดไม่สำเร็จ',
+      err.message || 'เกิดข้อผิดพลาด',
+      'error'
+    );
+  }
+}
+
+async function seedReportSigners(){
+  try{
+    const filters = getSignerFilterValues();
+
+    if(!filters.academicYear || !filters.term){
+      setStatus('signerStatus', 'กรุณาเลือกปีการศึกษาและภาคเรียนก่อน', 'warning');
+      return;
+    }
+
+    setStatus('signerStatus', 'กำลังสร้าง/เติมรายการตั้งต้น...', 'info');
+
+    const payload = REPORT_SIGNER_DEFAULTS.map(item => ({
+      academic_year: filters.academicYear,
+      term: filters.term,
+      learning_area: item.learning_area,
+      position_key: item.position_key,
+      position_title: item.position_title,
+      person_name: '',
+      sort_order: item.sort_order,
+      is_active: true
+    }));
+
+    const { error } = await supabaseClient
+      .from('academic_report_signers')
+      .upsert(payload, {
+        onConflict: 'academic_year,term,learning_area,position_key'
+      });
+
+    if(error) throw error;
+
+    await loadReportSigners();
+
+    setStatus('signerStatus', 'สร้าง/เติมรายการตั้งต้นเรียบร้อยแล้ว', 'success');
+    showToast('สำเร็จ', 'สร้าง/เติมรายการผู้อนุมัติผลการเรียนแล้ว', 'success');
+  }catch(err){
+    setStatus(
+      'signerStatus',
+      err.message || 'สร้างรายการตั้งต้นไม่สำเร็จ',
+      'error'
+    );
+
+    showToast(
+      'ไม่สำเร็จ',
+      err.message || 'เกิดข้อผิดพลาด',
+      'error'
+    );
+  }
+}
+
+async function saveReportSigners(){
+  try{
+    const rows = state.reportSignerRows || [];
+
+    if(!rows.length){
+      setStatus('signerStatus', 'ยังไม่มีรายการสำหรับบันทึก', 'warning');
+      return;
+    }
+
+    setStatus('signerStatus', 'กำลังบันทึกผู้อนุมัติผลการเรียน...', 'info');
+
+    const payload = rows.map(row => ({
+      id: row.id,
+      academic_year: row.academic_year,
+      term: row.term,
+      learning_area: row.learning_area,
+      position_key: row.position_key,
+      position_title: row.position_title,
+      person_name: String(row.person_name || '').trim(),
+      sort_order: row.sort_order,
+      is_active: row.is_active !== false
+    }));
+
+    const { error } = await supabaseClient
+      .from('academic_report_signers')
+      .upsert(payload, {
+        onConflict: 'id'
+      });
+
+    if(error) throw error;
+
+    await loadReportSigners();
+
+    setStatus('signerStatus', 'บันทึกผู้อนุมัติผลการเรียนเรียบร้อยแล้ว', 'success');
+    showToast('บันทึกสำเร็จ', 'บันทึกผู้อนุมัติผลการเรียนเรียบร้อยแล้ว', 'success');
+  }catch(err){
+    setStatus(
+      'signerStatus',
+      err.message || 'บันทึกผู้อนุมัติผลการเรียนไม่สำเร็จ',
+      'error'
+    );
+
+    showToast(
+      'บันทึกไม่สำเร็จ',
+      err.message || 'เกิดข้อผิดพลาด',
+      'error'
+    );
+  }
+}
 
   function getLearningAreaFromCode(code){
     const cleaned = normalizeSubjectCode(code);
@@ -11241,7 +11848,9 @@ async function handleReportSaveImport(){
 
     setTeacherSubPage('teachers');
     setStudentSubPage('crud');
+    setReportSubPage('tracking');
     clearReportPreview();
+    
   }
 
 /* =========================================================
@@ -11900,6 +12509,46 @@ el('adviserEditCancelBtn').addEventListener('click', closeAdviserEditModal);
       state.reportActiveStatFilter = 'all';
       applyReportingFiltersAndRender();
     });
+
+    if(el('reportSubTrackingBtn')){
+  el('reportSubTrackingBtn').addEventListener('click', async () => {
+    setReportSubPage('tracking');
+    await loadReportingRows();
+  });
+}
+
+if(el('reportSubSignerBtn')){
+  el('reportSubSignerBtn').addEventListener('click', async () => {
+    setReportSubPage('signer');
+
+    if(!(state.reportSignerRows || []).length){
+      await loadReportSigners();
+    }
+  });
+}
+
+if(el('signerReloadBtn')){
+  el('signerReloadBtn').addEventListener('click', loadReportSigners);
+}
+
+if(el('signerSeedBtn')){
+  el('signerSeedBtn').addEventListener('click', seedReportSigners);
+}
+
+if(el('signerSaveAllBtn')){
+  el('signerSaveAllBtn').addEventListener('click', saveReportSigners);
+}
+
+['signerFilterYear','signerFilterTerm','signerFilterLearningArea'].forEach(id => {
+  const node = el(id);
+  if(!node) return;
+
+  node.addEventListener('change', async () => {
+    state.reportSignerRows = [];
+    renderSignerRows();
+    await loadReportSigners();
+  });
+});
 
     el('reportReloadBtn').addEventListener('click', async () => {
       await loadReportingRows();
