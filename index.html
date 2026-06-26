@@ -1948,7 +1948,39 @@ body.app-booting #appView{
   border-color:var(--primary);
   box-shadow:0 0 0 4px rgba(37,99,235,.12);
 }
+.signer-prefix-select{
+  width:100%;
+  height:42px;
+  border:1px solid #c8d6e4;
+  border-radius:14px;
+  padding:0 12px;
+  font-family:inherit;
+  font-size:15px;
+  outline:none;
+  background:#fff;
+}
 
+.signer-prefix-select:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 4px rgba(37,99,235,.12);
+}
+
+.report-signer-table th:nth-child(4){
+  width:170px;
+}
+
+.report-signer-table th:nth-child(5){
+  width:320px;
+}
+
+.report-signer-table th:nth-child(6){
+  width:120px;
+  text-align:center;
+}
+
+.report-signer-table td:nth-child(6){
+  text-align:center;
+}
 
 
 </style>
@@ -2783,13 +2815,14 @@ body.app-booting #appView{
           <th>ลำดับ</th>
           <th>ตำแหน่ง</th>
           <th>กลุ่มสาระ</th>
+          <th>คำนำหน้านาม</th>
           <th>ชื่อ-สกุลผู้อนุมัติ/ผู้ลงนาม</th>
           <th>สถานะ</th>
         </tr>
       </thead>
       <tbody id="signerTbody">
         <tr class="filter-empty-row">
-          <td colspan="5">
+          <td colspan="6">
             <div class="filter-empty-state">
               <div class="filter-empty-card">
                 <div class="filter-empty-icon">✍️</div>
@@ -6915,9 +6948,29 @@ function renderSignerRows(){
         </td>
 
         <td>
-<select class="signer-teacher-select" data-signer-id="${escapeHtml(row.id || '')}" data-signer-key="${escapeHtml(row.position_key || '')}">
-  ${getSignerTeacherOptionsHtml(row.person_name || '')}
-</select>
+<td>
+  <select
+    class="signer-prefix-select"
+    data-signer-prefix="${escapeHtml(row.position_key || '')}"
+  >
+    <option value="">-</option>
+    <option value="นาย" ${row.person_prefix === 'นาย' ? 'selected' : ''}>นาย</option>
+    <option value="นาง" ${row.person_prefix === 'นาง' ? 'selected' : ''}>นาง</option>
+    <option value="นางสาว" ${row.person_prefix === 'นางสาว' ? 'selected' : ''}>นางสาว</option>
+    <option value="ว่าที่ร้อยตรี" ${row.person_prefix === 'ว่าที่ร้อยตรี' ? 'selected' : ''}>ว่าที่ร้อยตรี</option>
+    <option value="ดร." ${row.person_prefix === 'ดร.' ? 'selected' : ''}>ดร.</option>
+  </select>
+</td>
+
+<td>
+  <select
+    class="signer-teacher-select"
+    data-signer-id="${escapeHtml(row.id || '')}"
+    data-signer-key="${escapeHtml(row.position_key || '')}"
+  >
+    ${getSignerTeacherOptionsHtml(row.person_name || '')}
+  </select>
+</td>
         </td>
 
         <td>
@@ -6969,6 +7022,19 @@ function bindSignerRowInputs(){
       renderSignerRows();
     });
   });
+  document.querySelectorAll('[data-signer-prefix]').forEach(select => {
+  select.addEventListener('change', () => {
+    const key = select.dataset.signerPrefix;
+
+    const row = (state.reportSignerRows || []).find(r =>
+      String(r.position_key) === String(key)
+    );
+
+    if(row){
+      row.person_prefix = select.value;
+    }
+  });
+});
 }
 
 async function loadReportSigners(){
@@ -6984,13 +7050,14 @@ async function loadReportSigners(){
 
     let query = supabaseClient
       .from('academic_report_signers')
-     .select(`
+.select(`
   id,
   academic_year,
   term,
   learning_area,
   position_key,
   position_title,
+  person_prefix,
   person_name,
   sort_order,
   is_active
@@ -7052,6 +7119,7 @@ async function seedReportSigners(){
       learning_area: item.learning_area,
       position_key: item.position_key,
       position_title: item.position_title,
+      person_prefix: '',
       person_name: '',
       sort_order: item.sort_order,
       is_active: true
@@ -7102,6 +7170,7 @@ async function saveReportSigners(){
       learning_area: row.learning_area,
       position_key: row.position_key,
       position_title: row.position_title,
+      person_prefix: String(row.person_prefix || '').trim() || null,
       person_name: String(row.person_name || '').trim(),
       sort_order: row.sort_order,
       is_active: row.is_active !== false
