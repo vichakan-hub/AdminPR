@@ -5041,31 +5041,34 @@ function hasGradeManageSearchCriteria(){
 }
 
 
-    async function hashAndUpsertStudent({
-    id = null,
-    sid,
-    raw_full_name,
-    entry_academic_year,
-    entry_level,
-    current_room,
-    current_no,
-    is_active = true,
-    plain_password = null
-  }){
-    const { data, error } = await supabaseClient.rpc('upsert_student_with_password', {
-      p_id: id,
-      p_sid: sid,
-      p_raw_full_name: raw_full_name,
-      p_entry_academic_year: entry_academic_year,
-      p_entry_level: entry_level,
-      p_current_room: current_room,
-      p_current_no: current_no,
-      p_is_active: is_active,
-      p_plain_password: plain_password
-    });
-    if(error) throw error;
-    return data;
-  }
+async function hashAndUpsertStudent({
+  id = null,
+  sid,
+  raw_full_name,
+  entry_academic_year,
+  entry_level,
+  current_room,
+  current_no,
+  is_active = true,
+  plain_password = null,
+  birth_date = null
+}){
+  const { data, error } = await supabaseClient.rpc('upsert_student_with_password', {
+    p_id: id,
+    p_sid: sid,
+    p_raw_full_name: raw_full_name,
+    p_entry_academic_year: entry_academic_year,
+    p_entry_level: entry_level,
+    p_current_room: current_room,
+    p_current_no: current_no,
+    p_is_active: is_active,
+    p_plain_password: plain_password,
+    p_birth_date: birth_date
+  });
+
+  if(error) throw error;
+  return data;
+}
 
   async function bulkHashAndUpsertStudents(rows){
     const { data, error } = await supabaseClient.rpc('bulk_upsert_students_with_password', { p_rows: rows });
@@ -12465,6 +12468,34 @@ function parseThaiBirthDateToISO(value){
   };
 }
 
+async function loadStudentImportExistingMap(){
+  const rows = [];
+  const pageSize = 1000;
+  let from = 0;
+
+  while(true){
+    const { data, error } = await supabaseClient
+      .from('students')
+      .select('id, sid, raw_full_name, current_room, current_no, entry_academic_year, entry_level, birth_date')
+      .range(from, from + pageSize - 1);
+
+    if(error) throw error;
+
+    rows.push(...(data || []));
+
+    if(!data || data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  state.studentImportExistingMap = new Map(
+    rows
+      .filter(s => normalizeStudentSid(s.sid))
+      .map(s => [normalizeStudentSid(s.sid), s])
+  );
+
+  return state.studentImportExistingMap;
+}
+
 function validateStudentImportRows(rawRows){
   const seen = new Set();
 
@@ -12476,6 +12507,12 @@ function validateStudentImportRows(rawRows){
   const entryLevel = String(
     el('studentImportEntryLevelSelect')?.value || 'ม.1'
   ).trim();
+
+  const existingMap = state.studentImportExistingMap || new Map(
+    (state.students || [])
+      .filter(s => normalizeStudentSid(s.sid))
+      .map(s => [normalizeStudentSid(s.sid), s])
+  );
 
   return (rawRows || []).map((row, index) => {
     const sid = normalizeStudentSid(getStudentImportCell(row, [
@@ -12503,14 +12540,14 @@ function validateStudentImportRows(rawRows){
     ]) || '').trim();
 
     const birthDateRaw = getStudentImportCell(row, [
-  'วันเกิด',
-  'วันเดือนปีเกิด',
-  'birth_date',
-  'birthday',
-  'date_of_birth'
-]);
+      'วันเกิด',
+      'วันเดือนปีเกิด',
+      'birth_date',
+      'birthday',
+      'date_of_birth'
+    ]);
 
-const birthDateParsed = parseThaiBirthDateToISO(birthDateRaw);
+    const birthDateParsed = parseThaiBirthDateToISO(birthDateRaw);
 
     const class_from_file = normalizeClassLevelText(getStudentImportCell(row, [
       'ชั้น',
@@ -12534,16 +12571,16 @@ const birthDateParsed = parseThaiBirthDateToISO(birthDateRaw);
 
     const errors = [];
     const warnings = [];
+    const statusMessages = [];
+
+    const existing = sid ? existingMap.get(sid) : null;
+    const isNewStudent = !existing;
 
     if(!sid){
       errors.push('ไม่มีรหัสนักเรียน');
     }else if(!/^\d{5}$/.test(sid)){
       errors.push('รหัสนักเรียนควรเป็นตัวเลข 5 หลัก');
     }
-
-    if(birthDateParsed.error){
-  errors.push(birthDateParsed.error);
-}
 
     if(!raw_full_name){
       errors.push('ไม่มีชื่อ-สกุล');
@@ -12559,8 +12596,16 @@ const birthDateParsed = parseThaiBirthDateToISO(birthDateRaw);
       errors.push('ไม่มีเลขที่');
     }
 
-    if(!plain_password){
-      warnings.push('ไม่มีรหัสผ่าน: ถ้าเป็นนักเรียนใหม่จะบันทึกไม่ได้');
+    if(!entryYear){
+      errors.push('ไม่มีปีการศึกษาแรกเข้า');
+    }
+
+    if(!entryLevel){
+      errors.push('ไม่มีระดับแรกเข้า');
+    }
+
+    if(birthDateParsed.error){
+      errors.push(birthDateParsed.error);
     }
 
     if(class_from_file && class_from_file !== entryLevel){
@@ -12574,12 +12619,20 @@ const birthDateParsed = parseThaiBirthDateToISO(birthDateRaw);
       seen.add(sid);
     }
 
-    const existing = (state.students || []).find(s =>
-      normalizeStudentSid(s.sid) === sid
-    );
+    if(isNewStudent){
+      statusMessages.push('นักเรียนใหม่: จะเพิ่มเข้าระบบ');
 
-    if(existing){
-      warnings.push('พบรหัสนักเรียนนี้ในระบบแล้ว จะอัปเดตข้อมูลเดิม');
+      if(!plain_password){
+        errors.push('นักเรียนใหม่ต้องมีรหัสผ่าน');
+      }
+    }else{
+      statusMessages.push('พบในระบบแล้ว: จะอัปเดตข้อมูลเดิม');
+
+      if(!plain_password){
+        warnings.push('ไม่ได้ใส่รหัสผ่าน: จะไม่เปลี่ยนรหัสผ่านเดิม');
+      }else{
+        warnings.push('มีรหัสผ่านในไฟล์: จะอัปเดตรหัสผ่านใหม่');
+      }
     }
 
     return {
@@ -12596,6 +12649,8 @@ const birthDateParsed = parseThaiBirthDateToISO(birthDateRaw);
       current_no,
       is_active: true,
       existing_id: existing?.id || null,
+      is_new_student: isNewStudent,
+      status_messages: statusMessages,
       errors,
       warnings
     };
@@ -12609,7 +12664,7 @@ function renderStudentImportPreview(){
   if(!tbody) return;
 
   if(!rows.length){
-    tbody.innerHTML = '<tr><td colspan="9" class="small">ยังไม่มีข้อมูล preview</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="small">ยังไม่มีข้อมูล preview</td></tr>';
 
     if(el('studentImportSaveBtn')){
       el('studentImportSaveBtn').disabled = true;
@@ -12621,17 +12676,30 @@ function renderStudentImportPreview(){
   const errorCount = rows.filter(r => r.errors.length).length;
   const warnCount = rows.filter(r => !r.errors.length && r.warnings.length).length;
   const readyCount = rows.filter(r => !r.errors.length).length;
+  const newCount = rows.filter(r => !r.errors.length && r.is_new_student).length;
+  const updateCount = rows.filter(r => !r.errors.length && !r.is_new_student).length;
 
   tbody.innerHTML = rows.map(row => {
-    const statusHtml = row.errors.length
-      ? row.errors.map(msg => `<span class="validation-pill error">${escapeHtml(msg)}</span>`).join('')
-      : row.warnings.length
-        ? row.warnings.map(msg => `<span class="validation-pill warn">${escapeHtml(msg)}</span>`).join('')
-        : '<span class="validation-pill success">พร้อมบันทึก</span>';
+    const statusPills = (row.status_messages || []).map(msg => {
+      const cls = row.is_new_student ? 'warn' : 'success';
+      return `<span class="validation-pill ${cls}">${escapeHtml(msg)}</span>`;
+    }).join('');
+
+    const errorPills = (row.errors || [])
+      .map(msg => `<span class="validation-pill error">${escapeHtml(msg)}</span>`)
+      .join('');
+
+    const warningPills = (row.warnings || [])
+      .map(msg => `<span class="validation-pill warn">${escapeHtml(msg)}</span>`)
+      .join('');
+
+    const okPill = (!row.errors.length && !row.warnings.length && !statusPills)
+      ? '<span class="validation-pill success">พร้อมบันทึก</span>'
+      : '';
 
     const trClass = row.errors.length
       ? 'row-severity-error'
-      : row.warnings.length
+      : row.warnings.length || row.is_new_student
         ? 'row-severity-warn'
         : '';
 
@@ -12648,7 +12716,10 @@ function renderStudentImportPreview(){
         <td>${escapeHtml(String(row.current_no || '-'))}</td>
         <td>
           <div class="validation-pill-wrap">
-            ${statusHtml}
+            ${statusPills}
+            ${errorPills}
+            ${warningPills}
+            ${okPill}
           </div>
         </td>
       </tr>
@@ -12663,17 +12734,23 @@ function renderStudentImportPreview(){
     el('studentImportSummary').textContent =
       errorCount > 0
         ? `ผิดพลาด ${errorCount} รายการ`
-        : warnCount > 0
-          ? `พร้อมบันทึก ${readyCount} รายการ มีคำเตือน ${warnCount} รายการ`
-          : `พร้อมบันทึก ${readyCount} รายการ`;
+        : `เพิ่มใหม่ ${newCount} รายการ | อัปเดต ${updateCount} รายการ`;
   }
 
   if(errorCount){
     setStatus('studentImportStatus', `ตรวจสอบแล้ว พบข้อมูลผิดพลาด ${errorCount} รายการ`, 'error');
-  }else if(warnCount){
-    setStatus('studentImportStatus', `ตรวจสอบแล้ว พร้อมบันทึก ${readyCount} รายการ แต่มีคำเตือน ${warnCount} รายการ`, 'warning');
+  }else if(warnCount || newCount){
+    setStatus(
+      'studentImportStatus',
+      `ตรวจสอบแล้ว พร้อมบันทึก ${readyCount} รายการ | เพิ่มใหม่ ${newCount} | อัปเดต ${updateCount}`,
+      'warning'
+    );
   }else{
-    setStatus('studentImportStatus', `ตรวจสอบแล้ว พร้อมบันทึก ${readyCount} รายการ`, 'success');
+    setStatus(
+      'studentImportStatus',
+      `ตรวจสอบแล้ว พร้อมอัปเดตข้อมูลเดิม ${updateCount} รายการ`,
+      'success'
+    );
   }
 }
 
@@ -12752,6 +12829,87 @@ function handleStudentImportFileChange(event){
   reader.readAsArrayBuffer(file);
 }
 
+async function saveStudentImportRows(){
+  try{
+    const rows = state.studentImportRows || [];
+
+    if(!rows.length){
+      setStatus('studentImportStatus', 'ยังไม่มีข้อมูลสำหรับบันทึก', 'warning');
+      return;
+    }
+
+    const errorRows = rows.filter(r => r.errors.length);
+
+    if(errorRows.length){
+      setStatus('studentImportStatus', `ยังบันทึกไม่ได้ พบข้อมูลผิดพลาด ${errorRows.length} รายการ`, 'error');
+      showToast('ยังบันทึกไม่ได้', 'กรุณาแก้ไขรายการที่ผิดพลาดก่อน', 'warning');
+      return;
+    }
+
+    const newStudentWithoutPassword = rows.filter(r =>
+      r.is_new_student && !String(r.plain_password || '').trim()
+    );
+
+    if(newStudentWithoutPassword.length){
+      setStatus('studentImportStatus', 'พบนักเรียนใหม่ที่ไม่มีรหัสผ่าน กรุณาใส่รหัสผ่านในไฟล์ก่อนบันทึก', 'error');
+      showToast('ยังบันทึกไม่ได้', 'นักเรียนใหม่ต้องมีรหัสผ่าน', 'warning');
+      return;
+    }
+
+    const payloadRows = rows.map(r => ({
+      sid: r.sid,
+      raw_full_name: r.raw_full_name,
+      entry_academic_year: r.entry_academic_year,
+      entry_level: r.entry_level,
+      current_room: r.current_room,
+      current_no: r.current_no,
+      is_active: r.is_active,
+      plain_password: r.plain_password || null,
+      birth_date: r.birth_date || null
+    }));
+
+    const newCount = rows.filter(r => r.is_new_student).length;
+    const updateCount = rows.filter(r => !r.is_new_student).length;
+
+    setStatus(
+      'studentImportStatus',
+      `กำลังบันทึกข้อมูลนักเรียนจากไฟล์... เพิ่มใหม่ ${newCount} | อัปเดต ${updateCount}`,
+      'info'
+    );
+
+    if(el('studentImportSaveBtn')){
+      el('studentImportSaveBtn').disabled = true;
+    }
+
+    await bulkHashAndUpsertStudents(payloadRows);
+
+    await loadStudents();
+    await loadOfferings();
+    await loadReportingRows();
+
+    clearStudentImportPreview();
+
+    setStatus(
+      'studentImportStatus',
+      `บันทึกข้อมูลนักเรียนเรียบร้อยแล้ว ${payloadRows.length} รายการ | เพิ่มใหม่ ${newCount} | อัปเดต ${updateCount}`,
+      'success'
+    );
+
+    showToast(
+      'นำเข้าสำเร็จ',
+      `บันทึกข้อมูลนักเรียน ${payloadRows.length} รายการเรียบร้อยแล้ว`,
+      'success'
+    );
+  }catch(err){
+    if(el('studentImportSaveBtn')){
+      el('studentImportSaveBtn').disabled = false;
+    }
+
+    setStatus('studentImportStatus', err.message || 'บันทึกข้อมูลจากไฟล์ไม่สำเร็จ', 'error');
+    showToast('นำเข้าไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+  }
+}
+
 function bindTeacherButtonFixes(){
   const safeBind = (id, eventName, handler) => {
     const node = el(id);
@@ -12765,15 +12923,16 @@ function bindTeacherButtonFixes(){
 
   safeBind('teacherDownloadTemplateBtn', 'click', downloadTeacherTemplate);
 
-  safeBind('studentDownloadTemplateBtn', 'click', downloadStudentTemplate);
+safeBind('studentDownloadTemplateBtn', 'click', downloadStudentTemplate);
 
-  safeBind('studentChooseFileBtn', 'click', () => {
+safeBind('studentChooseFileBtn', 'click', () => {
   const input = el('studentImportFileInput');
   if(input) input.click();
 });
 
 safeBind('studentImportFileInput', 'change', handleStudentImportFileChange);
 safeBind('studentClearImportBtn', 'click', clearStudentImportPreview);
+safeBind('studentImportSaveBtn', 'click', saveStudentImportRows);
 
   safeBind('teacherChooseFileBtn', 'click', () => {
     const input = el('teacherImportFileInput');
