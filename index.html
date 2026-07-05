@@ -12356,6 +12356,298 @@ function downloadStudentTemplate(){
   }
 }
 
+function getStudentImportCell(row, keys){
+  for(const key of keys){
+    if(Object.prototype.hasOwnProperty.call(row, key)){
+      return row[key];
+    }
+  }
+
+  const normalizedMap = {};
+  Object.keys(row || {}).forEach(k => {
+    normalizedMap[String(k).trim().toLowerCase()] = row[k];
+  });
+
+  for(const key of keys){
+    const nk = String(key).trim().toLowerCase();
+    if(Object.prototype.hasOwnProperty.call(normalizedMap, nk)){
+      return normalizedMap[nk];
+    }
+  }
+
+  return '';
+}
+
+function validateStudentImportRows(rawRows){
+  const seen = new Set();
+
+  const entryYear = safeNumber(
+    el('studentImportEntryYearSelect')?.value,
+    getCurrentThaiAcademicYear()
+  );
+
+  const entryLevel = String(
+    el('studentImportEntryLevelSelect')?.value || 'ม.1'
+  ).trim();
+
+  return (rawRows || []).map((row, index) => {
+    const sid = normalizeStudentSid(getStudentImportCell(row, [
+      'เลขประจำตัว',
+      'เลขประจำตัวนักเรียน',
+      'รหัสนักเรียน',
+      'sid',
+      'student_code'
+    ]));
+
+    const raw_full_name = normalizeName(getStudentImportCell(row, [
+      'ชื่อ-นามสกุล',
+      'ชื่อ-สกุล',
+      'ชื่อสกุล',
+      'ชื่อ',
+      'raw_full_name',
+      'full_name'
+    ]));
+
+    const plain_password = String(getStudentImportCell(row, [
+      'รหัสผ่าน',
+      'password',
+      'Password',
+      'plain_password'
+    ]) || '').trim();
+
+    const class_from_file = normalizeClassLevelText(getStudentImportCell(row, [
+      'ชั้น',
+      'ระดับชั้น',
+      'class',
+      'class_level'
+    ]));
+
+    const current_room = String(getStudentImportCell(row, [
+      'ห้อง',
+      'room',
+      'current_room'
+    ]) || '').trim().replace(/^ห้อง\s*/, '');
+
+    const current_no = safeNumber(getStudentImportCell(row, [
+      'เลขที่',
+      'no',
+      'เลขที่ประจำ',
+      'current_no'
+    ]), null);
+
+    const errors = [];
+    const warnings = [];
+
+    if(!sid){
+      errors.push('ไม่มีรหัสนักเรียน');
+    }else if(!/^\d{5}$/.test(sid)){
+      errors.push('รหัสนักเรียนควรเป็นตัวเลข 5 หลัก');
+    }
+
+    if(!raw_full_name){
+      errors.push('ไม่มีชื่อ-สกุล');
+    }
+
+    if(!current_room){
+      errors.push('ไม่มีห้อง');
+    }else if(!['1','2','3','4','5','6','7','8'].includes(current_room)){
+      warnings.push('ห้องไม่อยู่ในช่วง 1-8 กรุณาตรวจสอบ');
+    }
+
+    if(!current_no){
+      errors.push('ไม่มีเลขที่');
+    }
+
+    if(!plain_password){
+      warnings.push('ไม่มีรหัสผ่าน: ถ้าเป็นนักเรียนใหม่จะบันทึกไม่ได้');
+    }
+
+    if(class_from_file && class_from_file !== entryLevel){
+      warnings.push(`ชั้นในไฟล์เป็น ${class_from_file} แต่เลือกระดับแรกเข้าเป็น ${entryLevel}`);
+    }
+
+    if(sid){
+      if(seen.has(sid)){
+        errors.push('รหัสนักเรียนซ้ำในไฟล์');
+      }
+      seen.add(sid);
+    }
+
+    const existing = (state.students || []).find(s =>
+      normalizeStudentSid(s.sid) === sid
+    );
+
+    if(existing){
+      warnings.push('พบรหัสนักเรียนนี้ในระบบแล้ว จะอัปเดตข้อมูลเดิม');
+    }
+
+    return {
+      row_no: index + 1,
+      sid,
+      raw_full_name,
+      plain_password,
+      class_from_file: class_from_file || '',
+      entry_academic_year: entryYear,
+      entry_level: entryLevel,
+      current_room,
+      current_no,
+      is_active: true,
+      existing_id: existing?.id || null,
+      errors,
+      warnings
+    };
+  });
+}
+
+function renderStudentImportPreview(){
+  const tbody = el('studentImportPreviewTbody');
+  const rows = state.studentImportRows || [];
+
+  if(!tbody) return;
+
+  if(!rows.length){
+    tbody.innerHTML = '<tr><td colspan="9" class="small">ยังไม่มีข้อมูล preview</td></tr>';
+
+    if(el('studentImportSaveBtn')){
+      el('studentImportSaveBtn').disabled = true;
+    }
+
+    return;
+  }
+
+  const errorCount = rows.filter(r => r.errors.length).length;
+  const warnCount = rows.filter(r => !r.errors.length && r.warnings.length).length;
+  const readyCount = rows.filter(r => !r.errors.length).length;
+
+  tbody.innerHTML = rows.map(row => {
+    const statusHtml = row.errors.length
+      ? row.errors.map(msg => `<span class="validation-pill error">${escapeHtml(msg)}</span>`).join('')
+      : row.warnings.length
+        ? row.warnings.map(msg => `<span class="validation-pill warn">${escapeHtml(msg)}</span>`).join('')
+        : '<span class="validation-pill success">พร้อมบันทึก</span>';
+
+    const trClass = row.errors.length
+      ? 'row-severity-error'
+      : row.warnings.length
+        ? 'row-severity-warn'
+        : '';
+
+    return `
+      <tr class="${trClass}">
+        <td class="mono">${escapeHtml(row.sid || '-')}</td>
+        <td>${escapeHtml(row.raw_full_name || '-')}</td>
+        <td>${row.plain_password ? '••••••' : '<span class="small">-</span>'}</td>
+        <td>${escapeHtml(row.class_from_file || '-')}</td>
+        <td>${escapeHtml(String(row.entry_academic_year || '-'))}</td>
+        <td>${escapeHtml(row.entry_level || '-')}</td>
+        <td>${escapeHtml(row.current_room || '-')}</td>
+        <td>${escapeHtml(String(row.current_no || '-'))}</td>
+        <td>
+          <div class="validation-pill-wrap">
+            ${statusHtml}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  if(el('studentImportSaveBtn')){
+    el('studentImportSaveBtn').disabled = errorCount > 0 || readyCount === 0;
+  }
+
+  if(el('studentImportSummary')){
+    el('studentImportSummary').textContent =
+      errorCount > 0
+        ? `ผิดพลาด ${errorCount} รายการ`
+        : warnCount > 0
+          ? `พร้อมบันทึก ${readyCount} รายการ มีคำเตือน ${warnCount} รายการ`
+          : `พร้อมบันทึก ${readyCount} รายการ`;
+  }
+
+  if(errorCount){
+    setStatus('studentImportStatus', `ตรวจสอบแล้ว พบข้อมูลผิดพลาด ${errorCount} รายการ`, 'error');
+  }else if(warnCount){
+    setStatus('studentImportStatus', `ตรวจสอบแล้ว พร้อมบันทึก ${readyCount} รายการ แต่มีคำเตือน ${warnCount} รายการ`, 'warning');
+  }else{
+    setStatus('studentImportStatus', `ตรวจสอบแล้ว พร้อมบันทึก ${readyCount} รายการ`, 'success');
+  }
+}
+
+function clearStudentImportPreview(){
+  state.studentImportRows = [];
+  state.studentImportMeta = null;
+
+  if(el('studentImportFileInput')) el('studentImportFileInput').value = '';
+  if(el('studentImportFileName')) el('studentImportFileName').textContent = '-';
+  if(el('studentImportSheetName')) el('studentImportSheetName').textContent = '-';
+  if(el('studentImportRowCount')) el('studentImportRowCount').textContent = '0';
+  if(el('studentImportSummary')) el('studentImportSummary').textContent = 'ยังไม่มีข้อมูล';
+  if(el('studentImportSaveBtn')) el('studentImportSaveBtn').disabled = true;
+
+  renderStudentImportPreview();
+  setStatus('studentImportStatus', 'ล้างตัวอย่างแล้ว', 'info');
+}
+
+function handleStudentImportFileChange(event){
+  const file = event?.target?.files?.[0];
+
+  if(!file){
+    clearStudentImportPreview();
+    return;
+  }
+
+  setStatus('studentImportStatus', 'กำลังอ่านไฟล์...', 'info');
+
+  const reader = new FileReader();
+
+  reader.onload = (e) => {
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type:'array' });
+      const sheetName = wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+
+      const jsonRows = XLSX.utils.sheet_to_json(ws, {
+        defval: '',
+        raw: false
+      });
+
+      const cleanedRows = jsonRows.filter(row =>
+        Object.values(row).some(v => String(v ?? '').trim() !== '')
+      );
+
+      state.studentImportRows = validateStudentImportRows(cleanedRows);
+      state.studentImportMeta = {
+        file_name: file.name,
+        sheet_name: sheetName,
+        row_count: state.studentImportRows.length
+      };
+
+      if(el('studentImportFileName')) el('studentImportFileName').textContent = file.name;
+      if(el('studentImportSheetName')) el('studentImportSheetName').textContent = sheetName || '-';
+      if(el('studentImportRowCount')) el('studentImportRowCount').textContent = String(state.studentImportRows.length);
+
+      renderStudentImportPreview();
+    }catch(err){
+      state.studentImportRows = [];
+      state.studentImportMeta = null;
+
+      if(el('studentImportSaveBtn')) el('studentImportSaveBtn').disabled = true;
+      if(el('studentImportSummary')) el('studentImportSummary').textContent = 'อ่านไฟล์ไม่สำเร็จ';
+
+      setStatus('studentImportStatus', err.message || 'อ่านไฟล์ไม่สำเร็จ', 'error');
+      showToast('อ่านไฟล์ไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+    }
+  };
+
+  reader.onerror = () => {
+    setStatus('studentImportStatus', 'อ่านไฟล์ไม่สำเร็จ', 'error');
+    showToast('อ่านไฟล์ไม่สำเร็จ', 'ไม่สามารถอ่านไฟล์ที่เลือกได้', 'error');
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
 function bindTeacherButtonFixes(){
   const safeBind = (id, eventName, handler) => {
     const node = el(id);
@@ -12370,6 +12662,14 @@ function bindTeacherButtonFixes(){
   safeBind('teacherDownloadTemplateBtn', 'click', downloadTeacherTemplate);
 
   safeBind('studentDownloadTemplateBtn', 'click', downloadStudentTemplate);
+
+  safeBind('studentChooseFileBtn', 'click', () => {
+  const input = el('studentImportFileInput');
+  if(input) input.click();
+});
+
+safeBind('studentImportFileInput', 'change', handleStudentImportFileChange);
+safeBind('studentClearImportBtn', 'click', clearStudentImportPreview);
 
   safeBind('teacherChooseFileBtn', 'click', () => {
     const input = el('teacherImportFileInput');
