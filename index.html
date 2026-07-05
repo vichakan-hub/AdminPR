@@ -3875,16 +3875,17 @@ body.app-booting #appView{
                   <th>รหัสนักเรียน</th>
                   <th>ชื่อ-สกุล</th>
                   <th>รหัสผ่าน</th>
+                  <th>วันเกิด</th>
                   <th>ชั้นจากไฟล์</th>
                   <th>ปีเข้า</th>
                   <th>แรกเข้า</th>
                   <th>ห้อง</th>
                   <th>เลขที่</th>
                   <th>สถานะตรวจสอบ</th>
-                </tr>
+              </tr>
               </thead>
               <tbody id="studentImportPreviewTbody">
-                <tr><td colspan="9" class="small">ยังไม่มีข้อมูล preview</td></tr>
+                <tr><td colspan="10" class="small">ยังไม่มีข้อมูล preview</td></tr>
               </tbody>
             </table>
           </div>
@@ -4526,7 +4527,15 @@ body.app-booting #appView{
 
   const el = (id) => document.getElementById(id);
 
-  const STUDENT_TEMPLATE_HEADERS = ['เลขประจำตัว','ชื่อ-นามสกุล','รหัสผ่าน','ชั้น','ห้อง','เลขที่'];
+  const STUDENT_TEMPLATE_HEADERS = [
+  'เลขประจำตัว',
+  'ชื่อ-นามสกุล',
+  'รหัสผ่าน',
+  'วันเกิด',
+  'ชั้น',
+  'ห้อง',
+  'เลขที่'
+];
   const TEACHER_TEMPLATE_HEADERS = ['รหัสครู','ชื่อ','นามสกุล','รหัสผ่าน','สถานะ'];
 
   const EMPTYSEC_TEMPLATE_HEADERS = [
@@ -12327,22 +12336,23 @@ function downloadStudentTemplate(){
       'เลขที่'
     ];
 
-    const rows = [
-      headers,
-      ['25001', 'เด็กชายตัวอย่าง ทดสอบ', '123456', 'ม.1', '1', '1'],
-      ['25002', 'เด็กหญิงตัวอย่าง ทดสอบ', '123456', 'ม.1', '1', '2']
-    ];
+const rows = [
+  headers,
+  ['25001', 'เด็กชายตัวอย่าง ทดสอบ', '123456', '15/06/2552', 'ม.1', '1', '1'],
+  ['25002', 'เด็กหญิงตัวอย่าง ทดสอบ', '123456', '22/09/2552', 'ม.1', '1', '2']
+];
 
     const worksheet = XLSX.utils.aoa_to_sheet(rows);
 
-    worksheet['!cols'] = [
-      { wch: 14 },
-      { wch: 28 },
-      { wch: 14 },
-      { wch: 10 },
-      { wch: 10 },
-      { wch: 10 }
-    ];
+worksheet['!cols'] = [
+  { wch: 14 }, // เลขประจำตัว
+  { wch: 28 }, // ชื่อ-นามสกุล
+  { wch: 14 }, // รหัสผ่าน
+  { wch: 14 }, // วันเกิด
+  { wch: 10 }, // ชั้น
+  { wch: 10 }, // ห้อง
+  { wch: 10 }  // เลขที่
+];
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'students_template');
@@ -12376,6 +12386,83 @@ function getStudentImportCell(row, keys){
   }
 
   return '';
+}
+
+function parseThaiBirthDateToISO(value){
+  const raw = String(value ?? '').trim();
+
+  if(!raw){
+    return {
+      iso: null,
+      display: '',
+      error: ''
+    };
+  }
+
+  // รองรับกรณี Excel ส่งมาเป็น Date object
+  if(value instanceof Date && !isNaN(value.getTime())){
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, '0');
+    const d = String(value.getDate()).padStart(2, '0');
+
+    return {
+      iso: `${y}-${m}-${d}`,
+      display: `${d}/${m}/${y + 543}`,
+      error: ''
+    };
+  }
+
+  // รองรับ dd/mm/yyyy หรือ dd-mm-yyyy หรือ dd.mm.yyyy
+  const match = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+
+  if(!match){
+    return {
+      iso: null,
+      display: raw,
+      error: 'รูปแบบวันเกิดต้องเป็น dd/mm/yyyy เช่น 15/06/2552'
+    };
+  }
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  let year = Number(match[3]);
+
+  // ถ้าเป็น พ.ศ. ให้แปลงเป็น ค.ศ.
+  if(year > 2400){
+    year -= 543;
+  }
+
+  if(month < 1 || month > 12){
+    return {
+      iso: null,
+      display: raw,
+      error: 'เดือนในวันเกิดไม่ถูกต้อง'
+    };
+  }
+
+  const date = new Date(year, month - 1, day);
+
+  if(
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ){
+    return {
+      iso: null,
+      display: raw,
+      error: 'วันที่ในวันเกิดไม่ถูกต้อง'
+    };
+  }
+
+  const yyyy = String(year);
+  const mm = String(month).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
+
+  return {
+    iso: `${yyyy}-${mm}-${dd}`,
+    display: `${dd}/${mm}/${year + 543}`,
+    error: ''
+  };
 }
 
 function validateStudentImportRows(rawRows){
@@ -12415,6 +12502,16 @@ function validateStudentImportRows(rawRows){
       'plain_password'
     ]) || '').trim();
 
+    const birthDateRaw = getStudentImportCell(row, [
+  'วันเกิด',
+  'วันเดือนปีเกิด',
+  'birth_date',
+  'birthday',
+  'date_of_birth'
+]);
+
+const birthDateParsed = parseThaiBirthDateToISO(birthDateRaw);
+
     const class_from_file = normalizeClassLevelText(getStudentImportCell(row, [
       'ชั้น',
       'ระดับชั้น',
@@ -12443,6 +12540,10 @@ function validateStudentImportRows(rawRows){
     }else if(!/^\d{5}$/.test(sid)){
       errors.push('รหัสนักเรียนควรเป็นตัวเลข 5 หลัก');
     }
+
+    if(birthDateParsed.error){
+  errors.push(birthDateParsed.error);
+}
 
     if(!raw_full_name){
       errors.push('ไม่มีชื่อ-สกุล');
@@ -12486,6 +12587,8 @@ function validateStudentImportRows(rawRows){
       sid,
       raw_full_name,
       plain_password,
+      birth_date: birthDateParsed.iso,
+      birth_date_display: birthDateParsed.display,
       class_from_file: class_from_file || '',
       entry_academic_year: entryYear,
       entry_level: entryLevel,
@@ -12537,6 +12640,7 @@ function renderStudentImportPreview(){
         <td class="mono">${escapeHtml(row.sid || '-')}</td>
         <td>${escapeHtml(row.raw_full_name || '-')}</td>
         <td>${row.plain_password ? '••••••' : '<span class="small">-</span>'}</td>
+        <td>${escapeHtml(row.birth_date_display || '-')}</td>
         <td>${escapeHtml(row.class_from_file || '-')}</td>
         <td>${escapeHtml(String(row.entry_academic_year || '-'))}</td>
         <td>${escapeHtml(row.entry_level || '-')}</td>
