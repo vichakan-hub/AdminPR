@@ -12316,6 +12316,46 @@ async function saveTeacherImportRows(){
   }
 }
 
+function downloadStudentTemplate(){
+  try{
+    const headers = STUDENT_TEMPLATE_HEADERS || [
+      'เลขประจำตัว',
+      'ชื่อ-นามสกุล',
+      'รหัสผ่าน',
+      'ชั้น',
+      'ห้อง',
+      'เลขที่'
+    ];
+
+    const rows = [
+      headers,
+      ['25001', 'เด็กชายตัวอย่าง ทดสอบ', '123456', 'ม.1', '1', '1'],
+      ['25002', 'เด็กหญิงตัวอย่าง ทดสอบ', '123456', 'ม.1', '1', '2']
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+
+    worksheet['!cols'] = [
+      { wch: 14 },
+      { wch: 28 },
+      { wch: 14 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 }
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'students_template');
+
+    XLSX.writeFile(workbook, 'student_import_template.xlsx');
+
+    setStatus('studentImportStatus', 'ดาวน์โหลด template รายชื่อนักเรียนเรียบร้อยแล้ว', 'success');
+  }catch(err){
+    setStatus('studentImportStatus', err.message || 'ดาวน์โหลด template ไม่สำเร็จ', 'error');
+    showToast('ดาวน์โหลดไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+  }
+}
+
 function bindTeacherButtonFixes(){
   const safeBind = (id, eventName, handler) => {
     const node = el(id);
@@ -12329,6 +12369,8 @@ function bindTeacherButtonFixes(){
 
   safeBind('teacherDownloadTemplateBtn', 'click', downloadTeacherTemplate);
 
+  safeBind('studentDownloadTemplateBtn', 'click', downloadStudentTemplate);
+
   safeBind('teacherChooseFileBtn', 'click', () => {
     const input = el('teacherImportFileInput');
     if(input) input.click();
@@ -12337,6 +12379,7 @@ function bindTeacherButtonFixes(){
   safeBind('teacherImportFileInput', 'change', handleTeacherImportFileChange);
   safeBind('teacherClearImportBtn', 'click', clearTeacherImportPreview);
   safeBind('teacherImportSaveBtn', 'click', saveTeacherImportRows);
+  
 }
 
     document.addEventListener('DOMContentLoaded', async () => {
