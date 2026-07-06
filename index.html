@@ -3769,9 +3769,14 @@ body.app-booting #appView{
               <button id="studentClearSelectionBtn" class="btn-secondary btn-small" type="button">ล้างที่เลือก</button>
               <div id="studentSelectedCountBox" class="student-bulk-count">เลือกแล้ว 0 รายการ</div>
             </div>
-            <div class="actions" style="margin:0;">
-              <button id="studentDeleteSelectedBtn" class="btn-danger" type="button" disabled>ลบรายชื่อที่เลือก</button>
-            </div>
+<div class="actions" style="margin:0;">
+  <button id="studentRenumberRoomBtn" class="btn-warning" type="button">
+    เรียงเลขที่ใหม่ในห้อง
+  </button>
+  <button id="studentDeleteSelectedBtn" class="btn-danger" type="button" disabled>
+    ลบรายชื่อที่เลือก
+  </button>
+</div>
           </div>
 
           <div id="studentListStatus" class="status info">กำลังโหลดรายการนักเรียน...</div>
@@ -4459,6 +4464,36 @@ body.app-booting #appView{
   </div>
 </div>
 
+  <div id="studentRenumberModal" class="modal-backdrop">
+  <div class="modal modal-lg">
+    <h3>ยืนยันการเรียงเลขที่ใหม่</h3>
+    <p id="studentRenumberSummary">-</p>
+
+    <div class="danger-note">
+      ระบบจะเรียงเลขที่ใหม่เฉพาะนักเรียนที่มีสถานะ <strong>เรียนอยู่</strong>
+      โดยเรียง <strong>นักเรียนชายก่อน</strong> แล้วตามด้วย <strong>นักเรียนหญิง</strong>
+      และภายในแต่ละกลุ่มจะเรียงตาม <strong>เลขประจำตัวนักเรียน</strong>
+      ส่วนนักเรียนที่ลาออกจะคงเลขที่เป็น <strong>0</strong>
+    </div>
+
+    <div class="preview-box" style="margin-bottom:14px;max-height:360px;overflow:auto;">
+      <div style="font-weight:700;margin-bottom:8px;">ตัวอย่างเลขที่ใหม่</div>
+      <div id="studentRenumberPreviewBox" class="small">-</div>
+    </div>
+
+    <div class="actions">
+      <button id="studentRenumberConfirmBtn" class="btn-primary" type="button">
+        ยืนยันเรียงเลขที่ใหม่
+      </button>
+      <button id="studentRenumberCancelBtn" class="btn-secondary" type="button">
+        ยกเลิก
+      </button>
+    </div>
+
+    <div id="studentRenumberStatus" class="status info"></div>
+  </div>
+</div>
+
   <div id="reportReplaceOverlay" class="modal-backdrop">
     <div class="modal">
       <h3>ยืนยันการนำเข้าซ้ำ</h3>
@@ -4707,6 +4742,7 @@ body.app-booting #appView{
     selectedStudentIds: [],
     pendingDeleteStudentIds: [],
     pendingResignStudentId: null,
+    pendingRenumberPlan: null,
 
     reportTeachingRowsRaw: [],
     reportTeachingRows: [],
@@ -10306,6 +10342,265 @@ async function confirmStudentResign(){
   }
 }
 
+function getStudentGenderOrder(row){
+  const name = normalizeName(row?.raw_full_name || '').replace(/\s+/g, '');
+
+  // นักเรียนชาย
+  if(
+    name.startsWith('เด็กชาย') ||
+    name.startsWith('ด.ช.') ||
+    name.startsWith('ดช.') ||
+    name.startsWith('นาย')
+  ){
+    return 1;
+  }
+
+  // นักเรียนหญิง
+  if(
+    name.startsWith('เด็กหญิง') ||
+    name.startsWith('ด.ญ.') ||
+    name.startsWith('ดญ.') ||
+    name.startsWith('นางสาว') ||
+    name.startsWith('น.ส.') ||
+    name.startsWith('นส.') ||
+    name.startsWith('นาง')
+  ){
+    return 2;
+  }
+
+  // อ่านคำนำหน้าไม่ได้ ให้ไปท้ายสุด
+  return 9;
+}
+
+function compareStudentSidForRenumber(a, b){
+  const sidA = normalizeStudentSid(a?.sid || '');
+  const sidB = normalizeStudentSid(b?.sid || '');
+
+  const numA = Number(sidA);
+  const numB = Number(sidB);
+
+  if(Number.isFinite(numA) && Number.isFinite(numB)){
+    const diff = numA - numB;
+    if(diff !== 0) return diff;
+  }
+
+  return String(sidA || '').localeCompare(String(sidB || ''), 'th');
+}
+
+function getStudentRenumberTarget(){
+  const classLevel = String(el('studentClassFilter')?.value || '').trim();
+  const room = String(el('studentRoomFilter')?.value || '').trim();
+  const year = getStudentCurrentAcademicYear();
+
+  if(!classLevel || !room){
+    return {
+      ok: false,
+      message: 'กรุณาเลือกระดับชั้นและห้องก่อนเรียงเลขที่ใหม่'
+    };
+  }
+
+  const rows = (state.students || [])
+    .map(row => ({
+      ...row,
+      current_class_level: getExpectedClassLevel(row.entry_academic_year, row.entry_level, year)
+    }))
+    .filter(row => row.current_class_level === classLevel)
+    .filter(row => String(row.current_room || '') === room);
+
+  return {
+    ok: true,
+    classLevel,
+    room,
+    year,
+    rows
+  };
+}
+
+function buildStudentRenumberPlan(){
+  const target = getStudentRenumberTarget();
+
+  if(!target.ok){
+    throw new Error(target.message);
+  }
+
+  const activeRows = target.rows
+    .filter(row => getStudentStatusText(row) !== 'ลาออก')
+    .sort((a, b) => {
+      const genderDiff = getStudentGenderOrder(a) - getStudentGenderOrder(b);
+      if(genderDiff !== 0) return genderDiff;
+
+      return compareStudentSidForRenumber(a, b);
+    });
+
+  const resignedRows = target.rows
+    .filter(row => getStudentStatusText(row) === 'ลาออก')
+    .sort(compareStudentSidForRenumber);
+
+  if(!activeRows.length){
+    throw new Error(`ไม่พบนักเรียนสถานะเรียนอยู่ใน ${target.classLevel} ห้อง ${target.room}`);
+  }
+
+  const updates = activeRows.map((row, index) => ({
+    id: row.id,
+    sid: row.sid,
+    raw_full_name: row.raw_full_name,
+    old_no: Number(row.current_no || 0),
+    new_no: index + 1,
+    gender_order: getStudentGenderOrder(row)
+  }));
+
+  const resignedUpdates = resignedRows.map(row => ({
+    id: row.id,
+    sid: row.sid,
+    raw_full_name: row.raw_full_name,
+    old_no: Number(row.current_no || 0),
+    new_no: 0
+  }));
+
+  return {
+    classLevel: target.classLevel,
+    room: target.room,
+    year: target.year,
+    activeRows,
+    resignedRows,
+    updates,
+    resignedUpdates
+  };
+}
+
+function openStudentRenumberModal(){
+  try{
+    const plan = buildStudentRenumberPlan();
+    state.pendingRenumberPlan = plan;
+
+    if(el('studentRenumberSummary')){
+      el('studentRenumberSummary').textContent =
+        `${plan.classLevel} ห้อง ${plan.room} | เรียนอยู่ ${plan.updates.length} คน | ลาออก ${plan.resignedUpdates.length} คน`;
+    }
+
+    const previewRows = plan.updates.map(item => {
+      const genderLabel =
+        item.gender_order === 1 ? 'ชาย' :
+        item.gender_order === 2 ? 'หญิง' :
+        'ไม่ทราบคำนำหน้า';
+
+      return `
+        <tr>
+          <td style="width:70px;">${escapeHtml(String(item.new_no))}</td>
+          <td style="width:110px;"><span class="mono">${escapeHtml(item.sid || '-')}</span></td>
+          <td>${escapeHtml(item.raw_full_name || '-')}</td>
+          <td style="width:120px;">${escapeHtml(genderLabel)}</td>
+          <td style="width:100px;">เดิม ${escapeHtml(String(item.old_no || '-'))}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const resignedHtml = plan.resignedUpdates.length
+      ? `
+        <div style="font-weight:700;margin:12px 0 6px;color:#d92d20;">
+          นักเรียนลาออกที่จะคงเลขที่ 0
+        </div>
+        <table style="min-width:0;width:100%;">
+          <tbody>
+            ${plan.resignedUpdates.map(item => `
+              <tr>
+                <td style="width:110px;"><span class="mono">${escapeHtml(item.sid || '-')}</span></td>
+                <td>${escapeHtml(item.raw_full_name || '-')}</td>
+                <td style="width:100px;">เลขที่ 0</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `
+      : '';
+
+    if(el('studentRenumberPreviewBox')){
+      el('studentRenumberPreviewBox').innerHTML = `
+        <table style="min-width:0;width:100%;">
+          <thead>
+            <tr>
+              <th>เลขที่ใหม่</th>
+              <th>รหัส</th>
+              <th>ชื่อ-สกุล</th>
+              <th>กลุ่ม</th>
+              <th>เลขที่เดิม</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${previewRows}
+          </tbody>
+        </table>
+        ${resignedHtml}
+      `;
+    }
+
+    setStatus('studentRenumberStatus', 'กรุณาตรวจสอบลำดับก่อนยืนยัน', 'info');
+    el('studentRenumberModal')?.classList.add('show');
+
+  }catch(err){
+    showToast('ยังเรียงเลขที่ไม่ได้', err.message || 'กรุณาตรวจสอบเงื่อนไข', 'warning');
+  }
+}
+
+function closeStudentRenumberModal(){
+  state.pendingRenumberPlan = null;
+  el('studentRenumberModal')?.classList.remove('show');
+  setStatus('studentRenumberStatus', '', 'info');
+}
+
+async function updateStudentCurrentNo(studentId, currentNo){
+  const { error } = await supabaseClient
+    .from('students')
+    .update({
+      current_no: currentNo,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', studentId);
+
+  if(error) throw error;
+}
+
+async function confirmStudentRenumber(){
+  try{
+    const plan = state.pendingRenumberPlan;
+
+    if(!plan || !Array.isArray(plan.updates)){
+      setStatus('studentRenumberStatus', 'ไม่พบข้อมูลสำหรับเรียงเลขที่ใหม่', 'error');
+      return;
+    }
+
+    setStatus(
+      'studentRenumberStatus',
+      `กำลังบันทึกเลขที่ใหม่ ${plan.updates.length} รายการ...`,
+      'info'
+    );
+
+    for(const item of plan.updates){
+      await updateStudentCurrentNo(item.id, item.new_no);
+    }
+
+    for(const item of plan.resignedUpdates || []){
+      if(Number(item.old_no || 0) !== 0){
+        await updateStudentCurrentNo(item.id, 0);
+      }
+    }
+
+    closeStudentRenumberModal();
+    clearSelectedStudents();
+    await loadStudents();
+
+    showToast(
+      'เรียงเลขที่สำเร็จ',
+      `เรียงเลขที่ใหม่ ${plan.classLevel} ห้อง ${plan.room} เรียบร้อยแล้ว`,
+      'success'
+    );
+
+  }catch(err){
+    setStatus('studentRenumberStatus', err.message || 'บันทึกเลขที่ใหม่ไม่สำเร็จ', 'error');
+    showToast('บันทึกไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+  }
+}
+
   function openDeleteStudentsModal(studentIds){
     const rows = (state.students || []).filter(row => (studentIds || []).map(String).includes(String(row.id)));
     if(!rows.length){
@@ -13562,6 +13857,10 @@ el('cancelEditBtn').addEventListener('click', () => {
 
     el('studentResignCancelBtn').addEventListener('click', closeStudentResignModal);
     el('studentResignConfirmBtn').addEventListener('click', confirmStudentResign);
+
+    el('studentRenumberRoomBtn').addEventListener('click', openStudentRenumberModal);
+el('studentRenumberCancelBtn').addEventListener('click', closeStudentRenumberModal);
+el('studentRenumberConfirmBtn').addEventListener('click', confirmStudentRenumber);
 
     el('studentSelectAllBtn').addEventListener('click', () => {
       const ids = getFilteredStudents().map(r => r.id);
