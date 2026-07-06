@@ -739,12 +739,12 @@
     margin-bottom:14px;
   }
 
-  .student-toolbar{
-    display:grid;
-    grid-template-columns:1fr 1fr 1fr 2fr 1fr 1fr;
-    gap:10px 12px;
-    margin-bottom:14px;
-  }
+.student-toolbar{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr 2fr 1fr 1fr 1fr;
+  gap:10px 12px;
+  margin-bottom:14px;
+}
 
   .report-toolbar{
     display:grid;
@@ -3742,9 +3742,17 @@ body.app-booting #appView{
               <input id="studentKeywordFilter" class="std" type="text" placeholder="พิมพ์รหัสนักเรียน / ชื่อ-สกุล">
             </div>
             <div class="field">
-              <span class="label-in-form">สถานะ</span>
+              <span class="label-in-form">สถานะนักเรียน</span>
+              <select id="studentStatusFilter" class="std">
+              <option value="">ทั้งหมด</option>
+              <option value="เรียนอยู่">เรียนอยู่</option>
+              <option value="ลาออก">ลาออก</option>
+              </select>
+            </div>
+            <div class="field">
+              <span class="label-in-form">สถานะบัญชี</span>
               <select id="studentActiveFilter" class="std">
-                <option value="">โปรดเลือก</option>
+                <option value="">ทั้งหมด</option>
                 <option value="true">ใช้งาน</option>
                 <option value="false">ปิดใช้งาน</option>
               </select>
@@ -4973,13 +4981,15 @@ function applyReportRoomValidation(result){
   if(labelNode) labelNode.textContent = 'ยังไม่เลือกเงื่อนไข';
 }
 
-  function hasStudentSearchCriteria(){
-    const keyword = normalizeName(el('studentKeywordFilter')?.value || '');
-    const room = String(el('studentRoomFilter')?.value || '').trim();
-    const isActive = String(el('studentActiveFilter')?.value || '').trim();
-    const classFilter = String(el('studentClassFilter')?.value || '').trim();
-    return !!(keyword || room || isActive || classFilter);
-  }
+function hasStudentSearchCriteria(){
+  const keyword = normalizeName(el('studentKeywordFilter')?.value || '');
+  const room = String(el('studentRoomFilter')?.value || '').trim();
+  const isActive = String(el('studentActiveFilter')?.value || '').trim();
+  const classFilter = String(el('studentClassFilter')?.value || '').trim();
+  const studentStatus = String(el('studentStatusFilter')?.value || '').trim();
+
+  return !!(keyword || room || isActive || classFilter || studentStatus);
+}
 
   function hasSubjectSearchCriteria(){
     const keyword = normalizeName(el('subjectKeywordFilter')?.value || '');
@@ -10404,9 +10414,10 @@ async function saveStudent(){
   function getFilteredStudents(){
     const keyword = normalizeName(el('studentKeywordFilter').value || '').toLowerCase();
     const room = String(el('studentRoomFilter').value || '').trim();
-    const activeText = el('studentActiveFilter').value;
-    const classFilter = String(el('studentClassFilter').value || '').trim();
-    const year = getStudentCurrentAcademicYear();
+const activeText = el('studentActiveFilter').value;
+const classFilter = String(el('studentClassFilter').value || '').trim();
+const studentStatus = String(el('studentStatusFilter')?.value || '').trim();
+const year = getStudentCurrentAcademicYear();
 
     return (state.students || [])
       .map(row => ({
@@ -10415,9 +10426,10 @@ async function saveStudent(){
       }))
       .filter(row => !!row.current_class_level)
       .filter(row => !keyword || [row.sid, row.raw_full_name].join(' ').toLowerCase().includes(keyword))
-      .filter(row => !room || String(row.current_room || '') === room)
-      .filter(row => activeText === '' ? true : String(row.is_active !== false) === activeText)
-      .filter(row => !classFilter || row.current_class_level === classFilter)
+.filter(row => !room || String(row.current_room || '') === room)
+.filter(row => !studentStatus || getStudentStatusText(row) === studentStatus)
+.filter(row => activeText === '' ? true : String(row.is_active !== false) === activeText)
+.filter(row => !classFilter || row.current_class_level === classFilter)
       .sort((a,b) => String(a.sid || '').localeCompare(String(b.sid || ''), 'th'));
   }
 
@@ -13192,8 +13204,8 @@ el('adviserEditCancelBtn').addEventListener('click', closeAdviserEditModal);
     ['adviserKeywordFilter','adviserYearFilter','adviserTermFilter','adviserClassFilter']
       .forEach(id => el(id).addEventListener(id.includes('Keyword') ? 'input' : 'change', renderAdviserRows));
 
-    ['studentKeywordFilter','studentRoomFilter','studentActiveFilter','studentClassFilter']
-      .forEach(id => el(id).addEventListener(id.includes('Keyword') ? 'input' : 'change', renderStudentRows));
+['studentKeywordFilter','studentRoomFilter','studentStatusFilter','studentActiveFilter','studentClassFilter']
+  .forEach(id => el(id).addEventListener(id.includes('Keyword') ? 'input' : 'change', renderStudentRows));
 
     el('studentCurrentAcademicYearFilter').addEventListener('change', () => {
       state.studentCurrentAcademicYear = getStudentCurrentAcademicYear();
