@@ -6681,12 +6681,14 @@ async function checkEmptysecImportDuplicatesOnPreview(){
 function getClassPathByEntryLevel(entryLevel){
   const normalizedEntryLevel = normalizeClassLevelText(entryLevel);
 
-  // ม.ต้น: ม.1 → ม.2 → ม.3 แล้วค้าง ม.3
+  // ม.ต้น: แสดงเฉพาะ ม.1 → ม.2 → ม.3
+  // ถ้าเกินจากนี้ให้ซ่อนจากหน้ารายชื่อนักเรียนปกติ
   if(normalizedEntryLevel === 'ม.1'){
     return ['ม.1','ม.2','ม.3'];
   }
 
-  // ม.ปลาย: ม.4 → ม.5 → ม.6 แล้วค้าง ม.6
+  // ม.ปลาย: แสดงเฉพาะ ม.4 → ม.5 → ม.6
+  // ถ้าเกินจากนี้ให้ซ่อนจากหน้ารายชื่อนักเรียนปกติ
   if(normalizedEntryLevel === 'ม.4'){
     return ['ม.4','ม.5','ม.6'];
   }
@@ -6704,12 +6706,12 @@ function getExpectedClassLevel(entryAcademicYear, entryLevel, selectedAcademicYe
   const diff = chosenYear - entryYear;
   if(diff < 0) return null;
 
-  // ถ้าเกินช่วงชั้น ให้ค้างที่ชั้นสุดท้าย
-  // ม.1 เกิน 3 ปี = ค้าง ม.3
-  // ม.4 เกิน 3 ปี = ค้าง ม.6
-  const index = Math.min(diff, path.length - 1);
+  // ถ้าเกินช่วงชั้นแล้วให้ซ่อน
+  // เช่น เข้า ม.1 ปี 2566:
+  // 2566=ม.1, 2567=ม.2, 2568=ม.3, 2569=null
+  if(diff >= path.length) return null;
 
-  return path[index] || null;
+  return path[diff] || null;
 }
 
   function isStudentInSelectedAcademicYear(entryAcademicYear, entryLevel, selectedAcademicYear){
@@ -13034,17 +13036,42 @@ function getStudentClassAtYear(row, academicYear){
   );
 }
 
+// ใช้เฉพาะตอน import ม.4
+// แม้หน้ารายชื่อนักเรียนจะซ่อนเด็ก ม.3 เก่าแล้ว
+// แต่ระบบยังต้องรู้ว่าเด็กคนนี้เคยจบช่วง ม.ต้น และสามารถดึงเข้า ม.4 ได้
+function getStudentLowerSecondaryClassForPromotion(row, academicYear){
+  if(!row) return null;
+
+  const entryYear = safeNumber(row.entry_academic_year, null);
+  const chosenYear = safeNumber(academicYear, null);
+  const entryLevel = normalizeClassLevelText(row.entry_level);
+
+  if(entryYear === null || chosenYear === null) return null;
+  if(entryLevel !== 'ม.1') return null;
+
+  const diff = chosenYear - entryYear;
+  if(diff < 0) return null;
+
+  if(diff === 0) return 'ม.1';
+  if(diff === 1) return 'ม.2';
+
+  // diff >= 2 ถือว่าเคยถึง ม.3 แล้ว
+  // ใช้เพื่อดึงเข้า ม.4 จากไฟล์ใหม่
+  return 'ม.3';
+}
+
 function shouldPromoteOldM3ToM4(existingStudent, importEntryYear, importEntryLevel){
   if(!existingStudent) return false;
 
   const targetLevel = normalizeClassLevelText(importEntryLevel);
   if(targetLevel !== 'ม.4') return false;
 
-  const oldClassAtImportYear = getStudentClassAtYear(existingStudent, importEntryYear);
+  const oldClassForPromotion = getStudentLowerSecondaryClassForPromotion(
+    existingStudent,
+    importEntryYear
+  );
 
-  // นักเรียนที่เข้า ม.1 เดิม และปีนี้ยังค้างอยู่ ม.3
-  // ถ้ามีชื่อในไฟล์ ม.4 ให้ดึงขึ้น ม.4
-  return oldClassAtImportYear === 'ม.3';
+  return oldClassForPromotion === 'ม.3';
 }
 
 function validateStudentImportRows(rawRows){
@@ -13214,7 +13241,11 @@ if(isNewStudent){
       is_active: true,
       existing_id: existing?.id || null,
       is_new_student: isNewStudent,
-      existing_class_level: existing ? getStudentClassAtYear(existing, entryYear) : '',
+      existing_class_level: willPromoteOldM3ToM4
+  ? 'ม.3 เดิม'
+  : existing
+    ? (getStudentClassAtYear(existing, entryYear) || '-')
+    : '',
       import_mode: isNewStudent ? 'new' : willPromoteOldM3ToM4 ? 'promote_m3_to_m4' : 'update',
       status_messages: statusMessages,
       errors,
