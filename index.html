@@ -13239,9 +13239,9 @@ function renderStudentImportPreview(){
     return;
   }
 
-  const errorCount = rows.filter(r => r.errors.length).length;
-  const warnCount = rows.filter(r => !r.errors.length && r.warnings.length).length;
-  const readyCount = rows.filter(r => !r.errors.length).length;
+const errorCount = rows.filter(r => r.errors.length).length;
+const warnCount = rows.filter(r => r.warnings.length).length;
+const readyCount = rows.filter(r => !r.errors.length).length;
 const newCount = rows.filter(r => !r.errors.length && r.import_mode === 'new').length;
 const promoteM4Count = rows.filter(r => !r.errors.length && r.import_mode === 'promote_m3_to_m4').length;
 const updateCount = rows.filter(r => !r.errors.length && r.import_mode === 'update').length;
@@ -13297,28 +13297,31 @@ const updateCount = rows.filter(r => !r.errors.length && r.import_mode === 'upda
     el('studentImportSaveBtn').disabled = errorCount > 0 || readyCount === 0;
   }
 
-  if(el('studentImportSummary')){
-    el('studentImportSummary').textContent =
-      errorCount > 0
-        ? `ผิดพลาด ${errorCount} รายการ`
-        `เพิ่มใหม่ ${newCount} รายการ | ดึง ม.3 เข้า ม.4 ${promoteM4Count} รายการ | อัปเดต ${updateCount} รายการ`;
-  }
+if(el('studentImportSummary')){
+  el('studentImportSummary').textContent =
+    errorCount > 0
+      ? `ผิดพลาด ${errorCount} รายการ`
+      : `เพิ่มใหม่ ${newCount} รายการ | ดึง ม.3 เข้า ม.4 ${promoteM4Count} รายการ | อัปเดต ${updateCount} รายการ`;
+}
 
-  if(errorCount){
-    setStatus('studentImportStatus', `ตรวจสอบแล้ว พบข้อมูลผิดพลาด ${errorCount} รายการ`, 'error');
-  }else if(warnCount || newCount){
-    setStatus(
-      'studentImportStatus',
-      `ตรวจสอบแล้ว พร้อมบันทึก ${readyCount} รายการ | เพิ่มใหม่ ${newCount} | ดึง ม.3 เข้า ม.4 ${promoteM4Count} | อัปเดต ${updateCount}`
-      'warning'
-    );
-  }else{
-    setStatus(
-      'studentImportStatus',
-     `ตรวจสอบแล้ว พร้อมบันทึก ${readyCount} รายการ | ดึง ม.3 เข้า ม.4 ${promoteM4Count} | อัปเดต ${updateCount}`
-      'success'
-    );
-  }
+if(errorCount){
+  setStatus(
+    'studentImportStatus',
+    `ตรวจสอบแล้ว พบข้อมูลผิดพลาด ${errorCount} รายการ`,
+    'error'
+  );
+}else if(warnCount || newCount || promoteM4Count){
+  setStatus(
+    'studentImportStatus',
+    `ตรวจสอบแล้ว พร้อมบันทึก ${readyCount} รายการ | เพิ่มใหม่ ${newCount} | ดึง ม.3 เข้า ม.4 ${promoteM4Count} | อัปเดต ${updateCount}`,
+    'warning'
+  );
+}else{
+  setStatus(
+    'studentImportStatus',
+    `ตรวจสอบแล้ว พร้อมอัปเดตข้อมูลเดิม ${updateCount} รายการ`,
+    'success'
+  );
 }
 
 function clearStudentImportPreview(){
@@ -13439,11 +13442,11 @@ const newCount = rows.filter(r => r.import_mode === 'new').length;
 const promoteM4Count = rows.filter(r => r.import_mode === 'promote_m3_to_m4').length;
 const updateCount = rows.filter(r => r.import_mode === 'update').length;
 
-    setStatus(
-      'studentImportStatus',
-     `กำลังบันทึกข้อมูลนักเรียนจากไฟล์... เพิ่มใหม่ ${newCount} | ดึง ม.3 เข้า ม.4 ${promoteM4Count} | อัปเดต ${updateCount}`
-      'info'
-    );
+setStatus(
+  'studentImportStatus',
+  `กำลังบันทึกข้อมูลนักเรียนจากไฟล์... เพิ่มใหม่ ${newCount} | ดึง ม.3 เข้า ม.4 ${promoteM4Count} | อัปเดต ${updateCount}`,
+  'info'
+);
 
     if(el('studentImportSaveBtn')){
       el('studentImportSaveBtn').disabled = true;
