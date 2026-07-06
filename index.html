@@ -4429,6 +4429,36 @@ body.app-booting #appView{
     </div>
   </div>
 
+  <div id="studentResignModal" class="modal-backdrop">
+  <div class="modal">
+    <h3>ยืนยันการบันทึกนักเรียนลาออก</h3>
+    <p id="studentResignSummary">-</p>
+
+    <div class="danger-note">
+      การดำเนินการนี้จะไม่ลบข้อมูลนักเรียนออกจากระบบ<br>
+      แต่จะเปลี่ยน <strong>สถานะนักเรียน</strong> เป็น <strong>ลาออก</strong>
+      และเปลี่ยน <strong>สถานะบัญชี</strong> เป็น <strong>ปิดใช้งาน</strong>
+      เพื่อไม่ให้นักเรียนเข้าสู่ระบบได้
+    </div>
+
+    <div class="preview-box" style="margin-bottom:14px;">
+      <div style="font-weight:700;margin-bottom:8px;">รายละเอียดที่จะอัปเดต</div>
+      <div id="studentResignDetailBox" class="small">-</div>
+    </div>
+
+    <div class="actions">
+      <button id="studentResignConfirmBtn" class="btn-danger" type="button">
+        ยืนยันลาออก
+      </button>
+      <button id="studentResignCancelBtn" class="btn-secondary" type="button">
+        ยกเลิก
+      </button>
+    </div>
+
+    <div id="studentResignStatus" class="status info"></div>
+  </div>
+</div>
+
   <div id="reportReplaceOverlay" class="modal-backdrop">
     <div class="modal">
       <h3>ยืนยันการนำเข้าซ้ำ</h3>
@@ -4676,6 +4706,7 @@ body.app-booting #appView{
     studentCurrentAcademicYear: null,
     selectedStudentIds: [],
     pendingDeleteStudentIds: [],
+    pendingResignStudentId: null,
 
     reportTeachingRowsRaw: [],
     reportTeachingRows: [],
@@ -10161,6 +10192,119 @@ async function saveStudent(){
     setStatus('studentEditStatus', '', 'info');
   }
 
+    function getTodayIsoDateLocal(){
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function openStudentResignModal(studentId){
+  const row = (state.students || []).find(s => String(s.id) === String(studentId));
+
+  if(!row){
+    showToast('ไม่พบนักเรียน', 'ไม่พบข้อมูลนักเรียนที่ต้องการบันทึกลาออก', 'error');
+    return;
+  }
+
+  const currentStatus = getStudentStatusText(row);
+
+  if(currentStatus === 'ลาออก'){
+    showToast('ดำเนินการแล้ว', 'นักเรียนคนนี้มีสถานะลาออกอยู่แล้ว', 'warning');
+    return;
+  }
+
+  state.pendingResignStudentId = row.id;
+
+  const resignDate = getTodayIsoDateLocal();
+
+  if(el('studentResignSummary')){
+    el('studentResignSummary').textContent =
+      `${row.sid || '-'} ${row.raw_full_name || '-'}`;
+  }
+
+  if(el('studentResignDetailBox')){
+    el('studentResignDetailBox').innerHTML = `
+      <div>รหัสนักเรียน: <strong>${escapeHtml(row.sid || '-')}</strong></div>
+      <div>ชื่อ-สกุล: <strong>${escapeHtml(row.raw_full_name || '-')}</strong></div>
+      <div>ชั้นปัจจุบัน: <strong>${escapeHtml(row.current_class_level || '-')}</strong></div>
+      <div>ห้อง/เลขที่: <strong>ห้อง ${escapeHtml(row.current_room || '-')} เลขที่ ${escapeHtml(String(row.current_no || '-'))}</strong></div>
+      <div>สถานะนักเรียนเดิม: <strong>${escapeHtml(currentStatus)}</strong></div>
+      <div>สถานะนักเรียนใหม่: <strong>ลาออก</strong></div>
+      <div>สถานะบัญชีใหม่: <strong>ปิดใช้งาน</strong></div>
+      <div>วันที่ลาออก: <strong>${escapeHtml(resignDate)}</strong></div>
+    `;
+  }
+
+  setStatus('studentResignStatus', 'กรุณาตรวจสอบข้อมูลก่อนยืนยัน', 'info');
+
+  if(el('studentResignModal')){
+    el('studentResignModal').classList.add('show');
+  }
+}
+
+function closeStudentResignModal(){
+  state.pendingResignStudentId = null;
+
+  if(el('studentResignModal')){
+    el('studentResignModal').classList.remove('show');
+  }
+
+  setStatus('studentResignStatus', '', 'info');
+}
+
+async function resignStudentById(studentId){
+  const id = String(studentId || '').trim();
+
+  if(!id){
+    throw new Error('ไม่พบรหัสรายการนักเรียนที่ต้องการบันทึกลาออก');
+  }
+
+  const { error } = await supabaseClient
+    .from('students')
+    .update({
+      student_status: 'ลาออก',
+      is_active: false,
+      resigned_date: getTodayIsoDateLocal(),
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id);
+
+  if(error) throw error;
+
+  return true;
+}
+
+async function confirmStudentResign(){
+  try{
+    const studentId = state.pendingResignStudentId;
+
+    if(!studentId){
+      setStatus('studentResignStatus', 'ไม่พบรายการที่ต้องการบันทึกลาออก', 'error');
+      return;
+    }
+
+    setStatus('studentResignStatus', 'กำลังบันทึกสถานะลาออก...', 'info');
+
+    await resignStudentById(studentId);
+
+    closeStudentResignModal();
+
+    state.selectedStudentIds = (state.selectedStudentIds || [])
+      .filter(id => String(id) !== String(studentId));
+
+    await loadStudents();
+
+    showToast(
+      'บันทึกสำเร็จ',
+      'เปลี่ยนสถานะนักเรียนเป็นลาออก และปิดใช้งานบัญชีแล้ว',
+      'success'
+    );
+  }catch(err){
+    setStatus('studentResignStatus', err.message || 'บันทึกสถานะลาออกไม่สำเร็จ', 'error');
+    showToast('บันทึกไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+  }
+}
+
   function openDeleteStudentsModal(studentIds){
     const rows = (state.students || []).filter(row => (studentIds || []).map(String).includes(String(row.id)));
     if(!rows.length){
@@ -10485,10 +10629,21 @@ function getStudentStatusBadgeHtml(row){
           <td>${row.is_active !== false ? '<span class="badge green">ใช้งาน</span>' : '<span class="badge red">ปิดใช้งาน</span>'}</td>
           <td>${escapeHtml(formatDateTime(row.last_login_at))}</td>
         <td>
-          <div class="row-actions">
-            <button class="btn-secondary btn-small" data-student-edit="${row.id}">แก้ไข</button>
-            <button class="btn-danger btn-small" data-student-delete="${row.id}">ลบ</button>
-          </div>
+<div class="row-actions">
+  <button class="btn-secondary btn-small" data-student-edit="${escapeHtml(row.id)}">
+    แก้ไข
+  </button>
+
+  <button class="btn-danger btn-small" data-student-delete="${escapeHtml(row.id)}">
+    ลบ
+  </button>
+
+  ${
+    getStudentStatusText(row) === 'ลาออก'
+      ? `<button class="btn-secondary btn-small" type="button" disabled>ลาออกแล้ว</button>`
+      : `<button class="btn-warning btn-small" type="button" data-student-resign="${escapeHtml(row.id)}">ลาออก</button>`
+  }
+</div>
         </td>
       </tr>
     `).join('');
@@ -10507,6 +10662,12 @@ function getStudentStatusBadgeHtml(row){
     tbody.querySelectorAll('[data-student-delete]').forEach(btn => {
       btn.addEventListener('click', () => openDeleteStudentsModal([btn.dataset.studentDelete]));
     });
+
+    tbody.querySelectorAll('[data-student-resign]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    openStudentResignModal(btn.dataset.studentResign);
+  });
+});
 
     syncStudentRowCheckboxes();
     refreshStudentStats();
@@ -13373,6 +13534,9 @@ el('cancelEditBtn').addEventListener('click', () => {
 
 
     el('studentDeleteCancelBtn').addEventListener('click', closeDeleteStudentsModal);
+
+    el('studentResignCancelBtn').addEventListener('click', closeStudentResignModal);
+    el('studentResignConfirmBtn').addEventListener('click', confirmStudentResign);
 
     el('studentSelectAllBtn').addEventListener('click', () => {
       const ids = getFilteredStudents().map(r => r.id);
