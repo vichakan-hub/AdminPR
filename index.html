@@ -10264,6 +10264,7 @@ async function resignStudentById(studentId){
     .update({
       student_status: 'ลาออก',
       is_active: false,
+      current_no: 0,
       resigned_date: getTodayIsoDateLocal(),
       updated_at: new Date().toISOString()
     })
