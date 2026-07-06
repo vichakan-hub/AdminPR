@@ -6678,22 +6678,39 @@ async function checkEmptysecImportDuplicatesOnPreview(){
     return null;
   }
 
-  function getClassPathByEntryLevel(entryLevel){
-    const normalizedEntryLevel = normalizeClassLevelText(entryLevel);
-    if(normalizedEntryLevel === 'ม.1') return ['ม.1','ม.2','ม.3','ม.4','ม.5','ม.6'];
-    if(normalizedEntryLevel === 'ม.4') return ['ม.4','ม.5','ม.6'];
-    return [];
+function getClassPathByEntryLevel(entryLevel){
+  const normalizedEntryLevel = normalizeClassLevelText(entryLevel);
+
+  // ม.ต้น: ม.1 → ม.2 → ม.3 แล้วค้าง ม.3
+  if(normalizedEntryLevel === 'ม.1'){
+    return ['ม.1','ม.2','ม.3'];
   }
 
-  function getExpectedClassLevel(entryAcademicYear, entryLevel, selectedAcademicYear){
-    const entryYear = safeNumber(entryAcademicYear, null);
-    const chosenYear = safeNumber(selectedAcademicYear, null);
-    const path = getClassPathByEntryLevel(entryLevel);
-    if(entryYear === null || chosenYear === null || !path.length) return null;
-    const diff = chosenYear - entryYear;
-    if(diff < 0) return null;
-    return path[diff] || null;
+  // ม.ปลาย: ม.4 → ม.5 → ม.6 แล้วค้าง ม.6
+  if(normalizedEntryLevel === 'ม.4'){
+    return ['ม.4','ม.5','ม.6'];
   }
+
+  return [];
+}
+
+function getExpectedClassLevel(entryAcademicYear, entryLevel, selectedAcademicYear){
+  const entryYear = safeNumber(entryAcademicYear, null);
+  const chosenYear = safeNumber(selectedAcademicYear, null);
+  const path = getClassPathByEntryLevel(entryLevel);
+
+  if(entryYear === null || chosenYear === null || !path.length) return null;
+
+  const diff = chosenYear - entryYear;
+  if(diff < 0) return null;
+
+  // ถ้าเกินช่วงชั้น ให้ค้างที่ชั้นสุดท้าย
+  // ม.1 เกิน 3 ปี = ค้าง ม.3
+  // ม.4 เกิน 3 ปี = ค้าง ม.6
+  const index = Math.min(diff, path.length - 1);
+
+  return path[index] || null;
+}
 
   function isStudentInSelectedAcademicYear(entryAcademicYear, entryLevel, selectedAcademicYear){
     return !!getExpectedClassLevel(entryAcademicYear, entryLevel, selectedAcademicYear);
@@ -12983,7 +13000,7 @@ async function loadStudentImportExistingMap(){
   while(true){
     const { data, error } = await supabaseClient
       .from('students')
-      .select('id, sid, raw_full_name, current_room, current_no, entry_academic_year, entry_level, birth_date')
+      .select('id, sid, raw_full_name, current_room, current_no, entry_academic_year, entry_level, birth_date, student_status, is_active, resigned_date')
       .range(from, from + pageSize - 1);
 
     if(error) throw error;
@@ -13001,6 +13018,33 @@ async function loadStudentImportExistingMap(){
   );
 
   return state.studentImportExistingMap;
+}
+
+function isImportingM4(){
+  return normalizeClassLevelText(el('studentImportEntryLevelSelect')?.value || '') === 'ม.4';
+}
+
+function getStudentClassAtYear(row, academicYear){
+  if(!row) return null;
+
+  return getExpectedClassLevel(
+    row.entry_academic_year,
+    row.entry_level,
+    academicYear
+  );
+}
+
+function shouldPromoteOldM3ToM4(existingStudent, importEntryYear, importEntryLevel){
+  if(!existingStudent) return false;
+
+  const targetLevel = normalizeClassLevelText(importEntryLevel);
+  if(targetLevel !== 'ม.4') return false;
+
+  const oldClassAtImportYear = getStudentClassAtYear(existingStudent, importEntryYear);
+
+  // นักเรียนที่เข้า ม.1 เดิม และปีนี้ยังค้างอยู่ ม.3
+  // ถ้ามีชื่อในไฟล์ ม.4 ให้ดึงขึ้น ม.4
+  return oldClassAtImportYear === 'ม.3';
 }
 
 function validateStudentImportRows(rawRows){
@@ -13081,7 +13125,8 @@ function validateStudentImportRows(rawRows){
     const statusMessages = [];
 
     const existing = sid ? existingMap.get(sid) : null;
-    const isNewStudent = !existing;
+const isNewStudent = !existing;
+const willPromoteOldM3ToM4 = shouldPromoteOldM3ToM4(existing, entryYear, entryLevel);
 
     if(!sid){
       errors.push('ไม่มีรหัสนักเรียน');
@@ -13126,21 +13171,33 @@ function validateStudentImportRows(rawRows){
       seen.add(sid);
     }
 
-    if(isNewStudent){
-      statusMessages.push('นักเรียนใหม่: จะเพิ่มเข้าระบบ');
+if(isNewStudent){
+  statusMessages.push('นักเรียนใหม่: จะเพิ่มเข้าระบบ');
 
-      if(!plain_password){
-        errors.push('นักเรียนใหม่ต้องมีรหัสผ่าน');
-      }
-    }else{
-      statusMessages.push('พบในระบบแล้ว: จะอัปเดตข้อมูลเดิม');
+  if(!plain_password){
+    errors.push('นักเรียนใหม่ต้องมีรหัสผ่าน');
+  }
+}else if(willPromoteOldM3ToM4){
+  statusMessages.push('พบ ม.3 เดิม: จะดึงเข้า ม.4 อัตโนมัติ');
 
-      if(!plain_password){
-        warnings.push('ไม่ได้ใส่รหัสผ่าน: จะไม่เปลี่ยนรหัสผ่านเดิม');
-      }else{
-        warnings.push('มีรหัสผ่านในไฟล์: จะอัปเดตรหัสผ่านใหม่');
-      }
-    }
+  if(!plain_password){
+    warnings.push('ไม่ได้ใส่รหัสผ่าน: จะใช้รหัสผ่านเดิม');
+  }else{
+    warnings.push('มีรหัสผ่านในไฟล์: จะอัปเดตรหัสผ่านใหม่');
+  }
+
+  if(String(existing?.student_status || '').trim() === 'ลาออก'){
+    warnings.push('นักเรียนเดิมมีสถานะลาออก: เมื่อนำเข้า ม.4 จะเปิดใช้งานใหม่');
+  }
+}else{
+  statusMessages.push('พบในระบบแล้ว: จะอัปเดตข้อมูลเดิม');
+
+  if(!plain_password){
+    warnings.push('ไม่ได้ใส่รหัสผ่าน: จะไม่เปลี่ยนรหัสผ่านเดิม');
+  }else{
+    warnings.push('มีรหัสผ่านในไฟล์: จะอัปเดตรหัสผ่านใหม่');
+  }
+}
 
     return {
       row_no: index + 1,
@@ -13157,6 +13214,8 @@ function validateStudentImportRows(rawRows){
       is_active: true,
       existing_id: existing?.id || null,
       is_new_student: isNewStudent,
+      existing_class_level: existing ? getStudentClassAtYear(existing, entryYear) : '',
+      import_mode: isNewStudent ? 'new' : willPromoteOldM3ToM4 ? 'promote_m3_to_m4' : 'update',
       status_messages: statusMessages,
       errors,
       warnings
@@ -13183,8 +13242,9 @@ function renderStudentImportPreview(){
   const errorCount = rows.filter(r => r.errors.length).length;
   const warnCount = rows.filter(r => !r.errors.length && r.warnings.length).length;
   const readyCount = rows.filter(r => !r.errors.length).length;
-  const newCount = rows.filter(r => !r.errors.length && r.is_new_student).length;
-  const updateCount = rows.filter(r => !r.errors.length && !r.is_new_student).length;
+const newCount = rows.filter(r => !r.errors.length && r.import_mode === 'new').length;
+const promoteM4Count = rows.filter(r => !r.errors.length && r.import_mode === 'promote_m3_to_m4').length;
+const updateCount = rows.filter(r => !r.errors.length && r.import_mode === 'update').length;
 
   tbody.innerHTML = rows.map(row => {
     const statusPills = (row.status_messages || []).map(msg => {
@@ -13241,7 +13301,7 @@ function renderStudentImportPreview(){
     el('studentImportSummary').textContent =
       errorCount > 0
         ? `ผิดพลาด ${errorCount} รายการ`
-        : `เพิ่มใหม่ ${newCount} รายการ | อัปเดต ${updateCount} รายการ`;
+        เพิ่มใหม่ ${newCount} รายการ | ดึง ม.3 เข้า ม.4 ${promoteM4Count} รายการ | อัปเดต ${updateCount} รายการ`;
   }
 
   if(errorCount){
@@ -13249,13 +13309,13 @@ function renderStudentImportPreview(){
   }else if(warnCount || newCount){
     setStatus(
       'studentImportStatus',
-      `ตรวจสอบแล้ว พร้อมบันทึก ${readyCount} รายการ | เพิ่มใหม่ ${newCount} | อัปเดต ${updateCount}`,
+      `ตรวจสอบแล้ว พร้อมบันทึก ${readyCount} รายการ | เพิ่มใหม่ ${newCount} | ดึง ม.3 เข้า ม.4 ${promoteM4Count} | อัปเดต ${updateCount}`
       'warning'
     );
   }else{
     setStatus(
       'studentImportStatus',
-      `ตรวจสอบแล้ว พร้อมอัปเดตข้อมูลเดิม ${updateCount} รายการ`,
+     `ตรวจสอบแล้ว พร้อมบันทึก ${readyCount} รายการ | ดึง ม.3 เข้า ม.4 ${promoteM4Count} | อัปเดต ${updateCount}`
       'success'
     );
   }
@@ -13375,12 +13435,13 @@ async function saveStudentImportRows(){
       birth_date: r.birth_date || null
     }));
 
-    const newCount = rows.filter(r => r.is_new_student).length;
-    const updateCount = rows.filter(r => !r.is_new_student).length;
+const newCount = rows.filter(r => r.import_mode === 'new').length;
+const promoteM4Count = rows.filter(r => r.import_mode === 'promote_m3_to_m4').length;
+const updateCount = rows.filter(r => r.import_mode === 'update').length;
 
     setStatus(
       'studentImportStatus',
-      `กำลังบันทึกข้อมูลนักเรียนจากไฟล์... เพิ่มใหม่ ${newCount} | อัปเดต ${updateCount}`,
+     `กำลังบันทึกข้อมูลนักเรียนจากไฟล์... เพิ่มใหม่ ${newCount} | ดึง ม.3 เข้า ม.4 ${promoteM4Count} | อัปเดต ${updateCount}`
       'info'
     );
 
@@ -13390,6 +13451,24 @@ async function saveStudentImportRows(){
 
     await bulkHashAndUpsertStudents(payloadRows);
 
+    const importedSids = payloadRows
+  .map(r => normalizeStudentSid(r.sid))
+  .filter(Boolean);
+
+if(importedSids.length){
+  const { error: statusUpdateError } = await supabaseClient
+    .from('students')
+    .update({
+      student_status: 'เรียนอยู่',
+      resigned_date: null,
+      is_active: true,
+      updated_at: new Date().toISOString()
+    })
+    .in('sid', importedSids);
+
+  if(statusUpdateError) throw statusUpdateError;
+}
+
     await loadStudents();
     await loadOfferings();
     await loadReportingRows();
@@ -13398,7 +13477,7 @@ async function saveStudentImportRows(){
 
     setStatus(
       'studentImportStatus',
-      `บันทึกข้อมูลนักเรียนเรียบร้อยแล้ว ${payloadRows.length} รายการ | เพิ่มใหม่ ${newCount} | อัปเดต ${updateCount}`,
+     `บันทึกข้อมูลนักเรียนเรียบร้อยแล้ว ${payloadRows.length} รายการ | เพิ่มใหม่ ${newCount} | ดึง ม.3 เข้า ม.4 ${promoteM4Count} | อัปเดต ${updateCount}`,
       'success'
     );
 
