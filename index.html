@@ -10575,7 +10575,31 @@ const year = getStudentCurrentAcademicYear();
 .filter(row => !studentStatus || getStudentStatusText(row) === studentStatus)
 .filter(row => activeText === '' ? true : String(row.is_active !== false) === activeText)
 .filter(row => !classFilter || row.current_class_level === classFilter)
-      .sort((a,b) => String(a.sid || '').localeCompare(String(b.sid || ''), 'th'));
+      .sort((a, b) => {
+  const classDiff =
+    getClassLevelOrder(a.current_class_level) -
+    getClassLevelOrder(b.current_class_level);
+
+  if(classDiff !== 0) return classDiff;
+
+  const roomDiff =
+    Number(a.current_room || 999) -
+    Number(b.current_room || 999);
+
+  if(roomDiff !== 0) return roomDiff;
+
+  // เลขที่ 0 เช่น นักเรียนลาออก ให้ไปอยู่ท้ายห้อง
+  const noA = Number(a.current_no || 0);
+  const noB = Number(b.current_no || 0);
+
+  const sortNoA = noA <= 0 ? 9999 : noA;
+  const sortNoB = noB <= 0 ? 9999 : noB;
+
+  const noDiff = sortNoA - sortNoB;
+  if(noDiff !== 0) return noDiff;
+
+  return String(a.sid || '').localeCompare(String(b.sid || ''), 'th');
+});
   }
 
   function getStudentStatusText(row){
