@@ -13301,7 +13301,7 @@ const updateCount = rows.filter(r => !r.errors.length && r.import_mode === 'upda
     el('studentImportSummary').textContent =
       errorCount > 0
         ? `ผิดพลาด ${errorCount} รายการ`
-        เพิ่มใหม่ ${newCount} รายการ | ดึง ม.3 เข้า ม.4 ${promoteM4Count} รายการ | อัปเดต ${updateCount} รายการ`;
+        `เพิ่มใหม่ ${newCount} รายการ | ดึง ม.3 เข้า ม.4 ${promoteM4Count} รายการ | อัปเดต ${updateCount} รายการ`;
   }
 
   if(errorCount){
