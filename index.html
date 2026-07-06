@@ -3777,14 +3777,15 @@ body.app-booting #appView{
                   <th>ชั้น</th>
                   <th>ปีเข้า/แรกเข้า</th>
                   <th>ห้อง/เลขที่</th>
-                  <th>สถานะ</th>
+                  <th>สถานะนักเรียน</th>
+                  <th>สถานะบัญชี</th>
                   <th>เข้าใช้ล่าสุด</th>
                   <th>จัดการ</th>
                 </tr>
               </thead>
               <tbody id="studentsTbody">
                 <tr class="filter-empty-row">
-                  <td colspan="8">
+                  <td colspan="9">
                     <div class="filter-empty-state">
                       <div class="filter-empty-card">
                         <div class="filter-empty-icon">🔎</div>
@@ -4920,7 +4921,7 @@ function applyReportRoomValidation(result){
 
   function renderStudentFilterPrompt(message='โปรดค้นหา หรือเลือกตัวกรองก่อน'){
     renderFilterPrompt(
-      'studentsTbody', 8, '🔎',
+      'studentsTbody', 9, '🔎',
       message,
       'ระบบจะแสดงรายการนักเรียนอัตโนมัติทันทีเมื่อคุณพิมพ์คำค้นหา หรือเลือกตัวกรอง เช่น ห้อง สถานะ หรือชั้นเรียน'
     );
@@ -9154,7 +9155,7 @@ populateReportTeacherFilter();
   async function fetchStudentsPage(from, to){
     const { data, error } = await supabaseClient
       .from('students')
-      .select('id, sid, raw_full_name, current_room, current_no, entry_academic_year, entry_level, password_hash, is_active, last_login_at, created_at, updated_at')
+      .select('id, sid, raw_full_name, current_room, current_no, entry_academic_year, entry_level, student_status, resigned_date, password_hash, is_active, last_login_at, created_at, updated_at')
       .order('sid', { ascending:true })
       .range(from, to);
 
@@ -10420,6 +10421,18 @@ async function saveStudent(){
       .sort((a,b) => String(a.sid || '').localeCompare(String(b.sid || ''), 'th'));
   }
 
+  function getStudentStatusText(row){
+  const status = String(row?.student_status || '').trim();
+  return status || 'เรียนอยู่';
+}
+
+function getStudentStatusBadgeHtml(row){
+  const status = getStudentStatusText(row);
+  const cls = status === 'ลาออก' ? 'red' : 'green';
+
+  return `<span class="badge ${cls}">${escapeHtml(status)}</span>`;
+}
+
   function renderStudentRows(){
     if(!hasStudentSearchCriteria()){
       renderStudentFilterPrompt();
@@ -10432,7 +10445,7 @@ async function saveStudent(){
     const tbody = el('studentsTbody');
 
     if(!rows.length){
-      tbody.innerHTML = '<tr><td colspan="8" class="small">ไม่พบรายการนักเรียน</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="small">ไม่พบรายการนักเรียน</td></tr>';
       setStatus('studentListStatus','ไม่พบรายการนักเรียน','warning');
       refreshStudentStats();
       return;
@@ -10456,8 +10469,9 @@ async function saveStudent(){
           <div>ห้อง ${escapeHtml(String(row.current_room || '-'))}</div>
           <div class="small">เลขที่ ${escapeHtml(String(row.current_no ?? '-'))}</div>
         </td>
-        <td>${row.is_active !== false ? '<span class="badge green">ใช้งาน</span>' : '<span class="badge red">ปิดใช้งาน</span>'}</td>
-        <td>${escapeHtml(formatDateTime(row.last_login_at))}</td>
+          <td>${getStudentStatusBadgeHtml(row)}</td>
+          <td>${row.is_active !== false ? '<span class="badge green">ใช้งาน</span>' : '<span class="badge red">ปิดใช้งาน</span>'}</td>
+          <td>${escapeHtml(formatDateTime(row.last_login_at))}</td>
         <td>
           <div class="row-actions">
             <button class="btn-secondary btn-small" data-student-edit="${row.id}">แก้ไข</button>
