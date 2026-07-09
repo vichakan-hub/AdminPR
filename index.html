@@ -8341,6 +8341,9 @@ async function loadTransferExistingResults(){
 
   renderTransferRows();
 
+  // ถ้าโหลดมาเป็นข้อมูลเดิมล้วน ๆ ให้ล็อกปุ่มบันทึกทั้งหมดไว้ก่อน
+  syncTransferSaveButtonByChanges();
+
   if(existingRows.length){
     setStatus(
       'transferStatus',
@@ -8596,10 +8599,19 @@ function updateTransferRow(uid, field, value){
   row.duplicate = null;
 
   state.transferValidatedRows = [];
+  state.transferPendingDuplicateRows = [];
+  state.transferPendingPayloadRows = [];
+
   if(el('transferSaveBtn')) el('transferSaveBtn').disabled = true;
   if(el('transferValidateLabel')) el('transferValidateLabel').textContent = 'ยังไม่ได้ตรวจสอบ';
 
   renderTransferRows();
+
+  // ถ้าเปลี่ยนข้อมูลจากเดิม ให้แสดงว่ามีรายการเปลี่ยนแปลง
+  // แต่ยังล็อกปุ่มบันทึกไว้ก่อน จนกว่าจะกดตรวจสอบรายการ
+  syncTransferSaveButtonByChanges({
+    mode: 'changed_not_validated'
+  });
 }
 
 function parseTransferPasteText(){
@@ -8836,6 +8848,40 @@ function getTransferValidatedSavableRows(){
   return (state.transferValidatedRows || []).filter(row => isTransferRowChanged(row));
 }
 
+function syncTransferSaveButtonByChanges(options = {}){
+  const changedRows = getTransferSavableRows(state.transferRows || []);
+  const saveBtn = el('transferSaveBtn');
+  const labelNode = el('transferValidateLabel');
+
+  if(!changedRows.length){
+    state.transferValidatedRows = [];
+    state.transferPendingDuplicateRows = [];
+    state.transferPendingPayloadRows = [];
+
+    if(saveBtn) saveBtn.disabled = true;
+    if(labelNode) labelNode.textContent = 'ไม่มีรายการเปลี่ยนแปลง';
+
+    return false;
+  }
+
+  if(options.mode === 'changed_not_validated'){
+    state.transferValidatedRows = [];
+    state.transferPendingDuplicateRows = [];
+    state.transferPendingPayloadRows = [];
+
+    if(saveBtn) saveBtn.disabled = true;
+    if(labelNode) labelNode.textContent = `มีการเปลี่ยนแปลง ${changedRows.length} รายการ`;
+
+    setStatus(
+      'transferStatus',
+      'มีการเปลี่ยนแปลงแล้ว กรุณากดตรวจสอบรายการก่อนบันทึก',
+      'warning'
+    );
+  }
+
+  return true;
+}
+
 async function fetchTransferDuplicates(validRows){
   const student = state.transferStudent;
   const year = getTransferAcademicYear();
@@ -8965,15 +9011,17 @@ async function validateTransferRows(){
 
     if(!savableRows.length){
       state.transferValidatedRows = [];
+      state.transferPendingDuplicateRows = [];
+      state.transferPendingPayloadRows = [];
 
       renderTransferRows();
 
       if(el('transferSaveBtn')) el('transferSaveBtn').disabled = true;
-      if(el('transferValidateLabel')) el('transferValidateLabel').textContent = 'ไม่มีรายการใหม่หรือรายการที่แก้ไข';
+      if(el('transferValidateLabel')) el('transferValidateLabel').textContent = 'ไม่มีรายการเปลี่ยนแปลง';
 
       setStatus(
         'transferStatus',
-        'มีข้อมูลเดิมแสดงอยู่ แต่ยังไม่มีรายการใหม่หรือรายการที่แก้ไข จึงยังไม่ต้องบันทึก',
+        'มีข้อมูลเดิมแสดงอยู่ แต่ยังไม่มีรายการที่เปลี่ยนแปลง จึงไม่ต้องบันทึก',
         'warning'
       );
 
@@ -9196,8 +9244,23 @@ async function saveTransferRows(){
     const ok = await validateTransferRows();
     if(!ok) return;
 
+    const changedRows = getTransferValidatedSavableRows();
+
+    if(!changedRows.length){
+      if(el('transferSaveBtn')) el('transferSaveBtn').disabled = true;
+      if(el('transferValidateLabel')) el('transferValidateLabel').textContent = 'ไม่มีรายการเปลี่ยนแปลง';
+
+      setStatus(
+        'transferStatus',
+        'ไม่มีรายการที่เปลี่ยนแปลง จึงไม่ต้องบันทึก',
+        'warning'
+      );
+
+      return;
+    }
+
     const payloadRows = buildTransferPayloadRows();
-    const duplicateRows = getTransferValidatedSavableRows()
+    const duplicateRows = changedRows
       .map(r => r.duplicate)
       .filter(Boolean);
 
