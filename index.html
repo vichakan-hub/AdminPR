@@ -8970,8 +8970,12 @@ async function validateTransferRows(){
 
       if(!next.grade_code){
         next.errors.push('กรุณาเลือกผลการเรียน');
-      }else if(!GRADE_OPTIONS.includes(next.grade_code)){
-        next.errors.push('ผลการเรียนไม่ถูกต้อง');
+      }else{
+        const allowedGrades = ['4','3.5','3','2.5','2','1.5','1','0','ร','มส','ผ','มผ'];
+
+        if(!allowedGrades.includes(next.grade_code)){
+          next.errors.push('ผลการเรียนไม่ถูกต้อง');
+        }
       }
 
       if(next.subject_code){
