@@ -5019,6 +5019,36 @@ function applyReportRoomValidation(result){
     return String(a?.subject_name || '').localeCompare(String(b?.subject_name || ''), 'th');
   }
 
+  function getTransferSubjectForSort(row){
+  return row?.subject || {
+    subject_code: row?.subject_code || '',
+    subject_name: row?.subject_name || row?.duplicate?.subject_name || '',
+    subject_type: row?.subject_type || '',
+    class_level: row?.class_level || getTransferClassLevel() || '',
+    term: row?.term || getTransferTerm() || '',
+    sequence_no: row?.sequence_no || ''
+  };
+}
+
+function compareTransferRows(a, b){
+  const subjectA = getTransferSubjectForSort(a);
+  const subjectB = getTransferSubjectForSort(b);
+
+  const subjectDiff = compareSubjectsCustom(subjectA, subjectB);
+  if(subjectDiff !== 0) return subjectDiff;
+
+  const teacherDiff = normalizeTeacherCode(a?.teacher_code || '')
+    .localeCompare(normalizeTeacherCode(b?.teacher_code || ''), 'th');
+
+  if(teacherDiff !== 0) return teacherDiff;
+
+  return String(a?.uid || '').localeCompare(String(b?.uid || ''), 'th');
+}
+
+function sortTransferRows(rows = []){
+  return [...(rows || [])].sort(compareTransferRows);
+}
+
   function renderFilterPrompt(tbodyId, colspan, icon, title, text){
     const tbody = el(tbodyId);
     if(!tbody) return;
@@ -8827,7 +8857,7 @@ function getTransferValidationHtml(row){
 
 function renderTransferRows(){
   const tbody = el('transferTbody');
-  const rows = state.transferRows || [];
+  const rows = sortTransferRows(state.transferRows || []);
 
   if(el('transferRowCount')) el('transferRowCount').textContent = String(rows.length);
 
