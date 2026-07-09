@@ -8359,7 +8359,9 @@ async function loadTransferExistingResults(){
 
   if(error) throw error;
 
-  const existingRows = (data || []).map(makeExistingTransferRowFromGradeResult);
+  const existingRows = sortTransferRows(
+  (data || []).map(makeExistingTransferRowFromGradeResult)
+);
 
   state.transferRows = existingRows;
   state.transferValidatedRows = [];
