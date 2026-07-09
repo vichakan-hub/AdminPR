@@ -8574,12 +8574,90 @@ function clearTransferRows(){
   setStatus('transferStatus', 'ล้างรายการเทียบโอนแล้ว', 'info');
 }
 
-function removeTransferRow(uid){
+async function removeTransferRow(uid){
+  const row = (state.transferRows || []).find(r => r.uid === uid);
+  if(!row) return;
+
+  if(isTransferExistingRow(row)){
+    const resultId = row.existing_result_id || row.id;
+
+    if(!resultId){
+      showToast('ลบไม่ได้', 'ไม่พบ id ของผลการเรียนเดิม', 'error');
+      return;
+    }
+
+    const subjectText = `${row.subject_code || '-'} | ${row.subject?.subject_name || row.duplicate?.subject_name || '-'}`;
+    const gradeText = row.grade_code || '-';
+    const yearText = getTransferAcademicYear() || '-';
+    const termText = getTransferTerm() || '-';
+
+    const ok = confirm(
+      `ยืนยันลบเกรดวิชานี้ออกจากระบบหรือไม่?\n\n` +
+      `วิชา: ${subjectText}\n` +
+      `ผลการเรียนเดิม: ${gradeText}\n` +
+      `ปี/เทอม: ${yearText}/${termText}\n\n` +
+      `เมื่อลบแล้ว สามารถนำเข้าเกรดวิชานี้ใหม่ได้`
+    );
+
+    if(!ok) return;
+
+    try{
+      setStatus('transferStatus', `กำลังลบเกรด ${row.subject_code || '-'}...`, 'info');
+
+      const { error } = await supabaseClient
+        .from('grade_results')
+        .delete()
+        .eq('id', resultId)
+        .eq('student_code', state.transferStudent?.sid || '')
+        .eq('academic_year', getTransferAcademicYear())
+        .eq('term', getTransferTerm());
+
+      if(error) throw error;
+
+      state.transferValidatedRows = [];
+      state.transferPendingDuplicateRows = [];
+      state.transferPendingPayloadRows = [];
+
+      if(el('transferSaveBtn')) el('transferSaveBtn').disabled = true;
+      if(el('transferValidateLabel')) el('transferValidateLabel').textContent = 'โหลดข้อมูลล่าสุดแล้ว';
+
+      await loadTransferExistingResults();
+
+      setStatus(
+        'transferStatus',
+        `ลบเกรด ${row.subject_code || '-'} เรียบร้อยแล้ว สามารถนำเข้าใหม่ได้`,
+        'success'
+      );
+
+      showToast(
+        'ลบเกรดแล้ว',
+        `ลบเกรดวิชา ${row.subject_code || '-'} เรียบร้อย`,
+        'success'
+      );
+
+      if(hasGradeManageSearchCriteria()){
+        await loadGradeManageRows();
+      }
+    }catch(err){
+      setStatus('transferStatus', err.message || 'ลบเกรดไม่สำเร็จ', 'error');
+      showToast('ลบเกรดไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+    }
+
+    return;
+  }
+
   state.transferRows = (state.transferRows || []).filter(r => r.uid !== uid);
   state.transferValidatedRows = [];
+  state.transferPendingDuplicateRows = [];
+  state.transferPendingPayloadRows = [];
+
   if(el('transferSaveBtn')) el('transferSaveBtn').disabled = true;
   if(el('transferValidateLabel')) el('transferValidateLabel').textContent = 'ยังไม่ได้ตรวจสอบ';
+
   renderTransferRows();
+  syncTransferSaveButtonByChanges({
+    mode: 'changed_not_validated'
+  });
 }
 
 function updateTransferRow(uid, field, value){
@@ -8807,7 +8885,7 @@ function renderTransferRows(){
 
         <td>
           <button class="btn-danger btn-small" type="button" data-transfer-remove="${escapeHtml(row.uid)}">
-            ${isTransferExistingRow(row) ? 'นำออก' : 'ลบ'}
+                        ${isTransferExistingRow(row) ? 'ลบเกรด' : 'ลบ'}
           </button>
         </td>
       </tr>
@@ -8880,6 +8958,63 @@ function syncTransferSaveButtonByChanges(options = {}){
   }
 
   return true;
+}
+
+function getTransferOfferingKeyFromValues(subjectCode, teacherCode, room){
+  return [
+    normalizeSubjectCode(subjectCode || ''),
+    normalizeTeacherCode(teacherCode || ''),
+    String(room || '').trim()
+  ].join('|');
+}
+
+function getTransferOfferingKey(row){
+  const room = String(el('transferRoomInput')?.value || '').trim();
+  return getTransferOfferingKeyFromValues(row.subject_code, row.teacher_code, room);
+}
+
+async function fetchTransferOfferingMap(rows = []){
+  const year = getTransferAcademicYear();
+  const term = getTransferTerm();
+  const classLevel = getTransferClassLevel();
+  const room = String(el('transferRoomInput')?.value || '').trim();
+
+  const resultMap = new Map();
+
+  if(!rows.length || !year || !term || !classLevel || !room){
+    return resultMap;
+  }
+
+  const subjectCodes = [...new Set(
+    rows.map(r => normalizeSubjectCode(r.subject_code)).filter(Boolean)
+  )];
+
+  if(!subjectCodes.length){
+    return resultMap;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('v_subject_offerings')
+    .select('*')
+    .eq('academic_year', year)
+    .eq('term', term)
+    .eq('class_level', classLevel)
+    .eq('room', room)
+    .in('subject_code', subjectCodes);
+
+  if(error) throw error;
+
+  (data || []).forEach(off => {
+    const key = getTransferOfferingKeyFromValues(
+      off.subject_code,
+      off.teacher_code,
+      off.room
+    );
+
+    resultMap.set(key, off);
+  });
+
+  return resultMap;
 }
 
 async function fetchTransferDuplicates(validRows){
@@ -9033,7 +9168,51 @@ async function validateTransferRows(){
     }
 
     const validRows = savableRows.filter(r => !(r.errors || []).length);
-    const duplicates = await fetchTransferDuplicates(validRows);
+
+    const offeringMap = await fetchTransferOfferingMap(validRows);
+
+    state.transferRows = state.transferRows.map(row => {
+      if(!isTransferRowChanged(row)){
+        return row;
+      }
+
+      if((row.errors || []).length){
+        return row;
+      }
+
+      const key = getTransferOfferingKey(row);
+      const matchedOffering = offeringMap.get(key);
+
+      if(!matchedOffering){
+        const yearText = getTransferAcademicYear() || '-';
+        const termText = getTransferTerm() || '-';
+        const classText = getTransferClassLevel() || '-';
+        const roomText = String(el('transferRoomInput')?.value || '').trim() || '-';
+
+        return {
+          ...row,
+          matched_offering: null,
+          errors: [
+            ...(row.errors || []),
+            `ไม่พบรายการลงทะเบียนสอนของวิชา ${row.subject_code || '-'} ครู ${row.teacher_code || '-'} ปี ${yearText} เทอม ${termText} ${classText}/${roomText}`
+          ]
+        };
+      }
+
+      return {
+        ...row,
+        matched_offering: matchedOffering,
+        warnings: [
+          ...(row.warnings || []),
+          `ตรวจพบรายการสอน: ${matchedOffering.subject_code || row.subject_code} | ${matchedOffering.teacher_code || row.teacher_code}`
+        ]
+      };
+    });
+
+    const validRowsAfterOfferingCheck = getTransferSavableRows(state.transferRows)
+      .filter(r => !(r.errors || []).length);
+
+    const duplicates = await fetchTransferDuplicates(validRowsAfterOfferingCheck);
 
     state.transferRows = state.transferRows.map(row => {
       if(!isTransferRowChanged(row)){
