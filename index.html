@@ -3304,6 +3304,13 @@ body.app-booting #appView{
         >
           บันทึกสถานะรายการที่เลือก
         </button>
+         <button
+    id="repeatGradeCopyYearBtn"
+    class="btn-warning"
+    type="button"
+  >
+    📦 ย้ายผลการเรียนไปปีใหม่
+  </button>
       </div>
     </div>
 
@@ -5150,6 +5157,190 @@ body.app-booting #appView{
   </div>
 </div>
 
+  <!-- =========================================================
+     คัดลอกผลการเรียนไปปีการศึกษาใหม่
+     ========================================================= -->
+<div id="gradeYearCopyModal" class="modal-backdrop">
+  <div class="modal modal-lg">
+
+    <h3>📦 ย้ายผลการเรียนไปปีใหม่</h3>
+
+    <p>
+      คัดลอกผลการเรียนทั้งภาคเรียนที่ 1 และ 2
+      ไปยังปีการศึกษาใหม่ โดยไม่แก้ไขผลต้นทาง
+    </p>
+
+    <div
+      style="
+        display:grid;
+        grid-template-columns:1.4fr 1fr 1fr;
+        gap:12px;
+        margin-bottom:12px;
+      "
+    >
+      <div class="field">
+        <span class="label-in-form">เลขประจำตัวนักเรียน</span>
+        <input
+          id="gradeYearCopyStudentCode"
+          class="std"
+          type="text"
+          placeholder="เช่น 24957"
+        >
+      </div>
+
+      <div class="field">
+        <span class="label-in-form">ปีต้นทาง</span>
+        <input
+          id="gradeYearCopySourceYear"
+          class="std"
+          type="number"
+          min="2500"
+          placeholder="เช่น 2567"
+        >
+      </div>
+
+      <div class="field">
+        <span class="label-in-form">ปีปลายทาง</span>
+        <input
+          id="gradeYearCopyTargetYear"
+          class="std"
+          type="number"
+          min="2500"
+          placeholder="เช่น 2568"
+        >
+      </div>
+
+      <div class="field">
+        <span class="label-in-form">ชั้นต้นทาง</span>
+        <select id="gradeYearCopySourceClass" class="std">
+          <option value="ม.1">ม.1</option>
+          <option value="ม.2">ม.2</option>
+          <option value="ม.3">ม.3</option>
+          <option value="ม.4" selected>ม.4</option>
+          <option value="ม.5">ม.5</option>
+          <option value="ม.6">ม.6</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <span class="label-in-form">ชั้นปลายทาง</span>
+        <select id="gradeYearCopyTargetClass" class="std">
+          <option value="ม.1">ม.1</option>
+          <option value="ม.2">ม.2</option>
+          <option value="ม.3">ม.3</option>
+          <option value="ม.4" selected>ม.4</option>
+          <option value="ม.5">ม.5</option>
+          <option value="ม.6">ม.6</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <span class="label-in-form">การคัดลอก</span>
+        <div class="readonly-box">
+          ภาคเรียน 1 และ 2 ทุกวิชา
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="label-in-form">หมายเหตุ</span>
+      <textarea
+        id="gradeYearCopyNote"
+        class="std"
+        rows="3"
+        placeholder="เหตุผลในการย้ายผลการเรียน"
+      ></textarea>
+    </div>
+
+    <div
+      id="gradeYearCopyStudentInfo"
+      class="teacher-summary-box"
+    >
+      ยังไม่ได้ตรวจสอบข้อมูลนักเรียน
+    </div>
+
+    <div class="preview-meta">
+      <div class="item">
+        <div class="k">ผลต้นทางทั้งหมด</div>
+        <div id="gradeYearCopySourceTotal" class="v">0</div>
+      </div>
+
+      <div class="item">
+        <div class="k">ภาคเรียนที่ 1</div>
+        <div id="gradeYearCopyTerm1Count" class="v">0</div>
+      </div>
+
+      <div class="item">
+        <div class="k">ภาคเรียนที่ 2</div>
+        <div id="gradeYearCopyTerm2Count" class="v">0</div>
+      </div>
+
+      <div class="item">
+        <div class="k">ข้อมูลชนปีปลายทาง</div>
+        <div id="gradeYearCopyConflictCount" class="v">0</div>
+      </div>
+    </div>
+
+    <div class="preview-box" style="margin-bottom:14px;">
+      <div style="font-weight:700;margin-bottom:8px;">
+        รายวิชาที่จะคัดลอก
+      </div>
+
+      <div
+        id="gradeYearCopyPreviewList"
+        class="small"
+        style="max-height:260px;overflow:auto;"
+      >
+        กรุณากดตรวจสอบข้อมูล
+      </div>
+    </div>
+
+    <div class="danger-note">
+      ระบบจะสร้างผลการเรียนชุดใหม่ในปีปลายทาง
+      โดยผลต้นทางจะยังคงอยู่และยังไม่ถูกเปลี่ยนสถานะ
+      <br>
+      หลังตรวจสอบว่าคัดลอกครบแล้ว จึงค่อยใช้เมนู
+      <strong>บันทึกสถานะที่เลือก</strong>
+      เพื่อกำหนดผลเดิมเป็นไม่นำไปคำนวณ
+    </div>
+
+    <div class="actions">
+      <button
+        id="gradeYearCopyPreviewBtn"
+        class="btn-primary"
+        type="button"
+      >
+        🔍 ตรวจสอบข้อมูล
+      </button>
+
+      <button
+        id="gradeYearCopyConfirmBtn"
+        class="btn-success"
+        type="button"
+        disabled
+      >
+        ยืนยันย้ายผลการเรียน
+      </button>
+
+      <button
+        id="gradeYearCopyCancelBtn"
+        class="btn-secondary"
+        type="button"
+      >
+        ปิด
+      </button>
+    </div>
+
+    <div
+      id="gradeYearCopyStatus"
+      class="status info"
+    >
+      กรุณาระบุข้อมูลแล้วกดตรวจสอบ
+    </div>
+
+  </div>
+</div>
+
   <div id="toastWrap" class="toast-wrap"></div>
 
   <script>
@@ -5278,6 +5469,9 @@ body.app-booting #appView{
      emptysecSelectedIds: [],
 
     currentUser: null,
+
+     gradeYearCopyPreview: null,
+     gradeYearCopyBusy: false,
 
     editingId: null,
     subjectEditingId: null,
@@ -9103,6 +9297,581 @@ if(!verifyError && verifyData){
   }
 }
 
+function getRepeatGradeSelectedStudentCode(){
+  const possibleInputIds = [
+    'repeatGradeStudentCodeInput',
+    'repeatStudentCodeInput',
+    'gradeRepeatStudentCodeInput',
+    'repeatGradeStudentCode'
+  ];
+
+  for(const id of possibleInputIds){
+    const value = String(el(id)?.value || '').trim();
+
+    if(value){
+      return normalizeStudentSid(value);
+    }
+  }
+
+  return '';
+}
+
+function resetGradeYearCopyPreview(){
+  state.gradeYearCopyPreview = null;
+
+  if(el('gradeYearCopySourceTotal')){
+    el('gradeYearCopySourceTotal').textContent = '0';
+  }
+
+  if(el('gradeYearCopyTerm1Count')){
+    el('gradeYearCopyTerm1Count').textContent = '0';
+  }
+
+  if(el('gradeYearCopyTerm2Count')){
+    el('gradeYearCopyTerm2Count').textContent = '0';
+  }
+
+  if(el('gradeYearCopyConflictCount')){
+    el('gradeYearCopyConflictCount').textContent = '0';
+  }
+
+  if(el('gradeYearCopyPreviewList')){
+    el('gradeYearCopyPreviewList').textContent =
+      'กรุณากดตรวจสอบข้อมูล';
+  }
+
+  if(el('gradeYearCopyStudentInfo')){
+    el('gradeYearCopyStudentInfo').textContent =
+      'ยังไม่ได้ตรวจสอบข้อมูลนักเรียน';
+  }
+
+  if(el('gradeYearCopyConfirmBtn')){
+    el('gradeYearCopyConfirmBtn').disabled = true;
+  }
+}
+
+function openGradeYearCopyModal(){
+  resetGradeYearCopyPreview();
+
+  const selectedStudentCode =
+    getRepeatGradeSelectedStudentCode();
+
+  if(el('gradeYearCopyStudentCode')){
+    el('gradeYearCopyStudentCode').value =
+      selectedStudentCode || '';
+  }
+
+  if(el('gradeYearCopyNote')){
+    el('gradeYearCopyNote').value =
+      'คัดลอกผลการเรียนไปยังปีการศึกษาใหม่ เพื่อปรับลำดับปีการศึกษาของนักเรียนซ้ำชั้น';
+  }
+
+  setStatus(
+    'gradeYearCopyStatus',
+    'กรุณาระบุปีต้นทางและปีปลายทาง แล้วกดตรวจสอบข้อมูล',
+    'info'
+  );
+
+  el('gradeYearCopyModal')?.classList.add('show');
+}
+
+function closeGradeYearCopyModal(){
+  if(state.gradeYearCopyBusy){
+    return;
+  }
+
+  el('gradeYearCopyModal')?.classList.remove('show');
+  resetGradeYearCopyPreview();
+}
+
+function getGradeYearCopyFormValues(){
+  const studentCode = normalizeStudentSid(
+    el('gradeYearCopyStudentCode')?.value || ''
+  );
+
+  const sourceYear = safeNumber(
+    el('gradeYearCopySourceYear')?.value,
+    null
+  );
+
+  const targetYear = safeNumber(
+    el('gradeYearCopyTargetYear')?.value,
+    null
+  );
+
+  const sourceClass = String(
+    el('gradeYearCopySourceClass')?.value || ''
+  ).trim();
+
+  const targetClass = String(
+    el('gradeYearCopyTargetClass')?.value || ''
+  ).trim();
+
+  const note = String(
+    el('gradeYearCopyNote')?.value || ''
+  ).trim();
+
+  return {
+    studentCode,
+    sourceYear,
+    targetYear,
+    sourceClass,
+    targetClass,
+    note
+  };
+}
+
+function validateGradeYearCopyForm(values){
+  if(!values.studentCode){
+    throw new Error('กรุณาระบุเลขประจำตัวนักเรียน');
+  }
+
+  if(!values.sourceYear){
+    throw new Error('กรุณาระบุปีการศึกษาต้นทาง');
+  }
+
+  if(!values.targetYear){
+    throw new Error('กรุณาระบุปีการศึกษาปลายทาง');
+  }
+
+  if(values.sourceYear === values.targetYear){
+    throw new Error(
+      'ปีต้นทางและปีปลายทางต้องไม่เป็นปีเดียวกัน'
+    );
+  }
+
+  if(!values.sourceClass || !values.targetClass){
+    throw new Error('กรุณาระบุระดับชั้น');
+  }
+}
+
+function renderGradeYearCopyPreview(data){
+  const sourceRows = Array.isArray(data?.source_rows)
+    ? data.source_rows
+    : [];
+
+  if(el('gradeYearCopySourceTotal')){
+    el('gradeYearCopySourceTotal').textContent =
+      Number(data?.source_total || 0).toLocaleString('th-TH');
+  }
+
+  if(el('gradeYearCopyTerm1Count')){
+    el('gradeYearCopyTerm1Count').textContent =
+      Number(data?.source_term1_count || 0)
+        .toLocaleString('th-TH');
+  }
+
+  if(el('gradeYearCopyTerm2Count')){
+    el('gradeYearCopyTerm2Count').textContent =
+      Number(data?.source_term2_count || 0)
+        .toLocaleString('th-TH');
+  }
+
+  if(el('gradeYearCopyConflictCount')){
+    el('gradeYearCopyConflictCount').textContent =
+      Number(data?.target_conflict_count || 0)
+        .toLocaleString('th-TH');
+  }
+
+  if(el('gradeYearCopyStudentInfo')){
+    el('gradeYearCopyStudentInfo').innerHTML = `
+      <div style="font-size:18px;font-weight:800;">
+        ${escapeHtml(data?.student_code || '-')}
+        |
+        ${escapeHtml(data?.student_name || '-')}
+      </div>
+
+      <div class="small" style="margin-top:6px;">
+        ${escapeHtml(data?.source_class_level || '-')}
+        ปี ${escapeHtml(String(data?.source_academic_year || '-'))}
+        →
+        ${escapeHtml(data?.target_class_level || '-')}
+        ปี ${escapeHtml(String(data?.target_academic_year || '-'))}
+      </div>
+    `;
+  }
+
+  if(el('gradeYearCopyPreviewList')){
+    if(!sourceRows.length){
+      el('gradeYearCopyPreviewList').textContent =
+        'ไม่พบรายวิชาต้นทาง';
+    }else{
+      el('gradeYearCopyPreviewList').innerHTML =
+        sourceRows.map((row, index) => `
+          <div
+            style="
+              padding:8px 0;
+              border-bottom:1px solid #e4edf6;
+            "
+          >
+            <strong>
+              ${index + 1}.
+              เทอม ${escapeHtml(String(row.term || '-'))}
+              |
+              ${escapeHtml(row.subject_code || '-')}
+            </strong>
+
+            ${escapeHtml(row.subject_name || '')}
+
+            <span class="badge green" style="margin-left:8px;">
+              ${escapeHtml(
+                row.retest_grade_code ||
+                row.grade_code ||
+                '-'
+              )}
+            </span>
+          </div>
+        `).join('');
+    }
+  }
+
+  if(el('gradeYearCopyConfirmBtn')){
+    el('gradeYearCopyConfirmBtn').disabled =
+      data?.can_copy !== true;
+  }
+
+  setStatus(
+    'gradeYearCopyStatus',
+    data?.message || 'ตรวจสอบข้อมูลเรียบร้อยแล้ว',
+    data?.can_copy === true ? 'success' : 'warning'
+  );
+}
+
+async function previewGradeYearCopy(){
+  if(state.gradeYearCopyBusy){
+    return;
+  }
+
+  const previewBtn = el('gradeYearCopyPreviewBtn');
+
+  try{
+    const values = getGradeYearCopyFormValues();
+
+    validateGradeYearCopyForm(values);
+
+    state.gradeYearCopyBusy = true;
+    state.gradeYearCopyPreview = null;
+
+    if(previewBtn){
+      previewBtn.disabled = true;
+      previewBtn.textContent = 'กำลังตรวจสอบ...';
+    }
+
+    if(el('gradeYearCopyConfirmBtn')){
+      el('gradeYearCopyConfirmBtn').disabled = true;
+    }
+
+    setStatus(
+      'gradeYearCopyStatus',
+      'กำลังตรวจสอบผลการเรียนต้นทางและปีปลายทาง...',
+      'info'
+    );
+
+    const {
+      data,
+      error
+    } = await supabaseClient.rpc(
+      'preview_student_grade_year_copy',
+      {
+        p_student_code: values.studentCode,
+        p_source_academic_year: values.sourceYear,
+        p_target_academic_year: values.targetYear,
+        p_source_class_level: values.sourceClass,
+        p_target_class_level: values.targetClass
+      }
+    );
+
+    if(error){
+      throw error;
+    }
+
+    state.gradeYearCopyPreview = data || null;
+
+    renderGradeYearCopyPreview(data || {});
+
+  }catch(err){
+    state.gradeYearCopyPreview = null;
+
+    if(el('gradeYearCopyConfirmBtn')){
+      el('gradeYearCopyConfirmBtn').disabled = true;
+    }
+
+    setStatus(
+      'gradeYearCopyStatus',
+      err?.message || 'ตรวจสอบข้อมูลไม่สำเร็จ',
+      'error'
+    );
+
+    showToast(
+      'ตรวจสอบไม่สำเร็จ',
+      err?.message || 'เกิดข้อผิดพลาด',
+      'error'
+    );
+
+  }finally{
+    state.gradeYearCopyBusy = false;
+
+    if(previewBtn){
+      previewBtn.disabled = false;
+      previewBtn.textContent = '🔍 ตรวจสอบข้อมูล';
+    }
+  }
+}
+
+async function confirmGradeYearCopy(){
+  if(state.gradeYearCopyBusy){
+    return;
+  }
+
+  const confirmBtn = el('gradeYearCopyConfirmBtn');
+  const previewBtn = el('gradeYearCopyPreviewBtn');
+  const cancelBtn = el('gradeYearCopyCancelBtn');
+
+  try{
+    const values = getGradeYearCopyFormValues();
+
+    validateGradeYearCopyForm(values);
+
+    if(state.gradeYearCopyPreview?.can_copy !== true){
+      throw new Error(
+        'กรุณาตรวจสอบข้อมูลให้ผ่านก่อนย้ายผลการเรียน'
+      );
+    }
+
+    const previewData = state.gradeYearCopyPreview;
+
+    if(
+      String(previewData.student_code) !==
+        String(values.studentCode) ||
+      Number(previewData.source_academic_year) !==
+        Number(values.sourceYear) ||
+      Number(previewData.target_academic_year) !==
+        Number(values.targetYear) ||
+      String(previewData.source_class_level) !==
+        String(values.sourceClass) ||
+      String(previewData.target_class_level) !==
+        String(values.targetClass)
+    ){
+      throw new Error(
+        'ข้อมูลมีการเปลี่ยนแปลง กรุณากดตรวจสอบใหม่'
+      );
+    }
+
+    const changedByCode = normalizeTeacherCode(
+      getGradeManageCurrentUserCode() || ''
+    );
+
+    const changedByName =
+      getGradeManageCurrentUserName() || '';
+
+    if(!changedByCode.startsWith('G')){
+      throw new Error(
+        'อนุญาตให้เจ้าหน้าที่รหัส G ดำเนินการเท่านั้น'
+      );
+    }
+
+    state.gradeYearCopyBusy = true;
+
+    if(confirmBtn){
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'กำลังย้ายผลการเรียน...';
+    }
+
+    if(previewBtn){
+      previewBtn.disabled = true;
+    }
+
+    if(cancelBtn){
+      cancelBtn.disabled = true;
+    }
+
+    setStatus(
+      'gradeYearCopyStatus',
+      'กำลังคัดลอกผลการเรียนทั้งภาคเรียนที่ 1 และ 2...',
+      'info'
+    );
+
+    const {
+      data,
+      error
+    } = await supabaseClient.rpc(
+      'copy_student_grade_year',
+      {
+        p_student_code: values.studentCode,
+        p_source_academic_year: values.sourceYear,
+        p_target_academic_year: values.targetYear,
+        p_source_class_level: values.sourceClass,
+        p_target_class_level: values.targetClass,
+        p_changed_by_code: changedByCode,
+        p_changed_by_name: changedByName || null,
+        p_note: values.note || null
+      }
+    );
+
+    if(error){
+      throw error;
+    }
+
+    const insertedCount = Number(
+      data?.inserted_count || 0
+    );
+
+    state.gradeYearCopyPreview = null;
+
+    setStatus(
+      'gradeYearCopyStatus',
+      `ย้ายผลการเรียนสำเร็จ ${insertedCount.toLocaleString('th-TH')} รายการ`,
+      'success'
+    );
+
+    showToast(
+      'ย้ายผลการเรียนสำเร็จ',
+      `${values.studentCode} | ${values.sourceClass} ปี ${values.sourceYear}`
+      + ` → ${values.targetClass} ปี ${values.targetYear}`
+      + ` | ${insertedCount.toLocaleString('th-TH')} รายการ`,
+      'success'
+    );
+
+    if(el('gradeYearCopyPreviewList')){
+      el('gradeYearCopyPreviewList').innerHTML = `
+        <div class="validation-pill success">
+          คัดลอกสำเร็จ ${insertedCount.toLocaleString('th-TH')} รายการ
+        </div>
+
+        <div style="margin-top:10px;">
+          กรุณาตรวจสอบผลปี ${escapeHtml(String(values.targetYear))}
+          ก่อนเปลี่ยนสถานะผลต้นทาง
+        </div>
+      `;
+    }
+
+  }catch(err){
+    setStatus(
+      'gradeYearCopyStatus',
+      err?.message || 'ย้ายผลการเรียนไม่สำเร็จ',
+      'error'
+    );
+
+    showToast(
+      'ย้ายผลการเรียนไม่สำเร็จ',
+      err?.message || 'เกิดข้อผิดพลาด',
+      'error'
+    );
+
+  }finally{
+    state.gradeYearCopyBusy = false;
+
+    if(confirmBtn){
+      confirmBtn.textContent = 'ยืนยันย้ายผลการเรียน';
+    }
+
+    if(previewBtn){
+      previewBtn.disabled = false;
+    }
+
+    if(cancelBtn){
+      cancelBtn.disabled = false;
+    }
+  }
+}
+
+function invalidateGradeYearCopyPreview(){
+  state.gradeYearCopyPreview = null;
+
+  if(el('gradeYearCopyConfirmBtn')){
+    el('gradeYearCopyConfirmBtn').disabled = true;
+  }
+
+  setStatus(
+    'gradeYearCopyStatus',
+    'ข้อมูลมีการเปลี่ยนแปลง กรุณากดตรวจสอบใหม่',
+    'warning'
+  );
+}
+
+function bindGradeYearCopyEvents(){
+  el('repeatGradeCopyYearBtn')
+    ?.addEventListener(
+      'click',
+      openGradeYearCopyModal
+    );
+
+  el('gradeYearCopyPreviewBtn')
+    ?.addEventListener(
+      'click',
+      previewGradeYearCopy
+    );
+
+  el('gradeYearCopyConfirmBtn')
+    ?.addEventListener(
+      'click',
+      confirmGradeYearCopy
+    );
+
+  el('gradeYearCopyCancelBtn')
+    ?.addEventListener(
+      'click',
+      closeGradeYearCopyModal
+    );
+
+  const changeIds = [
+    'gradeYearCopyStudentCode',
+    'gradeYearCopySourceYear',
+    'gradeYearCopyTargetYear',
+    'gradeYearCopySourceClass',
+    'gradeYearCopyTargetClass'
+  ];
+
+  changeIds.forEach(id => {
+    const node = el(id);
+
+    if(!node){
+      return;
+    }
+
+    node.addEventListener(
+      node.tagName === 'SELECT' ? 'change' : 'input',
+      invalidateGradeYearCopyPreview
+    );
+  });
+
+  el('gradeYearCopySourceClass')
+    ?.addEventListener('change', () => {
+      if(el('gradeYearCopyTargetClass')){
+        el('gradeYearCopyTargetClass').value =
+          el('gradeYearCopySourceClass').value;
+      }
+    });
+
+  el('gradeYearCopySourceYear')
+    ?.addEventListener('change', () => {
+      const sourceYear = safeNumber(
+        el('gradeYearCopySourceYear')?.value,
+        null
+      );
+
+      if(
+        sourceYear &&
+        !String(
+          el('gradeYearCopyTargetYear')?.value || ''
+        ).trim()
+      ){
+        el('gradeYearCopyTargetYear').value =
+          String(sourceYear + 1);
+      }
+    });
+
+  el('gradeYearCopyModal')
+    ?.addEventListener('click', event => {
+      if(
+        event.target === el('gradeYearCopyModal') &&
+        !state.gradeYearCopyBusy
+      ){
+        closeGradeYearCopyModal();
+      }
+    });
+}
+
 function bindGradeManageEvents(){
   const filterIds = [
     'gradeManageGradeTypeFilter',
@@ -9277,6 +10046,7 @@ if(syncStudentModal){
     }
   });
     bindGradeTransferEvents();
+  bindGradeYearCopyEvents();
 }
 
 function initGradeManagePage(){
