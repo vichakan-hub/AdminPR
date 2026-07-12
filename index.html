@@ -7975,6 +7975,26 @@ function getGradeManageCurrentStudent(row){
   }) || null;
 }
 
+function getGradeManageSortNumber(value){
+  const text = String(value ?? '').trim();
+
+  // ไม่มีค่าหรือเลขที่ 0 ให้ไปอยู่ท้ายตาราง
+  if(!text) return Number.MAX_SAFE_INTEGER;
+
+  const number = Number(
+    text.replace(/[^\d.-]/g, '')
+  );
+
+  if(
+    !Number.isFinite(number) ||
+    number <= 0
+  ){
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  return number;
+}
+
 function getGradeManageTeacherById(id){
   return (state.teachers || []).find(t => String(t.id) === String(id));
 }
@@ -8342,8 +8362,67 @@ function getRetestRuleText(originalGrade){
 }
 
 function renderGradeManageRows(){
-  const tbody = el('gradeManageTbody');
-  const rows = state.gradeManageRows || [];
+const tbody = el('gradeManageTbody');
+
+const rows = [
+  ...(state.gradeManageRows || [])
+].sort((a, b) => {
+
+  // ข้อมูลนักเรียนปัจจุบันจากตาราง students
+  const studentA =
+    getGradeManageCurrentStudent(a);
+
+  const studentB =
+    getGradeManageCurrentStudent(b);
+
+  // 1. เรียงตามห้องปัจจุบัน
+  const roomA = getGradeManageSortNumber(
+    studentA?.current_room
+  );
+
+  const roomB = getGradeManageSortNumber(
+    studentB?.current_room
+  );
+
+  if(roomA !== roomB){
+    return roomA - roomB;
+  }
+
+  // 2. เรียงตามเลขที่ปัจจุบัน
+  const noA = getGradeManageSortNumber(
+    studentA?.current_no
+  );
+
+  const noB = getGradeManageSortNumber(
+    studentB?.current_no
+  );
+
+  if(noA !== noB){
+    return noA - noB;
+  }
+
+  // 3. ถ้าเลขที่เท่ากัน ให้เรียงรหัสนักเรียน
+  const studentCodeDiff =
+    normalizeStudentSid(a.student_code)
+      .localeCompare(
+        normalizeStudentSid(b.student_code),
+        'th',
+        {
+          numeric: true,
+          sensitivity: 'base'
+        }
+      );
+
+  if(studentCodeDiff !== 0){
+    return studentCodeDiff;
+  }
+
+  // 4. นักเรียนคนเดียวมีหลายวิชา ให้เรียงรหัสวิชา
+  return compareSubjectCodeCustom(
+    a.subject_code,
+    b.subject_code
+  );
+});
 
   updateGradeManageFilterLabel(rows.length);
 
