@@ -7814,6 +7814,28 @@ function clearGradeManageFilters(){
    Grade Manage: Load / Render / Inline Edit / Save
    ========================================================= */
 
+function getGradeManageCurrentStudent(row){
+  const studentId = String(
+    row?.student_id || ''
+  ).trim();
+
+  const studentCode = normalizeStudentSid(
+    row?.student_code || ''
+  );
+
+  return (state.students || []).find(student => {
+    const sameId =
+      studentId &&
+      String(student.id || '').trim() === studentId;
+
+    const sameCode =
+      studentCode &&
+      normalizeStudentSid(student.sid) === studentCode;
+
+    return sameId || sameCode;
+  }) || null;
+}
+
 function getGradeManageTeacherById(id){
   return (state.teachers || []).find(t => String(t.id) === String(id));
 }
@@ -8194,9 +8216,18 @@ function renderGradeManageRows(){
     return;
   }
 
-  tbody.innerHTML = rows.map(row => {
-    const isEditing = String(state.gradeManageEditingId || '') === String(row.id);
-    const teacher = getGradeManageTeacherText(row);
+tbody.innerHTML = rows.map(row => {
+  const isEditing =
+    String(state.gradeManageEditingId || '') === String(row.id);
+
+  const teacher = getGradeManageTeacherText(row);
+
+  // ดึงข้อมูลปัจจุบันจากตาราง students
+  const currentStudent = getGradeManageCurrentStudent(row);
+
+  // แสดงเฉพาะเลขที่ปัจจุบัน ไม่ใช้ student_no จาก grade_results
+  const currentStudentNo =
+    currentStudent?.current_no ?? '-';
 
     const gradeCell = isEditing
       ? `<select class="grade-manage-edit-select" data-grade-manage-edit-grade="${escapeHtml(row.id)}">
@@ -8232,7 +8263,9 @@ const retestCell = isEditing
       <tr class="${isEditing ? 'grade-manage-row-editing' : ''}">
         <td>
           <div class="mono">${escapeHtml(row.student_code || '-')}</div>
-          <div class="grade-manage-meta">เลขที่ ${escapeHtml(String(row.student_no ?? '-'))}</div>
+          <div class="grade-manage-meta">
+  เลขที่ ${escapeHtml(String(currentStudentNo))}
+</div>
         </td>
 
         <td class="grade-manage-student-cell">
