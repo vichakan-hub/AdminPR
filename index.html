@@ -3260,9 +3260,9 @@ body.app-booting #appView{
 
       <div class="field">
         <span class="label-in-form">เหตุผล</span>
-        <div class="readonly-box">
-          นักเรียนซ้ำชั้น
-        </div>
+<div id="repeatReasonBox" class="readonly-box">
+  นักเรียนซ้ำชั้น
+</div>
       </div>
 
     </div>
@@ -10382,6 +10382,7 @@ function updateRepeatSelectionUi(){
     el('repeatCheckAll').checked = allSelected;
     el('repeatCheckAll').indeterminate = someSelected;
   }
+  updateRepeatTargetStatusUi();
 }
 
 function bindRepeatResultRowChecks(){
@@ -10891,6 +10892,376 @@ function clearRepeatGradeResultSelection(){
 
   renderRepeatGradeResults();
 }
+
+function updateRepeatTargetStatusUi(){
+  const targetStatus = String(
+    el('repeatTargetStatusInput')?.value || ''
+  ).trim();
+
+  const applyBtn = el('repeatApplyStatusBtn');
+  const reasonBox = el('repeatReasonBox');
+
+  if(targetStatus === 'active'){
+    if(reasonBox){
+      reasonBox.textContent =
+        'คืนผลการเรียนกลับมาใช้คำนวณ';
+    }
+
+    if(applyBtn){
+      applyBtn.textContent =
+        'คืนสถานะรายการที่เลือก';
+
+      applyBtn.className =
+        'btn-success';
+    }
+
+    setStatus(
+      'repeatActionStatus',
+      state.repeatSelectedGradeResultIds.length
+        ? 'พร้อมคืนสถานะผลการเรียนที่เลือก'
+        : 'กรุณาเลือกผลการเรียนที่ต้องการคืนสถานะ',
+      'info'
+    );
+
+    return;
+  }
+
+  if(reasonBox){
+    reasonBox.textContent =
+      'ไม่นำไปคำนวณเนื่องจากนักเรียนซ้ำชั้น';
+  }
+
+  if(applyBtn){
+    applyBtn.textContent =
+      'บันทึกสถานะรายการที่เลือก';
+
+    applyBtn.className =
+      'btn-warning';
+  }
+
+  setStatus(
+    'repeatActionStatus',
+    state.repeatSelectedGradeResultIds.length
+      ? 'พร้อมกำหนดผลการเรียนเดิมเป็นไม่นำไปคำนวณ'
+      : 'กรุณาเลือกผลการเรียนเดิมที่ต้องการเปลี่ยนสถานะ',
+    'info'
+  );
+}
+
+async function applyRepeatGradeRecordStatus(){
+  const student = state.repeatStudent;
+
+  const selectedIds = [
+    ...new Set(
+      (state.repeatSelectedGradeResultIds || [])
+        .map(id => String(id).trim())
+        .filter(Boolean)
+    )
+  ];
+
+  const targetStatus = String(
+    el('repeatTargetStatusInput')?.value || ''
+  ).trim();
+
+  const repeatAcademicYear = safeNumber(
+    el('repeatNewAcademicYearInput')?.value,
+    null
+  );
+
+  const repeatClassLevel = String(
+    el('repeatNewClassLevelInput')?.value || ''
+  ).trim();
+
+  const note = String(
+    el('repeatStatusNoteInput')?.value || ''
+  ).trim();
+
+  const currentUser = state.currentUser || {};
+
+  const changedByCode = normalizeTeacherCode(
+    currentUser.teacher_code || ''
+  );
+
+  const changedByName = normalizeName(
+    currentUser.full_name ||
+    [
+      currentUser.first_name,
+      currentUser.last_name
+    ].filter(Boolean).join(' ') ||
+    changedByCode
+  );
+
+  const applyBtn = el('repeatApplyStatusBtn');
+
+  // =========================================================
+  // ตรวจสอบข้อมูลฝั่งหน้าเว็บ
+  // =========================================================
+  if(!student){
+    setStatus(
+      'repeatActionStatus',
+      'กรุณาค้นหานักเรียนก่อน',
+      'error'
+    );
+
+    showToast(
+      'ยังบันทึกไม่ได้',
+      'กรุณาค้นหานักเรียนก่อน',
+      'warning'
+    );
+
+    return;
+  }
+
+  if(!selectedIds.length){
+    setStatus(
+      'repeatActionStatus',
+      'กรุณาเลือกผลการเรียนอย่างน้อย 1 รายการ',
+      'warning'
+    );
+
+    showToast(
+      'ยังไม่ได้เลือกรายการ',
+      'กรุณาเลือกผลการเรียนอย่างน้อย 1 รายการ',
+      'warning'
+    );
+
+    return;
+  }
+
+  if(![
+    'active',
+    'excluded_repeat_grade'
+  ].includes(targetStatus)){
+    setStatus(
+      'repeatActionStatus',
+      'สถานะที่เลือกไม่ถูกต้อง',
+      'error'
+    );
+
+    return;
+  }
+
+  if(!changedByCode || !changedByCode.startsWith('G')){
+    setStatus(
+      'repeatActionStatus',
+      'ไม่พบข้อมูลเจ้าหน้าที่ผู้ดำเนินการ',
+      'error'
+    );
+
+    showToast(
+      'ไม่มีสิทธิ์ดำเนินการ',
+      'เมนูนี้อนุญาตเฉพาะเจ้าหน้าที่รหัส G',
+      'error'
+    );
+
+    return;
+  }
+
+  if(targetStatus === 'excluded_repeat_grade'){
+    if(!repeatAcademicYear){
+      setStatus(
+        'repeatActionStatus',
+        'กรุณาระบุปีการศึกษาที่นักเรียนกลับมาซ้ำชั้น',
+        'warning'
+      );
+
+      return;
+    }
+
+    if(!repeatClassLevel){
+      setStatus(
+        'repeatActionStatus',
+        'กรุณาเลือกชั้นที่นักเรียนกลับมาซ้ำ',
+        'warning'
+      );
+
+      return;
+    }
+  }
+
+  // ตรวจอีกครั้งว่า ID ที่เลือกอยู่ในตารางที่โหลดจริง
+  const loadedIdSet = new Set(
+    (state.repeatGradeResults || [])
+      .map(row => String(row.id))
+  );
+
+  const invalidIds = selectedIds.filter(
+    id => !loadedIdSet.has(id)
+  );
+
+  if(invalidIds.length){
+    setStatus(
+      'repeatActionStatus',
+      'พบรายการที่ไม่อยู่ในข้อมูลที่โหลด กรุณาโหลดข้อมูลใหม่',
+      'error'
+    );
+
+    return;
+  }
+
+  const targetLabel =
+    targetStatus === 'excluded_repeat_grade'
+      ? 'ไม่นำไปคำนวณเนื่องจากนักเรียนซ้ำชั้น'
+      : 'คืนสถานะใช้งาน';
+
+  const confirmed = window.confirm(
+    `ยืนยันการดำเนินการ\n\n`
+    + `นักเรียน: ${student.sid || '-'} `
+    + `${student.raw_full_name || ''}\n`
+    + `จำนวน: ${selectedIds.length} รายการ\n`
+    + `สถานะใหม่: ${targetLabel}\n\n`
+    + `ข้อมูลผลการเรียนเดิมจะไม่ถูกลบ`
+  );
+
+  if(!confirmed){
+    return;
+  }
+
+  try{
+    if(applyBtn){
+      applyBtn.disabled = true;
+      applyBtn.textContent = 'กำลังบันทึก...';
+    }
+
+    setStatus(
+      'repeatActionStatus',
+      `กำลังบันทึกสถานะ ${selectedIds.length} รายการ...`,
+      'info'
+    );
+
+    const {
+      data,
+      error
+    } = await supabaseClient.rpc(
+      'apply_repeat_grade_record_status',
+      {
+        p_grade_result_ids: selectedIds,
+
+        p_student_code:
+          normalizeStudentSid(student.sid),
+
+        p_new_record_status:
+          targetStatus,
+
+        p_repeat_academic_year:
+          targetStatus === 'excluded_repeat_grade'
+            ? repeatAcademicYear
+            : null,
+
+        p_repeat_class_level:
+          targetStatus === 'excluded_repeat_grade'
+            ? repeatClassLevel
+            : null,
+
+        p_note:
+          note || null,
+
+        p_changed_by_code:
+          changedByCode,
+
+        p_changed_by_name:
+          changedByName
+      }
+    );
+
+    if(error){
+      throw error;
+    }
+
+    const result =
+      data && typeof data === 'object'
+        ? data
+        : {};
+
+    const updatedCount = Number(
+      result.updated_count || 0
+    );
+
+    const skippedCount = Number(
+      result.skipped_count || 0
+    );
+
+    state.repeatSelectedGradeResultIds = [];
+
+    if(el('repeatStatusNoteInput')){
+      el('repeatStatusNoteInput').value = '';
+    }
+
+    setStatus(
+      'repeatActionStatus',
+      `บันทึกสำเร็จ ${updatedCount} รายการ`
+      + (
+        skippedCount
+          ? ` | ข้าม ${skippedCount} รายการที่มีสถานะนี้อยู่แล้ว`
+          : ''
+      ),
+      'success'
+    );
+
+    showToast(
+      'บันทึกสถานะสำเร็จ',
+      `อัปเดต ${updatedCount} รายการ`
+      + (
+        skippedCount
+          ? ` และข้าม ${skippedCount} รายการ`
+          : ''
+      ),
+      'success'
+    );
+
+    // โหลดข้อมูลใหม่เพื่อแสดงสถานะล่าสุด
+    await loadRepeatGradeResults();
+
+  }catch(err){
+    console.error(
+      'applyRepeatGradeRecordStatus error:',
+      err
+    );
+
+    let message =
+      err?.message ||
+      'บันทึกสถานะผลการเรียนไม่สำเร็จ';
+
+    if(
+      message.includes(
+        'apply_repeat_grade_record_status'
+      )
+    ){
+      message +=
+        ' กรุณาตรวจสอบว่าได้สร้าง RPC ใน Supabase แล้ว';
+    }
+
+    if(
+      message.includes(
+        'grade_result_status_logs'
+      )
+    ){
+      message +=
+        ' กรุณาตรวจสอบตารางประวัติจากจุดที่ 2';
+    }
+
+    setStatus(
+      'repeatActionStatus',
+      message,
+      'error'
+    );
+
+    showToast(
+      'บันทึกไม่สำเร็จ',
+      message,
+      'error'
+    );
+
+  }finally{
+    updateRepeatSelectionUi();
+    updateRepeatTargetStatusUi();
+
+    if(applyBtn){
+      applyBtn.disabled =
+        state.repeatSelectedGradeResultIds.length === 0;
+    }
+  }
+}
     
 function bindGradeTransferEvents(){
   const editBtn = el('gradeManageSubEditBtn');
@@ -11193,6 +11564,26 @@ if(repeatCheckAll){
   if(replaceCancelBtn){
     replaceCancelBtn.addEventListener('click', closeTransferReplaceOverlay);
   }
+  const repeatApplyStatusBtn =
+  el('repeatApplyStatusBtn');
+
+if(repeatApplyStatusBtn){
+  repeatApplyStatusBtn.addEventListener(
+    'click',
+    applyRepeatGradeRecordStatus
+  );
+}
+
+const repeatTargetStatusInput =
+  el('repeatTargetStatusInput');
+
+if(repeatTargetStatusInput){
+  repeatTargetStatusInput.addEventListener(
+    'change',
+    updateRepeatTargetStatusUi
+  );
+}
+  updateRepeatTargetStatusUi();
 }
 
 
