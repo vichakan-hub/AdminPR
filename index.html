@@ -1644,6 +1644,108 @@ body.app-booting #appView{
   display:none !important;
 }
 
+  #pageGradeManage.grade-repeat-mode
+> :not(h2)
+  :not(.sub)
+  :not(.grade-manage-page-tabs)
+  :not(#gradeRepeatPage){
+  display:none !important;
+}
+
+.grade-repeat-summary,
+.grade-repeat-student-card,
+.grade-repeat-action-card{
+  border:1px solid #dbe7f3;
+  border-radius:20px;
+  background:#f9fbff;
+  padding:16px 18px;
+  margin-bottom:14px;
+}
+
+.grade-repeat-summary-title{
+  font-size:18px;
+  font-weight:800;
+  margin-bottom:4px;
+  color:#17324a;
+}
+
+.grade-repeat-search-grid{
+  display:grid;
+  grid-template-columns:1.3fr .9fr 1fr .8fr 1fr 1fr;
+  gap:10px 12px;
+  margin-bottom:14px;
+}
+
+.grade-repeat-action-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1.4fr 1.2fr;
+  gap:10px 12px;
+}
+
+.grade-repeat-student-info{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  border:1px solid #dbe7f3;
+  background:#fff;
+  border-radius:18px;
+  padding:14px 16px;
+}
+
+.grade-repeat-avatar{
+  width:54px;
+  height:54px;
+  border-radius:18px;
+  background:#fff7e6;
+  color:#b26a00;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:26px;
+  flex:0 0 auto;
+}
+
+.grade-repeat-student-name{
+  font-size:20px;
+  font-weight:800;
+  color:#17324a;
+  line-height:1.35;
+}
+
+.grade-repeat-student-meta{
+  color:#6b7a90;
+  font-size:13px;
+  line-height:1.6;
+  margin-top:2px;
+}
+
+.grade-repeat-table{
+  min-width:1250px;
+}
+
+.grade-repeat-table th:nth-child(1){width:60px;}
+.grade-repeat-table th:nth-child(2){width:120px;}
+.grade-repeat-table th:nth-child(3){width:120px;}
+.grade-repeat-table th:nth-child(4){width:250px;}
+.grade-repeat-table th:nth-child(5){width:220px;}
+.grade-repeat-table th:nth-child(6){width:110px;}
+.grade-repeat-table th:nth-child(7){width:190px;}
+.grade-repeat-table th:nth-child(8){width:260px;}
+
+@media (max-width:1180px){
+  .grade-repeat-search-grid,
+  .grade-repeat-action-grid{
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+@media (max-width:720px){
+  .grade-repeat-search-grid,
+  .grade-repeat-action-grid{
+    grid-template-columns:1fr;
+  }
+}
+
 .grade-transfer-summary,
 .grade-transfer-student-card,
 .grade-transfer-active-filter{
@@ -1977,6 +2079,20 @@ body.app-booting #appView{
   .report-signer-table{
     min-width:1120px;
   }
+}
+
+.grade-repeat-row-excluded td{
+  background:#fffaf0;
+}
+
+.grade-repeat-row-cancelled td{
+  background:#fff7f7;
+  opacity:.78;
+}
+
+.grade-repeat-row-excluded:hover td,
+.grade-repeat-row-cancelled:hover td{
+  filter:brightness(.99);
 }
   
 
@@ -2856,8 +2972,13 @@ body.app-booting #appView{
   <button id="gradeManageSubEditBtn" class="grade-manage-sub-btn active" type="button">
     🧾 ตรวจสอบ/แก้ไขผลการเรียน
   </button>
+
   <button id="gradeManageSubTransferBtn" class="grade-manage-sub-btn" type="button">
     🔁 ผลการเรียนเทียบโอนรายบุคคล
+  </button>
+
+  <button id="gradeManageSubRepeatBtn" class="grade-manage-sub-btn" type="button">
+    ♻️ จัดการนักเรียนซ้ำชั้น
   </button>
 </div>
 
@@ -2981,6 +3102,268 @@ body.app-booting #appView{
       </tbody>
     </table>
   </div>
+</section>
+
+  <!-- =========================================================
+     จัดการนักเรียนซ้ำชั้น
+     ========================================================= -->
+<section id="gradeRepeatPage" class="hidden">
+
+  <div class="grade-repeat-summary">
+    <div class="grade-repeat-summary-title">
+      จัดการผลการเรียนของนักเรียนซ้ำชั้น
+    </div>
+
+    <div class="small">
+      ใช้กำหนดผลการเรียนเดิมเป็น
+      <strong>ไม่นำไปคำนวณเนื่องจากนักเรียนซ้ำชั้น</strong>
+      โดยระบบจะไม่ลบข้อมูลเดิม และสามารถคืนสถานะกลับมาใช้งานได้ภายหลัง
+    </div>
+  </div>
+
+  <div class="grade-repeat-student-card">
+    <div class="grade-repeat-search-grid">
+
+      <div class="field">
+        <span class="label-in-form">เลขประจำตัวนักเรียน</span>
+        <input
+          id="repeatStudentCodeInput"
+          class="std"
+          type="text"
+          placeholder="เช่น 25557"
+        >
+      </div>
+
+      <div class="field">
+        <span class="label-in-form">ค้นหานักเรียน</span>
+        <button
+          id="repeatFindStudentBtn"
+          class="btn-primary"
+          type="button"
+          style="width:100%;"
+        >
+          ค้นหานักเรียน
+        </button>
+      </div>
+
+      <div class="field">
+        <span class="label-in-form">ปีการศึกษาของผลเดิม</span>
+        <input
+          id="repeatSourceYearInput"
+          class="std"
+          type="number"
+          min="2500"
+          value="2568"
+        >
+      </div>
+
+      <div class="field">
+        <span class="label-in-form">ภาคเรียนของผลเดิม</span>
+        <select id="repeatSourceTermInput" class="std">
+          <option value="">ทั้งหมด</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <span class="label-in-form">ชั้นของผลเดิม</span>
+        <select id="repeatSourceClassInput" class="std">
+          <option value="ม.1">ม.1</option>
+          <option value="ม.2">ม.2</option>
+          <option value="ม.3">ม.3</option>
+          <option value="ม.4" selected>ม.4</option>
+          <option value="ม.5">ม.5</option>
+          <option value="ม.6">ม.6</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <span class="label-in-form">โหลดผลการเรียน</span>
+        <button
+          id="repeatLoadResultsBtn"
+          class="btn-secondary"
+          type="button"
+          style="width:100%;"
+          disabled
+        >
+          โหลดผลการเรียนเดิม
+        </button>
+      </div>
+
+    </div>
+
+    <div class="grade-repeat-student-info">
+      <div class="grade-repeat-avatar">🧑‍🎓</div>
+
+      <div>
+        <div class="small">ข้อมูลนักเรียน</div>
+
+        <div
+          id="repeatStudentInfoBox"
+          class="grade-repeat-student-name"
+        >
+          ยังไม่ได้เลือกนักเรียน
+        </div>
+
+        <div
+          id="repeatStudentMetaBox"
+          class="grade-repeat-student-meta"
+        >
+          กรุณากรอกเลขประจำตัวนักเรียน แล้วกดค้นหานักเรียน
+        </div>
+      </div>
+    </div>
+
+    <div id="repeatStudentStatus" class="status info">
+      พร้อมค้นหานักเรียน
+    </div>
+  </div>
+
+  <div class="grade-repeat-action-card">
+    <div class="grade-repeat-action-grid">
+
+      <div class="field">
+        <span class="label-in-form">ปีการศึกษาที่กลับมาซ้ำชั้น</span>
+        <input
+          id="repeatNewAcademicYearInput"
+          class="std"
+          type="number"
+          min="2500"
+          value="2569"
+        >
+      </div>
+
+      <div class="field">
+        <span class="label-in-form">ชั้นที่กลับมาซ้ำ</span>
+        <select id="repeatNewClassLevelInput" class="std">
+          <option value="ม.1">ม.1</option>
+          <option value="ม.2">ม.2</option>
+          <option value="ม.3">ม.3</option>
+          <option value="ม.4" selected>ม.4</option>
+          <option value="ม.5">ม.5</option>
+          <option value="ม.6">ม.6</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <span class="label-in-form">สถานะที่ต้องการกำหนด</span>
+        <select id="repeatTargetStatusInput" class="std">
+          <option value="excluded_repeat_grade">
+            ไม่นำไปคำนวณ — ซ้ำชั้น
+          </option>
+          <option value="active">
+            คืนสถานะใช้งาน
+          </option>
+        </select>
+      </div>
+
+      <div class="field">
+        <span class="label-in-form">เหตุผล</span>
+        <div class="readonly-box">
+          นักเรียนซ้ำชั้น
+        </div>
+      </div>
+
+    </div>
+
+    <div class="field">
+      <span class="label-in-form">หมายเหตุเพิ่มเติม</span>
+      <textarea
+        id="repeatStatusNoteInput"
+        class="std"
+        placeholder="เช่น นักเรียนกลับมาเรียนซ้ำชั้น ม.4 ในปีการศึกษา 2569"
+      ></textarea>
+    </div>
+
+    <div class="student-bulk-bar">
+      <div class="student-bulk-left">
+        <button
+          id="repeatSelectAllBtn"
+          class="btn-secondary btn-small"
+          type="button"
+        >
+          เลือกทั้งหมด
+        </button>
+
+        <button
+          id="repeatClearSelectionBtn"
+          class="btn-secondary btn-small"
+          type="button"
+        >
+          ล้างที่เลือก
+        </button>
+
+        <div id="repeatSelectedCountBox" class="student-bulk-count">
+          เลือกแล้ว 0 รายการ
+        </div>
+      </div>
+
+      <div class="actions" style="margin:0;">
+        <button
+          id="repeatApplyStatusBtn"
+          class="btn-warning"
+          type="button"
+          disabled
+        >
+          บันทึกสถานะรายการที่เลือก
+        </button>
+      </div>
+    </div>
+
+    <div id="repeatActionStatus" class="status info">
+      กรุณาค้นหานักเรียนและโหลดผลการเรียนเดิม
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="grade-repeat-table">
+      <thead>
+        <tr>
+          <th class="check-col">
+            <input
+              id="repeatCheckAll"
+              type="checkbox"
+              aria-label="เลือกผลการเรียนทั้งหมด"
+            >
+          </th>
+          <th>ปี/เทอม</th>
+          <th>ชั้น/ห้อง</th>
+          <th>รายวิชา</th>
+          <th>ครูผู้สอน</th>
+          <th>ผลการเรียน</th>
+          <th>สถานะปัจจุบัน</th>
+          <th>เหตุผล/หมายเหตุ</th>
+        </tr>
+      </thead>
+
+      <tbody id="repeatResultsTbody">
+        <tr class="filter-empty-row">
+          <td colspan="8">
+            <div class="filter-empty-state">
+              <div class="filter-empty-card">
+                <div class="filter-empty-icon">♻️</div>
+
+                <div class="filter-empty-title">
+                  ยังไม่ได้โหลดผลการเรียน
+                </div>
+
+                <div class="filter-empty-text">
+                  ค้นหานักเรียนก่อน แล้วเลือกปีการศึกษา ภาคเรียน
+                  และชั้นของผลการเรียนเดิม
+                </div>
+
+                <div class="filter-empty-hint">
+                  ผลเดิมจะยังคงอยู่ในประวัติ
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
 </section>
 
   <div class="grade-manage-summary">
@@ -4803,11 +5186,19 @@ gradeManageTeacherFilterId: '',
 gradeManageTeacherFilterLabel: '',
 
 gradeManageSubPage: 'edit',
+
 transferStudent: null,
 transferRows: [],
 transferValidatedRows: [],
 transferPendingDuplicateRows: [],
 transferPendingPayloadRows: [],
+
+// ระบบจัดการนักเรียนซ้ำชั้น
+repeatStudent: null,
+repeatGradeResults: [],
+repeatSelectedGradeResultIds: [],
+repeatLoadingStudent: false,
+
 reportSubPage: 'tracking',
 reportSignerRows: [],
   };
@@ -8165,16 +8556,23 @@ function setGradeManageSubPage(page){
 
   const isEdit = page === 'edit';
   const isTransfer = page === 'transfer';
+  const isRepeat = page === 'repeat';
 
   const pageNode = el('pageGradeManage');
   const transferPage = el('gradeTransferPage');
+  const repeatPage = el('gradeRepeatPage');
 
   if(pageNode){
     pageNode.classList.toggle('grade-transfer-mode', isTransfer);
+    pageNode.classList.toggle('grade-repeat-mode', isRepeat);
   }
 
   if(transferPage){
     transferPage.classList.toggle('hidden', !isTransfer);
+  }
+
+  if(repeatPage){
+    repeatPage.classList.toggle('hidden', !isRepeat);
   }
 
   if(el('gradeManageSubEditBtn')){
@@ -8185,6 +8583,12 @@ function setGradeManageSubPage(page){
 
   if(el('gradeManageSubTransferBtn')){
     el('gradeManageSubTransferBtn').className = isTransfer
+      ? 'grade-manage-sub-btn active'
+      : 'grade-manage-sub-btn';
+  }
+
+  if(el('gradeManageSubRepeatBtn')){
+    el('gradeManageSubRepeatBtn').className = isRepeat
       ? 'grade-manage-sub-btn active'
       : 'grade-manage-sub-btn';
   }
@@ -9537,6 +9941,957 @@ async function confirmTransferReplace(){
   }
 }
 
+function renderRepeatResultsEmptyState(
+  title = 'ยังไม่ได้โหลดผลการเรียน',
+  text = 'ค้นหานักเรียนก่อน แล้วเลือกปีการศึกษา ภาคเรียน และชั้นของผลการเรียนเดิม'
+){
+  const tbody = el('repeatResultsTbody');
+  if(!tbody) return;
+
+  tbody.innerHTML = `
+    <tr class="filter-empty-row">
+      <td colspan="8">
+        <div class="filter-empty-state">
+          <div class="filter-empty-card">
+            <div class="filter-empty-icon">♻️</div>
+
+            <div class="filter-empty-title">
+              ${escapeHtml(title)}
+            </div>
+
+            <div class="filter-empty-text">
+              ${escapeHtml(text)}
+            </div>
+
+            <div class="filter-empty-hint">
+              ผลเดิมจะยังคงอยู่ในประวัติ
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function resetRepeatGradeResultsState(
+  message = 'กรุณาค้นหานักเรียนและโหลดผลการเรียนเดิม'
+){
+  state.repeatGradeResults = [];
+  state.repeatSelectedGradeResultIds = [];
+
+  if(el('repeatCheckAll')){
+    el('repeatCheckAll').checked = false;
+    el('repeatCheckAll').indeterminate = false;
+  }
+
+  if(el('repeatSelectedCountBox')){
+    el('repeatSelectedCountBox').textContent = 'เลือกแล้ว 0 รายการ';
+  }
+
+  if(el('repeatApplyStatusBtn')){
+    el('repeatApplyStatusBtn').disabled = true;
+  }
+
+  renderRepeatResultsEmptyState();
+
+  setStatus('repeatActionStatus', message, 'info');
+}
+
+function clearRepeatStudentState(options = {}){
+  const {
+    keepStudentCode = false,
+    statusMessage = 'พร้อมค้นหานักเรียน',
+    statusType = 'info'
+  } = options;
+
+  state.repeatStudent = null;
+  state.repeatLoadingStudent = false;
+
+  if(!keepStudentCode && el('repeatStudentCodeInput')){
+    el('repeatStudentCodeInput').value = '';
+  }
+
+  if(el('repeatStudentInfoBox')){
+    el('repeatStudentInfoBox').textContent = 'ยังไม่ได้เลือกนักเรียน';
+  }
+
+  if(el('repeatStudentMetaBox')){
+    el('repeatStudentMetaBox').textContent =
+      'กรุณากรอกเลขประจำตัวนักเรียน แล้วกดค้นหานักเรียน';
+  }
+
+  if(el('repeatLoadResultsBtn')){
+    el('repeatLoadResultsBtn').disabled = true;
+  }
+
+  resetRepeatGradeResultsState();
+
+  setStatus(
+    'repeatStudentStatus',
+    statusMessage,
+    statusType
+  );
+}
+
+async function findRepeatStudent(){
+  const sid = normalizeStudentSid(
+    el('repeatStudentCodeInput')?.value || ''
+  );
+
+  const findBtn = el('repeatFindStudentBtn');
+
+  if(!sid){
+    clearRepeatStudentState({
+      keepStudentCode: true,
+      statusMessage: 'กรุณากรอกเลขประจำตัวนักเรียน',
+      statusType: 'error'
+    });
+
+    if(el('repeatStudentInfoBox')){
+      el('repeatStudentInfoBox').textContent =
+        'ยังไม่ได้กรอกเลขประจำตัวนักเรียน';
+    }
+
+    showToast(
+      'ข้อมูลไม่ครบ',
+      'กรุณากรอกเลขประจำตัวนักเรียน',
+      'warning'
+    );
+
+    return;
+  }
+
+  if(state.repeatLoadingStudent){
+    return;
+  }
+
+  try{
+    state.repeatLoadingStudent = true;
+
+    if(findBtn){
+      findBtn.disabled = true;
+      findBtn.textContent = 'กำลังค้นหา...';
+    }
+
+    // ล้างผลการเรียนของนักเรียนคนก่อน
+    state.repeatStudent = null;
+    resetRepeatGradeResultsState(
+      'กำลังค้นหาข้อมูลนักเรียน...'
+    );
+
+    if(el('repeatLoadResultsBtn')){
+      el('repeatLoadResultsBtn').disabled = true;
+    }
+
+    if(el('repeatStudentInfoBox')){
+      el('repeatStudentInfoBox').textContent =
+        'กำลังค้นหานักเรียน...';
+    }
+
+    if(el('repeatStudentMetaBox')){
+      el('repeatStudentMetaBox').textContent =
+        `กำลังค้นหาเลขประจำตัว ${sid}`;
+    }
+
+    setStatus(
+      'repeatStudentStatus',
+      `กำลังค้นหานักเรียนเลขประจำตัว ${sid}...`,
+      'info'
+    );
+
+    /*
+      ขั้นที่ 1:
+      ค้นหาจาก state.students ก่อน
+      เพราะระบบโหลดตาราง students ไว้อยู่แล้ว
+    */
+    let student = (state.students || []).find(row => {
+      return normalizeStudentSid(row.sid) === sid;
+    });
+
+    /*
+      ขั้นที่ 2:
+      ถ้ายังไม่พบใน state ให้ค้นหาจาก Supabase โดยตรง
+      เผื่อเพิ่งเพิ่มนักเรียนใหม่และ state ยังไม่ได้โหลดใหม่
+    */
+    if(!student){
+      const { data, error } = await supabaseClient
+        .from('students')
+        .select(`
+          id,
+          sid,
+          raw_full_name,
+          current_room,
+          current_no,
+          entry_academic_year,
+          entry_level,
+          student_status,
+          resigned_date,
+          is_active,
+          last_login_at,
+          created_at,
+          updated_at
+        `)
+        .eq('sid', sid)
+        .maybeSingle();
+
+      if(error){
+        throw error;
+      }
+
+      student = data || null;
+
+      /*
+        ถ้าพบจาก Supabase ให้เติมเข้า state.students
+        เพื่อให้การค้นหาครั้งถัดไปเร็วขึ้น
+      */
+      if(student){
+        const alreadyExists = (state.students || []).some(row => {
+          return String(row.id) === String(student.id);
+        });
+
+        if(!alreadyExists){
+          state.students.push(student);
+        }
+      }
+    }
+
+    if(!student){
+      state.repeatStudent = null;
+
+      if(el('repeatStudentInfoBox')){
+        el('repeatStudentInfoBox').textContent =
+          'ไม่พบนักเรียน';
+      }
+
+      if(el('repeatStudentMetaBox')){
+        el('repeatStudentMetaBox').textContent =
+          `ไม่พบเลขประจำตัว ${sid} ในตาราง students`;
+      }
+
+      if(el('repeatLoadResultsBtn')){
+        el('repeatLoadResultsBtn').disabled = true;
+      }
+
+      setStatus(
+        'repeatStudentStatus',
+        `ไม่พบนักเรียนเลขประจำตัว ${sid}`,
+        'error'
+      );
+
+      setStatus(
+        'repeatActionStatus',
+        'ยังไม่ได้เลือกนักเรียน',
+        'warning'
+      );
+
+      showToast(
+        'ไม่พบนักเรียน',
+        `ไม่พบเลขประจำตัว ${sid}`,
+        'error'
+      );
+
+      return;
+    }
+
+    state.repeatStudent = student;
+
+    const studentStatus =
+      student.student_status ||
+      (student.is_active ? 'เรียนอยู่' : 'ไม่ใช้งาน');
+
+    const accountStatus =
+      student.is_active === false
+        ? 'ปิดใช้งาน'
+        : 'ใช้งาน';
+
+    if(el('repeatStudentInfoBox')){
+      el('repeatStudentInfoBox').textContent =
+        `${student.sid || '-'} | ${student.raw_full_name || '-'}`;
+    }
+
+    if(el('repeatStudentMetaBox')){
+      el('repeatStudentMetaBox').textContent =
+        `ปีแรกเข้า ${student.entry_academic_year || '-'}`
+        + ` | ระดับแรกเข้า ${student.entry_level || '-'}`
+        + ` | ห้องปัจจุบัน ${student.current_room || '-'}`
+        + ` | เลขที่ ${student.current_no || '-'}`
+        + ` | สถานะ ${studentStatus}`
+        + ` | บัญชี ${accountStatus}`;
+    }
+
+    if(el('repeatLoadResultsBtn')){
+      el('repeatLoadResultsBtn').disabled = false;
+    }
+
+    setStatus(
+      'repeatStudentStatus',
+      'พบนักเรียนแล้ว กรุณาเลือกปี ภาคเรียน และชั้นของผลการเรียนเดิม',
+      'success'
+    );
+
+    setStatus(
+      'repeatActionStatus',
+      'พร้อมโหลดผลการเรียนเดิมของนักเรียน',
+      'info'
+    );
+
+    showToast(
+      'พบนักเรียน',
+      `${student.sid || ''} ${student.raw_full_name || ''}`,
+      'success'
+    );
+
+  }catch(err){
+    console.error('findRepeatStudent error:', err);
+
+    state.repeatStudent = null;
+
+    if(el('repeatStudentInfoBox')){
+      el('repeatStudentInfoBox').textContent =
+        'ค้นหานักเรียนไม่สำเร็จ';
+    }
+
+    if(el('repeatStudentMetaBox')){
+      el('repeatStudentMetaBox').textContent =
+        err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล';
+    }
+
+    if(el('repeatLoadResultsBtn')){
+      el('repeatLoadResultsBtn').disabled = true;
+    }
+
+    setStatus(
+      'repeatStudentStatus',
+      err.message || 'ค้นหานักเรียนไม่สำเร็จ',
+      'error'
+    );
+
+    showToast(
+      'ค้นหาไม่สำเร็จ',
+      err.message || 'เกิดข้อผิดพลาด',
+      'error'
+    );
+
+  }finally{
+    state.repeatLoadingStudent = false;
+
+    if(findBtn){
+      findBtn.disabled = false;
+      findBtn.textContent = 'ค้นหานักเรียน';
+    }
+  }
+}
+
+function getRepeatRecordStatusMeta(recordStatus){
+  const status = String(recordStatus || 'active').trim();
+
+  const map = {
+    active: {
+      label: 'ใช้งานปกติ',
+      badgeClass: 'green'
+    },
+
+    excluded_repeat_grade: {
+      label: 'ไม่นำไปคำนวณ — ซ้ำชั้น',
+      badgeClass: 'orange'
+    },
+
+    replaced: {
+      label: 'ถูกแทนที่',
+      badgeClass: ''
+    },
+
+    cancelled: {
+      label: 'ยกเลิกรายการ',
+      badgeClass: 'red'
+    }
+  };
+
+  return map[status] || {
+    label: status || 'ไม่ระบุสถานะ',
+    badgeClass: ''
+  };
+}
+
+function getRepeatRecordStatusHtml(recordStatus){
+  const meta = getRepeatRecordStatusMeta(recordStatus);
+
+  return `
+    <span class="badge ${escapeHtml(meta.badgeClass)}">
+      ${escapeHtml(meta.label)}
+    </span>
+  `;
+}
+
+function getRepeatStatusReasonLabel(reason){
+  const value = String(reason || '').trim();
+
+  const map = {
+    repeat_grade: 'นักเรียนซ้ำชั้น',
+    replaced: 'ถูกแทนที่ด้วยผลการเรียนใหม่',
+    data_error: 'ยกเลิกเนื่องจากข้อมูลผิดพลาด',
+    cancelled: 'ยกเลิกรายการ'
+  };
+
+  return map[value] || value;
+}
+
+function updateRepeatSelectionUi(){
+  const visibleIds = (state.repeatGradeResults || [])
+    .map(row => String(row.id));
+
+  const visibleIdSet = new Set(visibleIds);
+
+  /*
+    ตัด ID ที่ไม่อยู่ในตารางปัจจุบันออก
+    ป้องกันรายการเก่าค้างหลังเปลี่ยนตัวกรอง
+  */
+  state.repeatSelectedGradeResultIds = [
+    ...new Set(
+      (state.repeatSelectedGradeResultIds || [])
+        .map(String)
+        .filter(id => visibleIdSet.has(id))
+    )
+  ];
+
+  const selectedIds = state.repeatSelectedGradeResultIds;
+  const selectedSet = new Set(selectedIds);
+
+  const selectedCount = selectedIds.length;
+  const visibleCount = visibleIds.length;
+
+  if(el('repeatSelectedCountBox')){
+    el('repeatSelectedCountBox').textContent =
+      `เลือกแล้ว ${selectedCount} รายการ`;
+  }
+
+  if(el('repeatApplyStatusBtn')){
+    el('repeatApplyStatusBtn').disabled =
+      selectedCount === 0;
+  }
+
+  if(el('repeatCheckAll')){
+    const allSelected =
+      visibleCount > 0 &&
+      visibleIds.every(id => selectedSet.has(id));
+
+    const someSelected =
+      selectedCount > 0 &&
+      !allSelected;
+
+    el('repeatCheckAll').checked = allSelected;
+    el('repeatCheckAll').indeterminate = someSelected;
+  }
+}
+
+function bindRepeatResultRowChecks(){
+  const tbody = el('repeatResultsTbody');
+  if(!tbody) return;
+
+  tbody
+    .querySelectorAll('[data-repeat-result-check]')
+    .forEach(checkbox => {
+
+      checkbox.addEventListener('change', () => {
+        const gradeResultId = String(
+          checkbox.dataset.repeatResultCheck || ''
+        );
+
+        const selectedSet = new Set(
+          (state.repeatSelectedGradeResultIds || [])
+            .map(String)
+        );
+
+        if(checkbox.checked){
+          selectedSet.add(gradeResultId);
+        }else{
+          selectedSet.delete(gradeResultId);
+        }
+
+        state.repeatSelectedGradeResultIds =
+          [...selectedSet];
+
+        updateRepeatSelectionUi();
+      });
+    });
+}
+
+function renderRepeatGradeResults(){
+  const tbody = el('repeatResultsTbody');
+  const rows = state.repeatGradeResults || [];
+
+  if(!tbody) return;
+
+  if(!rows.length){
+    renderRepeatResultsEmptyState(
+      'ไม่พบผลการเรียนเดิม',
+      'ไม่พบรายการตามปีการศึกษา ภาคเรียน และชั้นที่เลือก'
+    );
+
+    updateRepeatSelectionUi();
+    return;
+  }
+
+  const selectedSet = new Set(
+    (state.repeatSelectedGradeResultIds || [])
+      .map(String)
+  );
+
+  tbody.innerHTML = rows.map(row => {
+    const recordStatus = String(
+      row.record_status ||
+      (row.is_active === false ? 'cancelled' : 'active')
+    );
+
+    const effectiveGrade =
+      normalizeGradeValue(row.retest_grade_code) ||
+      normalizeGradeValue(row.grade_code) ||
+      '-';
+
+    const originalGrade =
+      normalizeGradeValue(row.grade_code) || '-';
+
+    const retestGrade =
+      normalizeGradeValue(row.retest_grade_code);
+
+    /*
+      ใช้ teacher_id ไปค้นหาจาก state.teachers
+      ซึ่งเป็นวิธีเดียวกับหน้าจัดการผลการเรียนเดิม
+    */
+    const teacher = getGradeManageTeacherText(row);
+
+    const detailParts = [];
+
+    if(row.status_reason){
+      detailParts.push(
+        `เหตุผล: ${getRepeatStatusReasonLabel(row.status_reason)}`
+      );
+    }
+
+    if(row.status_note){
+      detailParts.push(row.status_note);
+    }
+
+    if(row.status_changed_by){
+      detailParts.push(
+        `ดำเนินการโดย ${row.status_changed_by}`
+      );
+    }
+
+    if(row.status_changed_at){
+      detailParts.push(
+        formatDateTime(row.status_changed_at)
+      );
+    }
+
+    let rowClass = '';
+
+    if(recordStatus === 'excluded_repeat_grade'){
+      rowClass = 'grade-repeat-row-excluded';
+    }else if(recordStatus === 'cancelled'){
+      rowClass = 'grade-repeat-row-cancelled';
+    }
+
+    return `
+      <tr class="${rowClass}">
+
+        <td class="check-col">
+          <input
+            class="row-check"
+            type="checkbox"
+            data-repeat-result-check="${escapeHtml(row.id)}"
+            ${selectedSet.has(String(row.id)) ? 'checked' : ''}
+          >
+        </td>
+
+        <td>
+          <div>
+            ปี ${escapeHtml(String(row.academic_year || '-'))}
+          </div>
+
+          <div class="grade-manage-meta">
+            ภาคเรียน ${escapeHtml(String(row.term || '-'))}
+          </div>
+        </td>
+
+        <td>
+          <div>
+            ${escapeHtml(row.class_level || '-')}
+          </div>
+
+          <div class="grade-manage-meta">
+            ห้อง ${escapeHtml(String(row.room || '-'))}
+            ${
+              row.student_no
+                ? ` • เลขที่ ${escapeHtml(String(row.student_no))}`
+                : ''
+            }
+          </div>
+        </td>
+
+        <td>
+          <div class="mono">
+            ${escapeHtml(row.subject_code || '-')}
+          </div>
+
+          <div>
+            ${escapeHtml(row.subject_name || '-')}
+          </div>
+        </td>
+
+        <td>
+          <div class="mono">
+            ${escapeHtml(teacher.code || '-')}
+          </div>
+
+          <div>
+            ${escapeHtml(teacher.name || '-')}
+          </div>
+        </td>
+
+        <td>
+          ${getGradePillHtml(effectiveGrade)}
+
+          ${
+            retestGrade
+              ? `
+                <div class="grade-manage-meta">
+                  ผลเดิม ${escapeHtml(originalGrade)}
+                  • แก้ตัว ${escapeHtml(retestGrade)}
+                </div>
+              `
+              : ''
+          }
+        </td>
+
+        <td>
+          ${getRepeatRecordStatusHtml(recordStatus)}
+        </td>
+
+        <td>
+          ${
+            detailParts.length
+              ? detailParts.map(text => `
+                  <div class="grade-manage-meta">
+                    ${escapeHtml(text)}
+                  </div>
+                `).join('')
+              : '<span class="small">-</span>'
+          }
+        </td>
+
+      </tr>
+    `;
+  }).join('');
+
+  bindRepeatResultRowChecks();
+  updateRepeatSelectionUi();
+}
+
+async function loadRepeatGradeResults(){
+  const student = state.repeatStudent;
+
+  const loadBtn = el('repeatLoadResultsBtn');
+
+  if(!student){
+    setStatus(
+      'repeatActionStatus',
+      'กรุณาค้นหานักเรียนก่อนโหลดผลการเรียนเดิม',
+      'warning'
+    );
+
+    showToast(
+      'ยังโหลดไม่ได้',
+      'กรุณาค้นหานักเรียนก่อน',
+      'warning'
+    );
+
+    return;
+  }
+
+  const sourceYear = safeNumber(
+    el('repeatSourceYearInput')?.value,
+    null
+  );
+
+  const sourceTerm = safeNumber(
+    el('repeatSourceTermInput')?.value,
+    null
+  );
+
+  const sourceClass = String(
+    el('repeatSourceClassInput')?.value || ''
+  ).trim();
+
+  if(!sourceYear){
+    setStatus(
+      'repeatActionStatus',
+      'กรุณาระบุปีการศึกษาของผลการเรียนเดิม',
+      'warning'
+    );
+
+    return;
+  }
+
+  try{
+    if(loadBtn){
+      loadBtn.disabled = true;
+      loadBtn.textContent = 'กำลังโหลด...';
+    }
+
+    state.repeatGradeResults = [];
+    state.repeatSelectedGradeResultIds = [];
+
+    updateRepeatSelectionUi();
+
+    setStatus(
+      'repeatActionStatus',
+      `กำลังโหลดผลการเรียนเดิมของ ${student.sid || ''}...`,
+      'info'
+    );
+
+    const tbody = el('repeatResultsTbody');
+
+    if(tbody){
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="small">
+            กำลังโหลดผลการเรียนจากฐานข้อมูล...
+          </td>
+        </tr>
+      `;
+    }
+
+    let query = supabaseClient
+      .from('grade_results')
+      .select(`
+        id,
+        subject_offering_id,
+        subject_id,
+        teacher_id,
+        student_id,
+
+        academic_year,
+        term,
+        class_level,
+        room,
+
+        subject_code,
+        subject_name,
+
+        student_code,
+        student_name,
+        student_no,
+
+        grade_code,
+        retest_grade_code,
+        grading_status,
+
+        is_active,
+        record_status,
+        status_reason,
+        status_note,
+        status_changed_at,
+        status_changed_by,
+
+        imported_at,
+        updated_at
+      `)
+      .eq(
+        'student_code',
+        normalizeStudentSid(student.sid)
+      )
+      .eq(
+        'academic_year',
+        sourceYear
+      )
+      .order('term', {
+        ascending: true
+      })
+      .order('subject_code', {
+        ascending: true
+      });
+
+    if(sourceTerm){
+      query = query.eq(
+        'term',
+        sourceTerm
+      );
+    }
+
+    if(sourceClass){
+      query = query.eq(
+        'class_level',
+        sourceClass
+      );
+    }
+
+    /*
+      รองรับกรณีนักเรียนมีผลการเรียนจำนวนมากกว่า 1,000 แถว
+    */
+    const pageSize = 1000;
+    let from = 0;
+    let rows = [];
+
+    while(true){
+      const {
+        data,
+        error
+      } = await query.range(
+        from,
+        from + pageSize - 1
+      );
+
+      if(error){
+        throw error;
+      }
+
+      const batch = data || [];
+
+      rows = rows.concat(batch);
+
+      if(batch.length < pageSize){
+        break;
+      }
+
+      from += pageSize;
+    }
+
+    rows = rows
+      .map(row => ({
+        ...row,
+
+        grade_code:
+          normalizeGradeValue(row.grade_code),
+
+        retest_grade_code:
+          normalizeGradeValue(row.retest_grade_code),
+
+        record_status:
+          String(
+            row.record_status ||
+            (row.is_active === false
+              ? 'cancelled'
+              : 'active')
+          )
+      }))
+      .sort((a, b) => {
+        const termDiff =
+          Number(a.term || 0) -
+          Number(b.term || 0);
+
+        if(termDiff !== 0){
+          return termDiff;
+        }
+
+        const subjectDiff =
+          compareSubjectCodeCustom(
+            a.subject_code,
+            b.subject_code
+          );
+
+        if(subjectDiff !== 0){
+          return subjectDiff;
+        }
+
+        return String(a.subject_name || '')
+          .localeCompare(
+            String(b.subject_name || ''),
+            'th'
+          );
+      });
+
+    state.repeatGradeResults = rows;
+    state.repeatSelectedGradeResultIds = [];
+
+    renderRepeatGradeResults();
+
+    if(rows.length){
+      setStatus(
+        'repeatActionStatus',
+        `พบผลการเรียนเดิม ${rows.length} รายการ`,
+        'success'
+      );
+
+      showToast(
+        'โหลดข้อมูลสำเร็จ',
+        `พบผลการเรียนเดิม ${rows.length} รายการ`,
+        'success'
+      );
+    }else{
+      setStatus(
+        'repeatActionStatus',
+        'ไม่พบผลการเรียนเดิมตามเงื่อนไขที่เลือก',
+        'warning'
+      );
+    }
+
+  }catch(err){
+    console.error(
+      'loadRepeatGradeResults error:',
+      err
+    );
+
+    state.repeatGradeResults = [];
+    state.repeatSelectedGradeResultIds = [];
+
+    renderRepeatResultsEmptyState(
+      'โหลดข้อมูลไม่สำเร็จ',
+      err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล'
+    );
+
+    updateRepeatSelectionUi();
+
+    let message =
+      err.message ||
+      'โหลดผลการเรียนเดิมไม่สำเร็จ';
+
+    if(
+      message.includes('record_status') ||
+      message.includes('status_reason') ||
+      message.includes('status_note')
+    ){
+      message +=
+        ' กรุณาตรวจสอบว่าได้รัน SQL จุดที่ 1 แล้ว';
+    }
+
+    setStatus(
+      'repeatActionStatus',
+      message,
+      'error'
+    );
+
+    showToast(
+      'โหลดข้อมูลไม่สำเร็จ',
+      message,
+      'error'
+    );
+
+  }finally{
+    if(loadBtn){
+      loadBtn.disabled =
+        !state.repeatStudent;
+
+      loadBtn.textContent =
+        'โหลดผลการเรียนเดิม';
+    }
+  }
+}
+
+function selectAllRepeatGradeResults(){
+  state.repeatSelectedGradeResultIds =
+    (state.repeatGradeResults || [])
+      .map(row => String(row.id));
+
+  renderRepeatGradeResults();
+}
+
+function clearRepeatGradeResultSelection(){
+  state.repeatSelectedGradeResultIds = [];
+
+  renderRepeatGradeResults();
+}
+    
 function bindGradeTransferEvents(){
   const editBtn = el('gradeManageSubEditBtn');
   if(editBtn){
@@ -9552,6 +10907,122 @@ function bindGradeTransferEvents(){
       updateTransferStudentComputedFields();
     });
   }
+
+  const repeatBtn = el('gradeManageSubRepeatBtn');
+if(repeatBtn){
+  repeatBtn.addEventListener('click', () => {
+    setGradeManageSubPage('repeat');
+  });
+}
+
+  const repeatFindBtn = el('repeatFindStudentBtn');
+if(repeatFindBtn){
+  repeatFindBtn.addEventListener(
+    'click',
+    findRepeatStudent
+  );
+}
+
+const repeatStudentInput = el('repeatStudentCodeInput');
+if(repeatStudentInput){
+
+  // กด Enter เพื่อค้นหา
+  repeatStudentInput.addEventListener('keydown', ev => {
+    if(ev.key === 'Enter'){
+      ev.preventDefault();
+      findRepeatStudent();
+    }
+  });
+
+  /*
+    ถ้าแก้เลขประจำตัวหลังจากเลือกนักเรียนแล้ว
+    ให้ยกเลิกนักเรียนคนเดิมทันที
+  */
+  repeatStudentInput.addEventListener('input', () => {
+    if(!state.repeatStudent) return;
+
+    const typedSid = normalizeStudentSid(
+      repeatStudentInput.value
+    );
+
+    const selectedSid = normalizeStudentSid(
+      state.repeatStudent.sid
+    );
+
+    if(typedSid !== selectedSid){
+      clearRepeatStudentState({
+        keepStudentCode: true,
+        statusMessage:
+          'เลขประจำตัวมีการเปลี่ยนแปลง กรุณาค้นหาใหม่',
+        statusType: 'warning'
+      });
+    }
+  });
+}
+
+  const repeatLoadBtn = el('repeatLoadResultsBtn');
+
+if(repeatLoadBtn){
+  repeatLoadBtn.addEventListener(
+    'click',
+    loadRepeatGradeResults
+  );
+}
+
+const repeatSelectAllBtn = el('repeatSelectAllBtn');
+
+if(repeatSelectAllBtn){
+  repeatSelectAllBtn.addEventListener(
+    'click',
+    selectAllRepeatGradeResults
+  );
+}
+
+const repeatClearSelectionBtn =
+  el('repeatClearSelectionBtn');
+
+if(repeatClearSelectionBtn){
+  repeatClearSelectionBtn.addEventListener(
+    'click',
+    clearRepeatGradeResultSelection
+  );
+}
+
+const repeatCheckAll = el('repeatCheckAll');
+
+if(repeatCheckAll){
+  repeatCheckAll.addEventListener('change', () => {
+    if(repeatCheckAll.checked){
+      selectAllRepeatGradeResults();
+    }else{
+      clearRepeatGradeResultSelection();
+    }
+  });
+}
+
+/*
+  เมื่อเปลี่ยนเงื่อนไข ให้ล้างผลเดิมที่แสดง
+  แล้วให้ผู้ใช้กดโหลดใหม่
+*/
+[
+  'repeatSourceYearInput',
+  'repeatSourceTermInput',
+  'repeatSourceClassInput'
+].forEach(id => {
+  const node = el(id);
+
+  if(!node) return;
+
+  node.addEventListener('change', () => {
+    if(!state.repeatStudent){
+      return;
+    }
+
+    resetRepeatGradeResultsState(
+      'เงื่อนไขผลการเรียนมีการเปลี่ยนแปลง กรุณากดโหลดผลการเรียนเดิมอีกครั้ง'
+    );
+  });
+});
 
   const findBtn = el('transferFindStudentBtn');
   if(findBtn){
