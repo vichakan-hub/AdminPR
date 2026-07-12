@@ -8956,33 +8956,87 @@ async function confirmGradeStudentNameSync(){
       'info'
     );
 
-    const {
-      data,
-      error
-    } = await supabaseClient.rpc(
-      'sync_grade_result_student_names',
-      {
-        p_execute: true,
-        p_changed_by_code: changedByCode
-      }
-    );
+const batchSize = 1000;
+let totalUpdated = 0;
+let batchNumber = 0;
+let hasMore = true;
 
-    if(error){
-      throw error;
+while(hasMore){
+  batchNumber += 1;
+
+  const {
+    data,
+    error
+  } = await supabaseClient.rpc(
+    'sync_grade_result_student_names_batch',
+    {
+      p_batch_size: batchSize,
+      p_changed_by_code: changedByCode
     }
+  );
 
-    const result =
-      data && typeof data === 'object'
-        ? data
-        : {};
+  if(error){
+    throw error;
+  }
 
-    const updatedCount = Number(
-      result.updated_count || 0
-    );
+  const batchResult =
+    data && typeof data === 'object'
+      ? data
+      : {};
 
-    state.gradeStudentSyncPreview = result;
+  const batchUpdated = Number(
+    batchResult.updated_count || 0
+  );
 
-    renderGradeStudentSyncPreview(result);
+  hasMore =
+    batchResult.has_more === true;
+
+  totalUpdated += batchUpdated;
+
+  const percent =
+    differentCount > 0
+      ? Math.min(
+          100,
+          Math.round(
+            totalUpdated * 100 / differentCount
+          )
+        )
+      : 100;
+
+  setStatus(
+    'gradeStudentSyncStatus',
+    `กำลังปรับปรุงข้อมูล ชุดที่ ${batchNumber}`
+    + ` | สำเร็จ ${totalUpdated.toLocaleString('th-TH')}`
+    + ` จาก ${differentCount.toLocaleString('th-TH')} รายการ`
+    + ` (${percent}%)`,
+    'info'
+  );
+
+  if(
+    batchUpdated === 0 ||
+    !hasMore
+  ){
+    break;
+  }
+}
+
+const updatedCount = totalUpdated;
+
+const {
+  data: verifyData,
+  error: verifyError
+} = await supabaseClient.rpc(
+  'sync_grade_result_student_names',
+  {
+    p_execute: false,
+    p_changed_by_code: changedByCode
+  }
+);
+
+if(!verifyError && verifyData){
+  state.gradeStudentSyncPreview = verifyData;
+  renderGradeStudentSyncPreview(verifyData);
+}
 
     setStatus(
       'gradeStudentSyncStatus',
