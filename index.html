@@ -8002,9 +8002,15 @@ async function loadGradeManageRows(){
         grade_code,
         retest_grade_code,
         grading_status,
+
+        record_status,
+        status_reason,
+        status_note,
+        status_changed_at,
+        status_changed_by,
+
         is_active,
         imported_at,
-        updated_at,
         grade_edited_at,
         updated_by_teacher_code,
         updated_by_teacher_name,
@@ -8012,6 +8018,10 @@ async function loadGradeManageRows(){
       `)
       .eq('academic_year', filters.year)
       .eq('term', filters.term)
+
+      // หน้าแก้ผลการเรียน แสดงเฉพาะผลที่ยังนำไปใช้งาน
+      .eq('record_status', 'active')
+
       .order('class_level', { ascending:true })
       .order('room', { ascending:true })
       .order('student_code', { ascending:true })
@@ -8072,6 +8082,11 @@ if(filters.gradeType === 'normal'){
 
 rows = rows.filter(row =>
   activeStudentCodes.has(normalizeStudentSid(row.student_code))
+);
+
+// ป้องกันรายการที่ไม่ใช้งานหลุดมาแสดง แม้ข้อมูลจากฐานจะผิดปกติ
+rows = rows.filter(row =>
+  String(row.record_status || 'active') === 'active'
 );
 
 if(filters.learningArea){
