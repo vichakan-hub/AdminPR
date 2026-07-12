@@ -3463,11 +3463,39 @@ body.app-booting #appView{
       </div>
     </div>
 
-    <div class="actions" style="margin:0;">
-      <button id="gradeManageClearTeacherBtn" class="btn-secondary" type="button">ล้างครูผู้สอน</button>
-      <button id="gradeManageClearFilterBtn" class="btn-secondary" type="button">ล้างตัวกรอง</button>
-      <button id="gradeManageReloadBtn" class="btn-primary" type="button">โหลดข้อมูล</button>
-    </div>
+<div class="actions" style="margin:0;">
+  <button
+    id="gradeManageSyncStudentNamesBtn"
+    class="btn-success"
+    type="button"
+  >
+    🔄 ปรับปรุงข้อมูลนักเรียน
+  </button>
+
+  <button
+    id="gradeManageClearTeacherBtn"
+    class="btn-secondary"
+    type="button"
+  >
+    ล้างครูผู้สอน
+  </button>
+
+  <button
+    id="gradeManageClearFilterBtn"
+    class="btn-secondary"
+    type="button"
+  >
+    ล้างตัวกรอง
+  </button>
+
+  <button
+    id="gradeManageReloadBtn"
+    class="btn-primary"
+    type="button"
+  >
+    โหลดข้อมูล
+  </button>
+</div>
   </div>
 
   <div id="gradeManageStatus" class="status info">
@@ -4917,6 +4945,113 @@ body.app-booting #appView{
   </div>
 </div>
 
+  <!-- =========================================================
+     ปรับปรุงข้อมูลนักเรียนใน grade_results
+     ========================================================= -->
+<div id="gradeStudentSyncModal" class="modal-backdrop">
+  <div class="modal modal-lg">
+
+    <h3>ปรับปรุงข้อมูลนักเรียน</h3>
+
+    <p>
+      ระบบจะนำชื่อ-สกุลล่าสุดจากตาราง
+      <strong>students</strong>
+      ไปปรับปรุงในตาราง
+      <strong>grade_results</strong>
+    </p>
+
+    <div class="preview-meta">
+
+      <div class="item">
+        <div class="k">ผลการเรียนทั้งหมด</div>
+        <div
+          id="gradeStudentSyncTotalCount"
+          class="v"
+        >
+          0
+        </div>
+      </div>
+
+      <div class="item">
+        <div class="k">จับคู่กับนักเรียนได้</div>
+        <div
+          id="gradeStudentSyncMatchedCount"
+          class="v"
+        >
+          0
+        </div>
+      </div>
+
+      <div class="item">
+        <div class="k">ชื่อที่ต้องปรับปรุง</div>
+        <div
+          id="gradeStudentSyncDifferentCount"
+          class="v"
+        >
+          0
+        </div>
+      </div>
+
+      <div class="item">
+        <div class="k">ไม่พบใน students</div>
+        <div
+          id="gradeStudentSyncMissingCount"
+          class="v"
+        >
+          0
+        </div>
+      </div>
+
+    </div>
+
+    <div class="preview-box" style="margin-bottom:14px;">
+      <div style="font-weight:700;margin-bottom:8px;">
+        รายละเอียดการดำเนินการ
+      </div>
+
+      <div id="gradeStudentSyncDetailBox" class="small">
+        กำลังตรวจสอบข้อมูล...
+      </div>
+    </div>
+
+    <div class="danger-note">
+      การดำเนินการนี้จะปรับเฉพาะ
+      <strong>student_name</strong>
+      ในตาราง <strong>grade_results</strong><br>
+
+      จะไม่แก้ไขผลการเรียน ผลการเรียนแก้ตัว เลขที่ ห้อง ชั้น
+      ปีการศึกษา ภาคเรียน หรือสถานะของผลการเรียน
+    </div>
+
+    <div class="actions">
+      <button
+        id="gradeStudentSyncConfirmBtn"
+        class="btn-success"
+        type="button"
+        disabled
+      >
+        ยืนยันปรับปรุงข้อมูล
+      </button>
+
+      <button
+        id="gradeStudentSyncCancelBtn"
+        class="btn-secondary"
+        type="button"
+      >
+        ยกเลิก
+      </button>
+    </div>
+
+    <div
+      id="gradeStudentSyncStatus"
+      class="status info"
+    >
+      กำลังตรวจสอบข้อมูล...
+    </div>
+
+  </div>
+</div>
+
   <div id="reportReplaceOverlay" class="modal-backdrop">
     <div class="modal">
       <h3>ยืนยันการนำเข้าซ้ำ</h3>
@@ -5176,10 +5311,14 @@ body.app-booting #appView{
     reportActiveStatFilter: 'all',
     reportPendingSaveMode: null,
 
-   gradeManageRows: [],
+gradeManageRows: [],
 gradeManageEditingId: null,
 gradeManageTeacherFilterId: '',
 gradeManageTeacherFilterLabel: '',
+
+// ปรับปรุงชื่อนักเรียนจาก students ไป grade_results
+gradeStudentSyncPreview: null,
+gradeStudentSyncRunning: false,
 
 gradeManageSubPage: 'edit',
 
@@ -8448,6 +8587,389 @@ async function saveGradeManageEdit(id){
   }
 }
 
+function openGradeStudentSyncModal(){
+  const modal = el('gradeStudentSyncModal');
+
+  if(modal){
+    modal.classList.add('show');
+  }
+}
+
+function closeGradeStudentSyncModal(){
+  const modal = el('gradeStudentSyncModal');
+
+  if(modal){
+    modal.classList.remove('show');
+  }
+
+  state.gradeStudentSyncPreview = null;
+  state.gradeStudentSyncRunning = false;
+
+  if(el('gradeStudentSyncConfirmBtn')){
+    el('gradeStudentSyncConfirmBtn').disabled = true;
+    el('gradeStudentSyncConfirmBtn').textContent =
+      'ยืนยันปรับปรุงข้อมูล';
+  }
+
+  if(el('gradeManageSyncStudentNamesBtn')){
+    el('gradeManageSyncStudentNamesBtn').disabled = false;
+    el('gradeManageSyncStudentNamesBtn').textContent =
+      '🔄 ปรับปรุงข้อมูลนักเรียน';
+  }
+}
+
+function renderGradeStudentSyncPreview(result){
+  const data = result || {};
+
+  const totalCount = Number(
+    data.total_grade_rows || 0
+  );
+
+  const matchedCount = Number(
+    data.matched_rows || 0
+  );
+
+  const differentCount = Number(
+    data.different_rows || 0
+  );
+
+  const missingCount = Number(
+    data.missing_student_rows || 0
+  );
+
+  if(el('gradeStudentSyncTotalCount')){
+    el('gradeStudentSyncTotalCount').textContent =
+      totalCount.toLocaleString('th-TH');
+  }
+
+  if(el('gradeStudentSyncMatchedCount')){
+    el('gradeStudentSyncMatchedCount').textContent =
+      matchedCount.toLocaleString('th-TH');
+  }
+
+  if(el('gradeStudentSyncDifferentCount')){
+    el('gradeStudentSyncDifferentCount').textContent =
+      differentCount.toLocaleString('th-TH');
+  }
+
+  if(el('gradeStudentSyncMissingCount')){
+    el('gradeStudentSyncMissingCount').textContent =
+      missingCount.toLocaleString('th-TH');
+  }
+
+  const detailParts = [
+    `มีผลการเรียนทั้งหมด ${totalCount.toLocaleString('th-TH')} รายการ`,
+    `จับคู่กับนักเรียนในตาราง students ได้ ${matchedCount.toLocaleString('th-TH')} รายการ`,
+    `พบชื่อที่ไม่ตรงกัน ${differentCount.toLocaleString('th-TH')} รายการ`
+  ];
+
+  if(missingCount > 0){
+    detailParts.push(
+      `มีผลการเรียน ${missingCount.toLocaleString('th-TH')} รายการที่ไม่พบรหัสนักเรียนในตาราง students`
+    );
+  }
+
+  if(el('gradeStudentSyncDetailBox')){
+    el('gradeStudentSyncDetailBox').innerHTML =
+      detailParts
+        .map(text => `<div>• ${escapeHtml(text)}</div>`)
+        .join('');
+  }
+
+  if(el('gradeStudentSyncConfirmBtn')){
+    el('gradeStudentSyncConfirmBtn').disabled =
+      differentCount === 0;
+  }
+
+  if(differentCount > 0){
+    setStatus(
+      'gradeStudentSyncStatus',
+      `พร้อมปรับปรุงชื่อ ${differentCount.toLocaleString('th-TH')} รายการ`,
+      'warning'
+    );
+  }else{
+    setStatus(
+      'gradeStudentSyncStatus',
+      'ข้อมูลชื่อใน grade_results ตรงกับ students แล้ว',
+      'success'
+    );
+  }
+}
+
+async function previewGradeStudentNameSync(){
+  if(state.gradeStudentSyncRunning){
+    return;
+  }
+
+  const openBtn =
+    el('gradeManageSyncStudentNamesBtn');
+
+  try{
+    state.gradeStudentSyncRunning = true;
+    state.gradeStudentSyncPreview = null;
+
+    if(openBtn){
+      openBtn.disabled = true;
+      openBtn.textContent = 'กำลังตรวจสอบ...';
+    }
+
+    if(el('gradeStudentSyncConfirmBtn')){
+      el('gradeStudentSyncConfirmBtn').disabled = true;
+    }
+
+    if(el('gradeStudentSyncDetailBox')){
+      el('gradeStudentSyncDetailBox').textContent =
+        'กำลังเปรียบเทียบชื่อระหว่าง students และ grade_results...';
+    }
+
+    setStatus(
+      'gradeStudentSyncStatus',
+      'กำลังตรวจสอบข้อมูล...',
+      'info'
+    );
+
+    openGradeStudentSyncModal();
+
+    const changedByCode =
+      normalizeTeacherCode(
+        getGradeManageCurrentUserCode() || ''
+      );
+
+    const {
+      data,
+      error
+    } = await supabaseClient.rpc(
+      'sync_grade_result_student_names',
+      {
+        p_execute: false,
+        p_changed_by_code: changedByCode || null
+      }
+    );
+
+    if(error){
+      throw error;
+    }
+
+    const result =
+      data && typeof data === 'object'
+        ? data
+        : {};
+
+    state.gradeStudentSyncPreview = result;
+
+    renderGradeStudentSyncPreview(result);
+
+  }catch(err){
+    console.error(
+      'previewGradeStudentNameSync error:',
+      err
+    );
+
+    let message =
+      err?.message ||
+      'ตรวจสอบข้อมูลนักเรียนไม่สำเร็จ';
+
+    if(
+      message.includes(
+        'sync_grade_result_student_names'
+      )
+    ){
+      message +=
+        ' กรุณาตรวจสอบว่าได้สร้าง RPC ใน Supabase แล้ว';
+    }
+
+    if(el('gradeStudentSyncDetailBox')){
+      el('gradeStudentSyncDetailBox').textContent =
+        message;
+    }
+
+    setStatus(
+      'gradeStudentSyncStatus',
+      message,
+      'error'
+    );
+
+    showToast(
+      'ตรวจสอบไม่สำเร็จ',
+      message,
+      'error'
+    );
+
+  }finally{
+    state.gradeStudentSyncRunning = false;
+
+    if(openBtn){
+      openBtn.disabled = false;
+      openBtn.textContent =
+        '🔄 ปรับปรุงข้อมูลนักเรียน';
+    }
+  }
+}
+
+async function confirmGradeStudentNameSync(){
+  if(state.gradeStudentSyncRunning){
+    return;
+  }
+
+  const preview =
+    state.gradeStudentSyncPreview || {};
+
+  const differentCount = Number(
+    preview.different_rows || 0
+  );
+
+  if(differentCount <= 0){
+    setStatus(
+      'gradeStudentSyncStatus',
+      'ไม่มีข้อมูลชื่อที่ต้องปรับปรุง',
+      'info'
+    );
+
+    return;
+  }
+
+  const changedByCode =
+    normalizeTeacherCode(
+      getGradeManageCurrentUserCode() || ''
+    );
+
+  if(
+    !changedByCode ||
+    !changedByCode.startsWith('G')
+  ){
+    setStatus(
+      'gradeStudentSyncStatus',
+      'เมนูนี้อนุญาตเฉพาะเจ้าหน้าที่รหัส G',
+      'error'
+    );
+
+    showToast(
+      'ไม่มีสิทธิ์ดำเนินการ',
+      'ไม่พบข้อมูลเจ้าหน้าที่รหัส G',
+      'error'
+    );
+
+    return;
+  }
+
+  const confirmBtn =
+    el('gradeStudentSyncConfirmBtn');
+
+  const cancelBtn =
+    el('gradeStudentSyncCancelBtn');
+
+  try{
+    state.gradeStudentSyncRunning = true;
+
+    if(confirmBtn){
+      confirmBtn.disabled = true;
+      confirmBtn.textContent =
+        'กำลังปรับปรุง...';
+    }
+
+    if(cancelBtn){
+      cancelBtn.disabled = true;
+    }
+
+    setStatus(
+      'gradeStudentSyncStatus',
+      `กำลังปรับปรุงชื่อ ${differentCount.toLocaleString('th-TH')} รายการ...`,
+      'info'
+    );
+
+    const {
+      data,
+      error
+    } = await supabaseClient.rpc(
+      'sync_grade_result_student_names',
+      {
+        p_execute: true,
+        p_changed_by_code: changedByCode
+      }
+    );
+
+    if(error){
+      throw error;
+    }
+
+    const result =
+      data && typeof data === 'object'
+        ? data
+        : {};
+
+    const updatedCount = Number(
+      result.updated_count || 0
+    );
+
+    state.gradeStudentSyncPreview = result;
+
+    renderGradeStudentSyncPreview(result);
+
+    setStatus(
+      'gradeStudentSyncStatus',
+      `ปรับปรุงข้อมูลสำเร็จ ${updatedCount.toLocaleString('th-TH')} รายการ`,
+      'success'
+    );
+
+    showToast(
+      'ปรับปรุงข้อมูลสำเร็จ',
+      `อัปเดตชื่อใน grade_results จำนวน ${updatedCount.toLocaleString('th-TH')} รายการ`,
+      'success'
+    );
+
+    /*
+      ถ้าหน้าแก้ผลการเรียนกำลังแสดงตารางอยู่
+      ให้โหลดข้อมูลใหม่เพื่อแสดงชื่อที่ปรับปรุงแล้ว
+    */
+    if(
+      state.gradeManageSubPage === 'edit' &&
+      hasGradeManageSearchCriteria()
+    ){
+      state.gradeManageEditingId = null;
+      await loadGradeManageRows();
+    }
+
+    setTimeout(() => {
+      closeGradeStudentSyncModal();
+    }, 900);
+
+  }catch(err){
+    console.error(
+      'confirmGradeStudentNameSync error:',
+      err
+    );
+
+    const message =
+      err?.message ||
+      'ปรับปรุงข้อมูลนักเรียนไม่สำเร็จ';
+
+    setStatus(
+      'gradeStudentSyncStatus',
+      message,
+      'error'
+    );
+
+    showToast(
+      'ปรับปรุงไม่สำเร็จ',
+      message,
+      'error'
+    );
+
+  }finally{
+    state.gradeStudentSyncRunning = false;
+
+    if(confirmBtn){
+      confirmBtn.disabled = false;
+      confirmBtn.textContent =
+        'ยืนยันปรับปรุงข้อมูล';
+    }
+
+    if(cancelBtn){
+      cancelBtn.disabled = false;
+    }
+  }
+}
+
 function bindGradeManageEvents(){
   const filterIds = [
     'gradeManageGradeTypeFilter',
@@ -8564,6 +9086,53 @@ if(subjectCodeInput){
       loadGradeManageRows();
     });
   }
+
+  const syncStudentNamesBtn =
+  el('gradeManageSyncStudentNamesBtn');
+
+if(syncStudentNamesBtn){
+  syncStudentNamesBtn.addEventListener(
+    'click',
+    previewGradeStudentNameSync
+  );
+}
+
+const syncStudentConfirmBtn =
+  el('gradeStudentSyncConfirmBtn');
+
+if(syncStudentConfirmBtn){
+  syncStudentConfirmBtn.addEventListener(
+    'click',
+    confirmGradeStudentNameSync
+  );
+}
+
+const syncStudentCancelBtn =
+  el('gradeStudentSyncCancelBtn');
+
+if(syncStudentCancelBtn){
+  syncStudentCancelBtn.addEventListener(
+    'click',
+    closeGradeStudentSyncModal
+  );
+}
+
+const syncStudentModal =
+  el('gradeStudentSyncModal');
+
+if(syncStudentModal){
+  syncStudentModal.addEventListener(
+    'click',
+    ev => {
+      if(
+        ev.target === syncStudentModal &&
+        !state.gradeStudentSyncRunning
+      ){
+        closeGradeStudentSyncModal();
+      }
+    }
+  );
+}
 
   document.addEventListener('click', (ev) => {
     const wrap = ev.target.closest('.teacher-search-wrap');
