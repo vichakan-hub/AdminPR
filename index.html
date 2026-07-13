@@ -14237,9 +14237,22 @@ async function saveSubject(){
 
     if(error) throw error;
 
-    await loadTeacherAdvisers();
-    resetAdviserForm();
-    showToast('บันทึกสำเร็จ', 'เพิ่มข้อมูลครูที่ปรึกษาเรียบร้อยแล้ว', 'success');
+const savedAcademicYear = String(academic_year);
+const savedTerm = String(term);
+
+await loadTeacherAdvisers();
+resetAdviserForm();
+
+// คืนค่าปีการศึกษาและภาคเรียนเดิมหลังล้างฟอร์ม
+el('adviserAcademicYearInput').value = savedAcademicYear;
+el('adviserTermInput').value = savedTerm;
+
+showToast(
+  'บันทึกสำเร็จ',
+  'เพิ่มข้อมูลครูที่ปรึกษาเรียบร้อยแล้ว',
+  'success'
+);
+    
     setStatus('adviserFormStatus', 'บันทึกข้อมูลครูที่ปรึกษาเรียบร้อยแล้ว', 'success');
   }catch(err){
     setStatus('adviserFormStatus', err.message || 'บันทึกข้อมูลไม่สำเร็จ', 'error');
