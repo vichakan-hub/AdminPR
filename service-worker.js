@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'grade-admin-v1';
+const CACHE_VERSION = 'grade-admin-v2';
 const APP_SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
