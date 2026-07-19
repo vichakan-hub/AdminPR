@@ -3819,12 +3819,12 @@ body.app-booting #appView{
             </div>
             <div class="field">
               <span class="label-in-form">ประเภทครู</span>
-              <select id="teacherCodePrefixFilter" class="std">
-                <option value="">โปรดเลือก</option>
-                <option value="B">รหัส B</option>
-                <option value="G">รหัส G</option>
-                <option value="T">รหัส T</option>
-              </select>
+<select id="teacherCodePrefixFilter" class="std">
+  <option value="">โปรดเลือก</option>
+  <option value="L">รหัส L</option>
+  <option value="G">รหัส G</option>
+  <option value="T">รหัส T</option>
+</select>
             </div>
             <div class="field">
               <span class="label-in-form">สถานะ</span>
@@ -13879,10 +13879,18 @@ async function saveTeacherEdit(){
       setStatus('teacherEditStatus', 'กรุณากรอกรหัสครู', 'error');
       return;
     }
-    if(!teacher_code.startsWith('G') && !teacher_code.startsWith('T') && !teacher_code.startsWith('B')){
-      setStatus('teacherEditStatus', 'รหัสครูต้องขึ้นต้นด้วย G หรือ T หรือ B', 'error');
-      return;
-    }
+if(
+  !teacher_code.startsWith('G') &&
+  !teacher_code.startsWith('T') &&
+  !teacher_code.startsWith('L')
+){
+  setStatus(
+    'teacherEditStatus',
+    'รหัสครูต้องขึ้นต้นด้วย G หรือ T หรือ L',
+    'error'
+  );
+  return;
+}
     if(!first_name){
       setStatus('teacherEditStatus', 'กรุณากรอกชื่อ', 'error');
       return;
@@ -16739,11 +16747,25 @@ async function saveTeacher(){
       return;
     }
 
-    if(!teacher_code.startsWith('G') && !teacher_code.startsWith('T') && !teacher_code.startsWith('B')){
-      setStatus('teacherFormStatus', 'รหัสครูต้องขึ้นต้นด้วย G หรือ T หรือ B เท่านั้น', 'error');
-      showToast('ยังบันทึกไม่ได้', 'รหัสครูต้องขึ้นต้นด้วย G หรือ T หรือ B เท่านั้น', 'warning');
-      return;
-    }
+if(
+  !teacher_code.startsWith('G') &&
+  !teacher_code.startsWith('T') &&
+  !teacher_code.startsWith('L')
+){
+  setStatus(
+    'teacherFormStatus',
+    'รหัสครูต้องขึ้นต้นด้วย G หรือ T หรือ L เท่านั้น',
+    'error'
+  );
+
+  showToast(
+    'ยังบันทึกไม่ได้',
+    'รหัสครูต้องขึ้นต้นด้วย G หรือ T หรือ L เท่านั้น',
+    'warning'
+  );
+
+  return;
+}
 
     if(!first_name){
       setStatus('teacherFormStatus', 'กรุณากรอกชื่อ', 'error');
