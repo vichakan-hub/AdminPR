@@ -1,12 +1,12 @@
 {
-  "id": "./",
+  "id": "/AdminPR/",
   "name": "AdminPR",
   "short_name": "AdminPR",
   "description": "ระบบกลางสำหรับเจ้าหน้าที่ทะเบียน-วัดผล จัดการรายวิชา ครู นักเรียน การลงทะเบียนสอน และผลการเรียน",
   "lang": "th",
   "dir": "ltr",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/AdminPR/",
+  "scope": "/AdminPR/"
   "display": "standalone",
   "orientation": "any",
   "background_color": "#f5f7fb",
