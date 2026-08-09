@@ -2125,8 +2125,10 @@ body.app-booting #appView{
   border-radius:20px;
   overflow:hidden;
   box-shadow:0 10px 28px rgba(23,50,74,.08);
-  break-inside:avoid;
-  page-break-inside:avoid;
+
+  /* PDF สามารถแบ่ง card ข้ามหน้าได้ */
+  break-inside:auto;
+  page-break-inside:auto;
 }
 
 .midterm-teacher-summary-card-header{
@@ -2291,19 +2293,34 @@ body.app-booting #appView{
     box-shadow:none;
     border:1px solid #cfd8e3;
     border-radius:18px;
-    break-inside:avoid;
-    page-break-inside:avoid;
+
+    break-inside:auto;
+    page-break-inside:auto;
   }
 
+
+  /* ชื่อครูพยายามอยู่ติดกับตาราง */
   .midterm-teacher-summary-card-header{
+    break-after:avoid;
+    page-break-after:avoid;
+
     background:#f7f9fc !important;
     -webkit-print-color-adjust:exact;
     print-color-adjust:exact;
   }
 
+
+  /* ห้ามตัดหนึ่งแถวกลางหน้า */
+  .midterm-teacher-summary-table tr{
+    break-inside:avoid;
+    page-break-inside:avoid;
+  }
+
+
   .midterm-teacher-summary-card-body{
     padding:12px 14px 14px;
   }
+
 
   .midterm-teacher-summary-table-wrap{
     overflow:visible;
@@ -18697,7 +18714,7 @@ pagebreak: {
 
   avoid: [
     'tr',
-    '.midterm-teacher-summary-card'
+    '.midterm-teacher-summary-card-header'
   ]
 
 }
