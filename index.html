@@ -2641,13 +2641,32 @@ body.app-booting #appView{
         <h2>รายงานผลการเรียน</h2>
         <div class="sub">ติดตามสถานะการรายงานของครูทุกคน ตรวจสอบรายการสอนที่รายงานแล้วหรือยังไม่รายงาน และสามารถนำเข้าผลการเรียนแทนครูได้</div>
 
-        <div class="teacher-page-tabs">
-  <button id="reportSubTrackingBtn" class="teacher-sub-btn active" type="button">
+<div class="teacher-page-tabs">
+
+  <button
+    id="reportSubTrackingBtn"
+    class="teacher-sub-btn active"
+    type="button"
+  >
     📊 ติดตามการรายงานผลการเรียน
   </button>
-  <button id="reportSubSignerBtn" class="teacher-sub-btn" type="button">
+
+  <button
+    id="reportSubMidtermBtn"
+    class="teacher-sub-btn"
+    type="button"
+  >
+    📈 ติดตามคะแนนกลางภาคเรียน
+  </button>
+
+  <button
+    id="reportSubSignerBtn"
+    class="teacher-sub-btn"
+    type="button"
+  >
     ✍️ ตั้งค่าผู้อนุมัติผลการเรียน
   </button>
+
 </div>
         
         <section id="reportSubTrackingPage">
@@ -2855,6 +2874,393 @@ body.app-booting #appView{
           </div>
         </section>
       </section>
+
+<!-- =========================================================
+     Midterm Report Tracking
+     ติดตามการรายงานคะแนนกลางภาคเรียน
+     ========================================================= -->
+<section id="reportSubMidtermPage" class="hidden">
+
+  <div class="report-summary-box">
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px;">
+      ภาพรวมการรายงานคะแนนกลางภาคเรียน
+    </div>
+
+    <div class="small">
+      ตรวจสอบการรายงานคะแนนกลางภาคของครูผู้สอน
+      โดยเปรียบเทียบรายการสอนจาก
+      <strong>subject_offerings</strong>
+      กับข้อมูลที่บันทึกจริงใน
+      <strong>midterm_reports</strong>
+    </div>
+  </div>
+
+
+  <!-- =====================================================
+       KPI
+       ===================================================== -->
+  <div class="report-stat-grid">
+
+    <div
+      class="report-stat-card report-complete"
+      data-midterm-stat="teacher_complete"
+    >
+      <div class="k">ครูรายงานครบแล้ว</div>
+
+      <div
+        id="midtermTeacherCompleteCount"
+        class="v"
+      >
+        0
+      </div>
+
+      <div class="s">
+        ครูที่รายงานคะแนนกลางภาคครบทุกวิชาและทุกห้องที่รับผิดชอบ
+      </div>
+    </div>
+
+
+    <div
+      class="report-stat-card report-partial"
+      data-midterm-stat="teacher_partial"
+    >
+      <div class="k">ครูรายงานบางส่วน</div>
+
+      <div
+        id="midtermTeacherPartialCount"
+        class="v"
+      >
+        0
+      </div>
+
+      <div class="s">
+        ครูที่เริ่มรายงานแล้ว แต่ยังมีบางวิชาหรือบางห้องที่ยังไม่ได้รายงาน
+      </div>
+    </div>
+
+
+    <div
+      class="report-stat-card report-pending"
+      data-midterm-stat="teacher_pending"
+    >
+      <div class="k">ครูยังไม่รายงาน</div>
+
+      <div
+        id="midtermTeacherPendingCount"
+        class="v"
+      >
+        0
+      </div>
+
+      <div class="s">
+        ครูที่ยังไม่มีข้อมูลคะแนนกลางภาคในรายการสอนของตนเอง
+      </div>
+    </div>
+
+
+    <div
+      class="report-stat-card report-item-complete"
+      data-midterm-stat="item_complete"
+    >
+      <div class="k">รายการสอนที่รายงานแล้ว</div>
+
+      <div
+        id="midtermItemCompleteCount"
+        class="v"
+      >
+        0
+      </div>
+
+      <div class="s">
+        รายวิชา/ห้องที่พบข้อมูลนักเรียนใน midterm_reports แล้ว
+      </div>
+    </div>
+
+
+    <div
+      class="report-stat-card report-item-pending"
+      data-midterm-stat="item_pending"
+    >
+      <div class="k">รายการสอนที่ยังไม่รายงาน</div>
+
+      <div
+        id="midtermItemPendingCount"
+        class="v"
+      >
+        0
+      </div>
+
+      <div class="s">
+        รายวิชา/ห้องที่ยังไม่พบข้อมูลคะแนนกลางภาค
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       FILTER
+       ===================================================== -->
+  <div class="report-toolbar">
+
+    <div class="field">
+      <span class="label-in-form">
+        ปีการศึกษา
+      </span>
+
+      <input
+        id="midtermFilterYear"
+        class="std"
+        type="number"
+        min="2500"
+        value="2569"
+      >
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">
+        ภาคเรียน
+      </span>
+
+      <select
+        id="midtermFilterTerm"
+        class="std"
+      >
+        <option value="">ทั้งหมด</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">
+        ชั้น
+      </span>
+
+      <select
+        id="midtermFilterClass"
+        class="std"
+      >
+        <option value="">ทั้งหมด</option>
+        <option value="ม.1">ม.1</option>
+        <option value="ม.2">ม.2</option>
+        <option value="ม.3">ม.3</option>
+        <option value="ม.4">ม.4</option>
+        <option value="ม.5">ม.5</option>
+        <option value="ม.6">ม.6</option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">
+        กลุ่มสาระ
+      </span>
+
+      <select
+        id="midtermFilterLearningArea"
+        class="std"
+      >
+        <option value="">
+          ทั้งหมด
+        </option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">
+        ครูผู้สอน
+      </span>
+
+      <select
+        id="midtermFilterTeacher"
+        class="std"
+      >
+        <option value="">
+          ทั้งหมด
+        </option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">
+        ค้นหา
+      </span>
+
+      <input
+        id="midtermFilterKeyword"
+        class="std"
+        type="text"
+        placeholder="รหัสวิชา / ชื่อวิชา / ชื่อครู"
+      >
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       ACTIVE FILTER BAR
+       ===================================================== -->
+  <div class="report-active-filter">
+
+    <div class="left">
+
+      <div class="report-active-pill">
+        ตัวกรองสถิติ:
+        <span
+          id="midtermActiveStatLabel"
+          style="margin-left:6px;"
+        >
+          ทั้งหมด
+        </span>
+      </div>
+
+
+      <div class="report-active-pill">
+        จำนวนแถวที่แสดง:
+        <span
+          id="midtermVisibleRowCount"
+          style="margin-left:6px;"
+        >
+          0
+        </span>
+      </div>
+
+    </div>
+
+
+    <div
+      class="actions"
+      style="margin:0;"
+    >
+
+      <button
+        id="midtermClearStatFilterBtn"
+        class="btn-secondary"
+        type="button"
+      >
+        ล้างตัวกรองสถิติ
+      </button>
+
+      <button
+        id="midtermReloadBtn"
+        class="btn-secondary"
+        type="button"
+      >
+        โหลดใหม่
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <div
+    id="midtermListStatus"
+    class="status info"
+  >
+    ยังไม่ได้โหลดข้อมูลคะแนนกลางภาค
+  </div>
+
+
+  <!-- =====================================================
+       TABLE
+       ===================================================== -->
+  <div class="table-wrap">
+
+    <table>
+
+      <thead>
+        <tr>
+
+          <th>
+            ครูผู้สอน
+          </th>
+
+          <th>
+            รายวิชา
+          </th>
+
+          <th>
+            ปี/เทอม
+          </th>
+
+          <th>
+            ชั้น
+          </th>
+
+          <th>
+            ห้อง
+          </th>
+
+          <th>
+            สถานะครู
+          </th>
+
+          <th>
+            สถานะกลางภาค
+          </th>
+
+          <th>
+            นักเรียนที่บันทึก
+          </th>
+
+          <th>
+            บันทึกล่าสุด
+          </th>
+
+        </tr>
+      </thead>
+
+
+      <tbody id="midtermTeachingTbody">
+
+        <tr class="filter-empty-row">
+
+          <td colspan="9">
+
+            <div class="filter-empty-state">
+
+              <div class="filter-empty-card">
+
+                <div class="filter-empty-icon">
+                  📈
+                </div>
+
+                <div class="filter-empty-title">
+                  ยังไม่ได้โหลดข้อมูลกลางภาค
+                </div>
+
+                <div class="filter-empty-text">
+                  ระบบจะแสดงรายการสอนจาก subject_offerings
+                  และตรวจสอบว่าพบข้อมูลของรายการนั้น
+                  ใน midterm_reports แล้วหรือไม่
+                </div>
+
+                <div class="filter-empty-hint">
+                  ตรวจสอบแยกถึงระดับห้องเรียน
+                </div>
+
+              </div>
+
+            </div>
+
+          </td>
+
+        </tr>
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+</section>
+        
         <section id="reportSubSignerPage" class="hidden">
   <div class="report-summary-box">
     <div style="font-size:18px;font-weight:700;margin-bottom:4px;">
@@ -5516,6 +5922,12 @@ body.app-booting #appView{
     reportActiveStatFilter: 'all',
     reportPendingSaveMode: null,
 
+    // กลางภาค
+midtermTeachingRowsRaw: [],
+midtermTeachingRows: [],
+midtermActiveStatFilter: 'all',
+midtermLoading: false,
+
 gradeManageRows: [],
 gradeManageEditingId: null,
 gradeManageTeacherFilterId: '',
@@ -7693,22 +8105,44 @@ function getExpectedClassLevel(entryAcademicYear, entryLevel, selectedAcademicYe
     el('studentSubImportBtn').className = isImport ? 'student-sub-btn active' : 'student-sub-btn';
   }
 
-    function setReportSubPage(page){
+function setReportSubPage(page){
   state.reportSubPage = page;
 
   const isTracking = page === 'tracking';
+  const isMidterm = page === 'midterm';
   const isSigner = page === 'signer';
 
+  // -----------------------------
+  // Pages
+  // -----------------------------
+
   if(el('reportSubTrackingPage')){
-    el('reportSubTrackingPage').classList.toggle('hidden', !isTracking);
+    el('reportSubTrackingPage')
+      .classList.toggle('hidden', !isTracking);
+  }
+
+  if(el('reportSubMidtermPage')){
+    el('reportSubMidtermPage')
+      .classList.toggle('hidden', !isMidterm);
   }
 
   if(el('reportSubSignerPage')){
-    el('reportSubSignerPage').classList.toggle('hidden', !isSigner);
+    el('reportSubSignerPage')
+      .classList.toggle('hidden', !isSigner);
   }
+
+  // -----------------------------
+  // Buttons
+  // -----------------------------
 
   if(el('reportSubTrackingBtn')){
     el('reportSubTrackingBtn').className = isTracking
+      ? 'teacher-sub-btn active'
+      : 'teacher-sub-btn';
+  }
+
+  if(el('reportSubMidtermBtn')){
+    el('reportSubMidtermBtn').className = isMidterm
       ? 'teacher-sub-btn active'
       : 'teacher-sub-btn';
   }
@@ -15762,6 +16196,1346 @@ async function loadReportingRows(){
   applyReportingFiltersAndRender();
 }
 
+/* =========================================================
+   Midterm Report Tracking
+   ========================================================= */
+
+function getMidtermCompositeKey(row){
+  return [
+    String(row?.academic_year ?? '').trim(),
+    String(row?.term ?? '').trim(),
+    normalizeSubjectCode(row?.subject_code || ''),
+    normalizeTeacherCode(row?.teacher_code || ''),
+    String(row?.class_level || '').trim(),
+    normalizeRoomValue(row?.room)
+  ].join('|');
+}
+
+
+function populateMidtermDynamicFilters(rows){
+
+  const areaSelect = el('midtermFilterLearningArea');
+  const teacherSelect = el('midtermFilterTeacher');
+
+  const currentArea =
+    String(areaSelect?.value || '').trim();
+
+  const currentTeacher =
+    String(teacherSelect?.value || '').trim();
+
+
+  /* -----------------------------
+     กลุ่มสาระ
+     ----------------------------- */
+
+  if(areaSelect){
+
+    const areas = [
+      ...new Set(
+        (rows || [])
+          .map(row =>
+            getNormalizedLearningAreaBySubject(row)
+          )
+          .filter(Boolean)
+      )
+    ];
+
+    areas.sort((a, b) => {
+      const aa = getLearningAreaOrder(a);
+      const bb = getLearningAreaOrder(b);
+
+      if(aa !== bb){
+        return aa - bb;
+      }
+
+      return String(a).localeCompare(
+        String(b),
+        'th'
+      );
+    });
+
+    areaSelect.innerHTML =
+      '<option value="">ทั้งหมด</option>' +
+      areas.map(area => `
+        <option value="${escapeHtml(area)}">
+          ${escapeHtml(area)}
+        </option>
+      `).join('');
+
+    if(
+      currentArea &&
+      areas.includes(currentArea)
+    ){
+      areaSelect.value = currentArea;
+    }
+  }
+
+
+  /* -----------------------------
+     ครูผู้สอน
+     ----------------------------- */
+
+  if(teacherSelect){
+
+    const teacherMap = new Map();
+
+    (rows || []).forEach(row => {
+
+      const teacherId =
+        String(row.teacher_id || '').trim();
+
+      if(!teacherId){
+        return;
+      }
+
+      if(!teacherMap.has(teacherId)){
+        teacherMap.set(
+          teacherId,
+          {
+            teacher_id: teacherId,
+            teacher_code:
+              row.teacher_code || '',
+            teacher_name:
+              row.teacher_name ||
+              row.full_name ||
+              ''
+          }
+        );
+      }
+
+    });
+
+
+    const teachers = Array.from(
+      teacherMap.values()
+    ).sort((a, b) => {
+
+      return String(
+        a.teacher_code || ''
+      ).localeCompare(
+        String(b.teacher_code || ''),
+        'th'
+      );
+
+    });
+
+
+    teacherSelect.innerHTML =
+      '<option value="">ทั้งหมด</option>' +
+      teachers.map(t => `
+        <option value="${escapeHtml(t.teacher_id)}">
+          ${escapeHtml(
+            `${t.teacher_code || '-'} | ${t.teacher_name || '-'}`
+          )}
+        </option>
+      `).join('');
+
+
+    if(
+      currentTeacher &&
+      teacherMap.has(currentTeacher)
+    ){
+      teacherSelect.value =
+        currentTeacher;
+    }
+
+  }
+}
+
+
+function buildMidtermTeacherStatusMap(rows){
+
+  const teacherMap = new Map();
+
+
+  (rows || []).forEach(row => {
+
+    const teacherKey =
+      String(
+        row.teacher_id ||
+        row.teacher_code ||
+        ''
+      ).trim();
+
+    if(!teacherKey){
+      return;
+    }
+
+
+    if(!teacherMap.has(teacherKey)){
+
+      teacherMap.set(
+        teacherKey,
+        {
+          total: 0,
+          reported: 0
+        }
+      );
+
+    }
+
+
+    const item =
+      teacherMap.get(teacherKey);
+
+    item.total += 1;
+
+
+    if(row.has_midterm_report){
+      item.reported += 1;
+    }
+
+  });
+
+
+  const result = new Map();
+
+
+  teacherMap.forEach(
+    (value, key) => {
+
+      if(
+        value.total === 0 ||
+        value.reported === 0
+      ){
+
+        result.set(
+          key,
+          'pending'
+        );
+
+      }else if(
+        value.reported ===
+        value.total
+      ){
+
+        result.set(
+          key,
+          'complete'
+        );
+
+      }else{
+
+        result.set(
+          key,
+          'partial'
+        );
+
+      }
+
+    }
+  );
+
+
+  return result;
+}
+
+
+function getMidtermStatCounts(rows){
+
+  const teacherMap = new Map();
+
+
+  (rows || []).forEach(row => {
+
+    const teacherKey =
+      String(
+        row.teacher_id ||
+        row.teacher_code ||
+        ''
+      ).trim();
+
+
+    if(
+      teacherKey &&
+      !teacherMap.has(teacherKey)
+    ){
+
+      teacherMap.set(
+        teacherKey,
+        row.teacher_report_status ||
+        'pending'
+      );
+
+    }
+
+  });
+
+
+  const counts = {
+    teacher_complete: 0,
+    teacher_partial: 0,
+    teacher_pending: 0,
+
+    item_complete: 0,
+    item_pending: 0
+  };
+
+
+  teacherMap.forEach(status => {
+
+    if(status === 'complete'){
+
+      counts.teacher_complete += 1;
+
+    }else if(status === 'partial'){
+
+      counts.teacher_partial += 1;
+
+    }else{
+
+      counts.teacher_pending += 1;
+
+    }
+
+  });
+
+
+  (rows || []).forEach(row => {
+
+    if(row.has_midterm_report){
+
+      counts.item_complete += 1;
+
+    }else{
+
+      counts.item_pending += 1;
+
+    }
+
+  });
+
+
+  return counts;
+}
+
+
+function updateMidtermStatCards(rows){
+
+  const counts =
+    getMidtermStatCounts(
+      rows || []
+    );
+
+
+  if(el('midtermTeacherCompleteCount')){
+    el('midtermTeacherCompleteCount')
+      .textContent =
+      String(
+        counts.teacher_complete || 0
+      );
+  }
+
+
+  if(el('midtermTeacherPartialCount')){
+    el('midtermTeacherPartialCount')
+      .textContent =
+      String(
+        counts.teacher_partial || 0
+      );
+  }
+
+
+  if(el('midtermTeacherPendingCount')){
+    el('midtermTeacherPendingCount')
+      .textContent =
+      String(
+        counts.teacher_pending || 0
+      );
+  }
+
+
+  if(el('midtermItemCompleteCount')){
+    el('midtermItemCompleteCount')
+      .textContent =
+      String(
+        counts.item_complete || 0
+      );
+  }
+
+
+  if(el('midtermItemPendingCount')){
+    el('midtermItemPendingCount')
+      .textContent =
+      String(
+        counts.item_pending || 0
+      );
+  }
+
+
+  document
+    .querySelectorAll(
+      '.report-stat-card[data-midterm-stat]'
+    )
+    .forEach(card => {
+
+      const stat =
+        String(
+          card.dataset.midtermStat || ''
+        );
+
+      card.classList.toggle(
+        'active',
+        (
+          state.midtermActiveStatFilter ||
+          'all'
+        ) === stat
+      );
+
+    });
+}
+
+
+function getMidtermActiveStatFilterLabel(){
+
+  const filter =
+    state.midtermActiveStatFilter ||
+    'all';
+
+
+  if(filter === 'teacher_complete'){
+    return 'ครูรายงานครบแล้ว';
+  }
+
+  if(filter === 'teacher_partial'){
+    return 'ครูรายงานบางส่วน';
+  }
+
+  if(filter === 'teacher_pending'){
+    return 'ครูยังไม่รายงาน';
+  }
+
+  if(filter === 'item_complete'){
+    return 'รายการสอนที่รายงานแล้ว';
+  }
+
+  if(filter === 'item_pending'){
+    return 'รายการสอนที่ยังไม่รายงาน';
+  }
+
+  return 'ทั้งหมด';
+}
+
+
+function applyMidtermFiltersAndRender(){
+
+  const activeFilter =
+    state.midtermActiveStatFilter ||
+    'all';
+
+
+  let rows = [
+    ...(state.midtermTeachingRowsRaw || [])
+  ];
+
+
+  if(
+    activeFilter ===
+    'teacher_complete'
+  ){
+
+    rows = rows.filter(
+      row =>
+        row.teacher_report_status ===
+        'complete'
+    );
+
+  }else if(
+    activeFilter ===
+    'teacher_partial'
+  ){
+
+    rows = rows.filter(
+      row =>
+        row.teacher_report_status ===
+        'partial'
+    );
+
+  }else if(
+    activeFilter ===
+    'teacher_pending'
+  ){
+
+    rows = rows.filter(
+      row =>
+        row.teacher_report_status ===
+        'pending'
+    );
+
+  }else if(
+    activeFilter ===
+    'item_complete'
+  ){
+
+    rows = rows.filter(
+      row =>
+        !!row.has_midterm_report
+    );
+
+  }else if(
+    activeFilter ===
+    'item_pending'
+  ){
+
+    rows = rows.filter(
+      row =>
+        !row.has_midterm_report
+    );
+
+  }
+
+
+  state.midtermTeachingRows =
+    rows;
+
+
+  if(el('midtermActiveStatLabel')){
+
+    el('midtermActiveStatLabel')
+      .textContent =
+      getMidtermActiveStatFilterLabel();
+
+  }
+
+
+  if(el('midtermVisibleRowCount')){
+
+    el('midtermVisibleRowCount')
+      .textContent =
+      String(rows.length);
+
+  }
+
+
+  document
+    .querySelectorAll(
+      '.report-stat-card[data-midterm-stat]'
+    )
+    .forEach(card => {
+
+      const stat =
+        String(
+          card.dataset.midtermStat || ''
+        );
+
+      card.classList.toggle(
+        'active',
+        activeFilter === stat
+      );
+
+    });
+
+
+  renderMidtermReportingRows(
+    rows
+  );
+
+if(el('midtermClearStatFilterBtn')){
+
+  el('midtermClearStatFilterBtn')
+    .addEventListener(
+      'click',
+      () => {
+
+        state.midtermActiveStatFilter =
+          'all';
+
+
+        applyMidtermFiltersAndRender();
+
+      }
+    );
+
+}
+  if(el('midtermReloadBtn')){
+
+  el('midtermReloadBtn')
+    .addEventListener(
+      'click',
+      async () => {
+
+        await loadMidtermReportingRows();
+
+
+        showToast(
+          'โหลดใหม่สำเร็จ',
+          'อัปเดตสถานะคะแนนกลางภาคเรียบร้อยแล้ว',
+          'success'
+        );
+
+      }
+    );
+
+}
+}
+
+
+function renderMidtermReportingRows(rows){
+
+  const tbody =
+    el('midtermTeachingTbody');
+
+  if(!tbody){
+    return;
+  }
+
+
+  if(!(rows || []).length){
+
+    tbody.innerHTML = `
+      <tr class="filter-empty-row">
+        <td colspan="9">
+          <div class="filter-empty-state">
+
+            <div class="filter-empty-card">
+
+              <div class="filter-empty-icon">
+                📈
+              </div>
+
+              <div class="filter-empty-title">
+                ไม่พบรายการตามเงื่อนไข
+              </div>
+
+              <div class="filter-empty-text">
+                ไม่พบรายการสอนหรือข้อมูลคะแนนกลางภาค
+                ตามปีการศึกษา ภาคเรียน ชั้น
+                กลุ่มสาระ ครู หรือคำค้นหาที่เลือก
+              </div>
+
+            </div>
+
+          </div>
+        </td>
+      </tr>
+    `;
+
+    setStatus(
+      'midtermListStatus',
+      'ไม่พบรายการตามเงื่อนไขที่เลือก',
+      'warning'
+    );
+
+    return;
+  }
+
+
+  tbody.innerHTML =
+    rows.map(row => {
+
+      const teacherStatus =
+        row.teacher_report_status ||
+        'pending';
+
+
+      const teacherBadge =
+        teacherStatus === 'complete'
+          ? '<span class="badge green">รายงานครบแล้ว</span>'
+          : teacherStatus === 'partial'
+            ? '<span class="badge orange">รายงานบางส่วน</span>'
+            : '<span class="badge red">ยังไม่รายงาน</span>';
+
+
+      const itemBadge =
+        row.has_midterm_report
+          ? '<span class="badge green">รายงานแล้ว</span>'
+          : '<span class="badge red">ยังไม่รายงาน</span>';
+
+
+      return `
+        <tr>
+
+          <td>
+            <div class="mono">
+              ${escapeHtml(
+                row.teacher_code || '-'
+              )}
+            </div>
+
+            <div>
+              ${escapeHtml(
+                row.teacher_name || '-'
+              )}
+            </div>
+          </td>
+
+
+          <td>
+            <div class="mono">
+              ${escapeHtml(
+                row.subject_code || '-'
+              )}
+            </div>
+
+            <div>
+              ${escapeHtml(
+                row.subject_name || '-'
+              )}
+            </div>
+
+            <div class="small">
+              ${escapeHtml(
+                row.learning_area || '-'
+              )}
+            </div>
+          </td>
+
+
+          <td>
+            <div>
+              ${escapeHtml(
+                String(
+                  row.academic_year || '-'
+                )
+              )}
+            </div>
+
+            <div class="small">
+              เทอม
+              ${escapeHtml(
+                String(
+                  row.term || '-'
+                )
+              )}
+            </div>
+          </td>
+
+
+          <td>
+            ${escapeHtml(
+              row.class_level || '-'
+            )}
+          </td>
+
+
+          <td>
+            ห้อง
+            ${escapeHtml(
+              String(
+                row.room || '-'
+              )
+            )}
+          </td>
+
+
+          <td>
+            ${teacherBadge}
+          </td>
+
+
+          <td>
+            ${itemBadge}
+          </td>
+
+
+          <td>
+            ${
+              row.has_midterm_report
+                ? `
+                  <span class="badge">
+                    ${escapeHtml(
+                      String(
+                        row.midterm_student_count ||
+                        0
+                      )
+                    )} คน
+                  </span>
+                `
+                : `
+                  <span class="small">
+                    0 คน
+                  </span>
+                `
+            }
+          </td>
+
+
+          <td>
+            ${
+              row.latest_midterm_updated_at
+                ? escapeHtml(
+                    formatDateTime(
+                      row.latest_midterm_updated_at
+                    )
+                  )
+                : '-'
+            }
+          </td>
+
+        </tr>
+      `;
+
+    }).join('');
+
+
+  setStatus(
+    'midtermListStatus',
+    `พบ ${rows.length} รายการ`,
+    'success'
+  );
+}
+
+
+async function loadMidtermReportingRows(){
+
+  if(state.midtermLoading){
+    return;
+  }
+
+
+  state.midtermLoading = true;
+
+
+  try{
+
+    setStatus(
+      'midtermListStatus',
+      'กำลังตรวจสอบการรายงานคะแนนกลางภาค...',
+      'info'
+    );
+
+
+    const year =
+      String(
+        el('midtermFilterYear')?.value ||
+        ''
+      ).trim();
+
+
+    const term =
+      String(
+        el('midtermFilterTerm')?.value ||
+        ''
+      ).trim();
+
+
+    const classLevel =
+      String(
+        el('midtermFilterClass')?.value ||
+        ''
+      ).trim();
+
+
+    const learningArea =
+      String(
+        el('midtermFilterLearningArea')?.value ||
+        ''
+      ).trim();
+
+
+    const teacherId =
+      String(
+        el('midtermFilterTeacher')?.value ||
+        ''
+      ).trim();
+
+
+    const keyword =
+      normalizeName(
+        el('midtermFilterKeyword')?.value ||
+        ''
+      )
+      .toLowerCase();
+
+
+    if(!year){
+
+      throw new Error(
+        'กรุณาระบุปีการศึกษา'
+      );
+
+    }
+
+
+    /* =====================================================
+       1. โหลดรายการสอนที่ควรต้องรายงาน
+       ===================================================== */
+
+    const pageSize = 1000;
+
+    let offeringFrom = 0;
+
+    let offeringRows = [];
+
+
+    while(true){
+
+      let query =
+        supabaseClient
+          .from('v_subject_offerings')
+          .select('*')
+          .order(
+            'academic_year',
+            { ascending:false }
+          )
+          .order(
+            'term',
+            { ascending:true }
+          )
+          .order(
+            'class_level',
+            { ascending:true }
+          )
+          .order(
+            'room',
+            { ascending:true }
+          )
+          .order(
+            'subject_code',
+            { ascending:true }
+          )
+          .range(
+            offeringFrom,
+            offeringFrom +
+              pageSize -
+              1
+          );
+
+
+      query =
+        query.eq(
+          'academic_year',
+          Number(year)
+        );
+
+
+      if(term){
+
+        query =
+          query.eq(
+            'term',
+            Number(term)
+          );
+
+      }
+
+
+      if(classLevel){
+
+        query =
+          query.eq(
+            'class_level',
+            classLevel
+          );
+
+      }
+
+
+      const {
+        data,
+        error
+      } = await query;
+
+
+      if(error){
+        throw error;
+      }
+
+
+      const batch =
+        data || [];
+
+
+      offeringRows =
+        offeringRows.concat(
+          batch
+        );
+
+
+      if(
+        batch.length <
+        pageSize
+      ){
+        break;
+      }
+
+
+      offeringFrom +=
+        pageSize;
+    }
+
+
+    /* =====================================================
+       2. โหลดสถานะสรุปจาก midterm_report_status
+       ===================================================== */
+
+    let statusFrom = 0;
+
+    let statusRows = [];
+
+
+    while(true){
+
+      let query =
+        supabaseClient
+          .from(
+            'midterm_report_status'
+          )
+          .select(`
+            subject_offering_id,
+            academic_year,
+            term,
+            subject_id,
+            subject_code,
+            teacher_id,
+            teacher_code,
+            class_level,
+            room,
+            student_count,
+            latest_updated_at
+          `)
+          .eq(
+            'academic_year',
+            Number(year)
+          )
+          .range(
+            statusFrom,
+            statusFrom +
+              pageSize -
+              1
+          );
+
+
+      if(term){
+
+        query =
+          query.eq(
+            'term',
+            Number(term)
+          );
+
+      }
+
+
+      if(classLevel){
+
+        query =
+          query.eq(
+            'class_level',
+            classLevel
+          );
+
+      }
+
+
+      const {
+        data,
+        error
+      } = await query;
+
+
+      if(error){
+        throw error;
+      }
+
+
+      const batch =
+        data || [];
+
+
+      statusRows =
+        statusRows.concat(
+          batch
+        );
+
+
+      if(
+        batch.length <
+        pageSize
+      ){
+        break;
+      }
+
+
+      statusFrom +=
+        pageSize;
+    }
+
+
+    /* =====================================================
+       3. ทำ Map สำหรับจับคู่
+       ===================================================== */
+
+    const statusByOffering =
+      new Map();
+
+
+    const statusByComposite =
+      new Map();
+
+
+    statusRows.forEach(row => {
+
+      const offeringId =
+        String(
+          row.subject_offering_id ||
+          ''
+        ).trim();
+
+
+      if(offeringId){
+
+        statusByOffering.set(
+          offeringId,
+          row
+        );
+
+      }
+
+
+      statusByComposite.set(
+        getMidtermCompositeKey(row),
+        row
+      );
+
+    });
+
+
+    /* =====================================================
+       4. จับคู่ subject_offerings กับ midterm
+       ===================================================== */
+
+    let allRows =
+      offeringRows.map(row => {
+
+        const offeringId =
+          String(
+            row.subject_offering_id ||
+            row.id ||
+            ''
+          ).trim();
+
+
+        let midtermStatus =
+          offeringId
+            ? statusByOffering.get(
+                offeringId
+              )
+            : null;
+
+
+        /*
+         * สำรองสำหรับข้อมูลเก่าที่
+         * subject_offering_id อาจไม่มี
+         */
+        if(!midtermStatus){
+
+          midtermStatus =
+            statusByComposite.get(
+              getMidtermCompositeKey(row)
+            ) || null;
+
+        }
+
+
+        const studentCount =
+          Number(
+            midtermStatus
+              ?.student_count ||
+            0
+          );
+
+
+        return {
+
+          ...row,
+
+          teacher_name:
+            row.teacher_name ||
+            row.full_name ||
+            '',
+
+          learning_area:
+            getNormalizedLearningAreaBySubject(
+              row
+            ),
+
+          has_midterm_report:
+            studentCount > 0,
+
+          midterm_student_count:
+            studentCount,
+
+          latest_midterm_updated_at:
+            midtermStatus
+              ?.latest_updated_at ||
+            null,
+
+          teacher_report_status:
+            'pending'
+
+        };
+
+      });
+
+
+    /* =====================================================
+       5. สร้าง dropdown จากรายการที่พบ
+       ===================================================== */
+
+    populateMidtermDynamicFilters(
+      allRows
+    );
+
+
+    /* =====================================================
+       6. คำนวณสถานะระดับครู
+       ===================================================== */
+
+    const teacherStatusMap =
+      buildMidtermTeacherStatusMap(
+        allRows
+      );
+
+
+    allRows =
+      allRows.map(row => {
+
+        const teacherKey =
+          String(
+            row.teacher_id ||
+            row.teacher_code ||
+            ''
+          ).trim();
+
+
+        return {
+
+          ...row,
+
+          teacher_report_status:
+            teacherStatusMap.get(
+              teacherKey
+            ) || 'pending'
+
+        };
+
+      });
+
+
+    /* =====================================================
+       7. ตัวกรองหน้า UI
+       ===================================================== */
+
+    let displayRows =
+      [...allRows];
+
+
+    if(learningArea){
+
+      displayRows =
+        displayRows.filter(
+          row =>
+            row.learning_area ===
+            learningArea
+        );
+
+    }
+
+
+    if(teacherId){
+
+      displayRows =
+        displayRows.filter(
+          row =>
+            String(
+              row.teacher_id || ''
+            ) ===
+            String(teacherId)
+        );
+
+    }
+
+
+    if(keyword){
+
+      displayRows =
+        displayRows.filter(row => {
+
+          const hay = [
+            row.subject_code,
+            row.subject_name,
+            row.teacher_code,
+            row.teacher_name
+          ]
+            .join(' ')
+            .toLowerCase();
+
+
+          return hay.includes(
+            keyword
+          );
+
+        });
+
+    }
+
+
+    /* =====================================================
+       8. KPI + Render
+       ===================================================== */
+
+    state.midtermTeachingRowsRaw =
+      displayRows;
+
+
+    updateMidtermStatCards(
+      displayRows
+    );
+
+
+    applyMidtermFiltersAndRender();
+
+
+  }catch(err){
+
+    console.error(
+      'loadMidtermReportingRows error:',
+      err
+    );
+
+
+    state.midtermTeachingRowsRaw =
+      [];
+
+    state.midtermTeachingRows =
+      [];
+
+
+    updateMidtermStatCards(
+      []
+    );
+
+
+    renderMidtermReportingRows(
+      []
+    );
+
+
+    setStatus(
+      'midtermListStatus',
+      err.message ||
+      'โหลดข้อมูลคะแนนกลางภาคไม่สำเร็จ',
+      'error'
+    );
+
+
+    showToast(
+      'โหลดข้อมูลไม่สำเร็จ',
+      err.message ||
+      'เกิดข้อผิดพลาด',
+      'error'
+    );
+
+
+  }finally{
+
+    state.midtermLoading =
+      false;
+
+  }
+}
+
 function getReportingStatCounts(rows){
   const teacherMap = new Map();
 
@@ -18066,6 +19840,37 @@ el('adviserEditCancelBtn').addEventListener('click', closeAdviserEditModal);
         await loadReportingRows();
       }));
 
+      [
+  'midtermFilterYear',
+  'midtermFilterTerm',
+  'midtermFilterClass',
+  'midtermFilterLearningArea',
+  'midtermFilterTeacher',
+  'midtermFilterKeyword'
+]
+.forEach(id => {
+
+  const node = el(id);
+
+  if(!node){
+    return;
+  }
+
+
+  node.addEventListener(
+    id.includes('Keyword')
+      ? 'input'
+      : 'change',
+
+    async () => {
+
+      await loadMidtermReportingRows();
+
+    }
+  );
+
+});
+
     document.querySelectorAll('.report-stat-card[data-report-stat]').forEach(node => {
       node.addEventListener('click', () => {
         const next = node.dataset.reportStat;
@@ -18079,12 +19884,45 @@ el('adviserEditCancelBtn').addEventListener('click', closeAdviserEditModal);
       applyReportingFiltersAndRender();
     });
 
-    if(el('reportSubTrackingBtn')){
+if(el('reportSubTrackingBtn')){
   el('reportSubTrackingBtn').addEventListener('click', async () => {
     setReportSubPage('tracking');
     await loadReportingRows();
   });
 }
+
+
+if(el('reportSubMidtermBtn')){
+
+  el('reportSubMidtermBtn')
+    .addEventListener(
+      'click',
+      async () => {
+
+        setReportSubPage(
+          'midterm'
+        );
+
+
+        if(
+          !el('midtermFilterYear')
+            ?.value
+        ){
+
+          el('midtermFilterYear')
+            .value =
+            getCurrentThaiAcademicYear();
+
+        }
+
+
+        await loadMidtermReportingRows();
+
+      }
+    );
+
+}
+
 
 if(el('reportSubSignerBtn')){
   el('reportSubSignerBtn').addEventListener('click', async () => {
