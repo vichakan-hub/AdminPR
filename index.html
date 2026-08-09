@@ -2886,13 +2886,15 @@ body.app-booting #appView{
       ภาพรวมการรายงานคะแนนกลางภาคเรียน
     </div>
 
-    <div class="small">
-      ตรวจสอบการรายงานคะแนนกลางภาคของครูผู้สอน
-      โดยเปรียบเทียบรายการสอนจาก
-      <strong>subject_offerings</strong>
-      กับข้อมูลที่บันทึกจริงใน
-      <strong>midterm_reports</strong>
-    </div>
+<div class="small">
+  ตรวจสอบการรายงานคะแนนกลางภาคของครูผู้สอน
+  โดยเปรียบเทียบรายการสอนที่ใช้งานจาก
+  <strong>subject_offerings</strong>
+  กับข้อมูลที่บันทึกจริงใน
+  <strong>midterm_reports</strong>
+  โดยไม่นับรายวิชากิจกรรมที่รหัสวิชาขึ้นต้นด้วย
+  <strong>ก</strong>
+</div>
   </div>
 
 
@@ -17060,14 +17062,18 @@ async function loadMidtermReportingRows(){
 
     while(true){
 
-      let query =
-        supabaseClient
-          .from('v_subject_offerings')
-          .select('*')
-          .order(
-            'academic_year',
-            { ascending:false }
-          )
+let query =
+  supabaseClient
+    .from('v_subject_offerings')
+    .select('*')
+    .eq(
+      'is_active',
+      true
+    )
+    .order(
+      'academic_year',
+      { ascending:false }
+    )
           .order(
             'term',
             { ascending:true }
@@ -17153,6 +17159,29 @@ async function loadMidtermReportingRows(){
       offeringFrom +=
         pageSize;
     }
+
+    /* =====================================================
+   ตัดรายวิชากิจกรรมออก
+
+   TeacherPR ไม่เปิดให้รายวิชารหัสขึ้นต้น ก
+   รายงานคะแนนกลางภาค
+   ดังนั้น AdminPR ต้องไม่นำมาคำนวณ KPI
+   ===================================================== */
+
+offeringRows =
+  offeringRows.filter(row => {
+
+    const subjectCode =
+      normalizeSubjectCode(
+        row.subject_code || ''
+      );
+
+    return (
+      subjectCode &&
+      !subjectCode.startsWith('ก')
+    );
+
+  });
 
 
     /* =====================================================
