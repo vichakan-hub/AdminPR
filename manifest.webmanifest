@@ -6,7 +6,7 @@
   "lang": "th",
   "dir": "ltr",
   "start_url": "/AdminPR/",
-  "scope": "/AdminPR/"
+  "scope": "/AdminPR/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#f5f7fb",
