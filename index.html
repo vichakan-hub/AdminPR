@@ -2109,34 +2109,99 @@ body.app-booting #appView{
    Midterm Summary by Teacher
    ========================================================= */
 
+/* =========================================================
+   Midterm Summary by Teacher - Card Style
+   ========================================================= */
+
 .midterm-summary-teacher-list{
   display:flex;
   flex-direction:column;
-  gap:24px;
+  gap:18px;
 }
 
-.midterm-teacher-summary-block{
-  background:#fff;
+.midterm-teacher-summary-card{
+  background:#ffffff;
+  border:1px solid rgba(37,99,235,.14);
+  border-radius:20px;
+  overflow:hidden;
+  box-shadow:0 10px 28px rgba(23,50,74,.08);
   break-inside:avoid;
   page-break-inside:avoid;
 }
 
-.midterm-teacher-summary-name{
-  font-size:17px;
-  font-weight:800;
-  color:#17324a;
-  margin:0 0 10px;
-  padding:0 2px;
+.midterm-teacher-summary-card-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  padding:16px 18px 14px;
+  background:linear-gradient(135deg, rgba(37,99,235,.08), rgba(59,130,246,.03));
+  border-bottom:1px solid rgba(37,99,235,.10);
 }
 
-.midterm-teacher-summary-name .teacher-code{
+.midterm-teacher-summary-title{
+  min-width:0;
+}
+
+.midterm-teacher-summary-code{
+  display:inline-block;
+  font-weight:800;
   color:#2563eb;
-  margin-right:6px;
+  margin-right:8px;
+}
+
+.midterm-teacher-summary-name{
+  display:inline;
+  font-size:18px;
+  font-weight:800;
+  color:#17324a;
+  word-break:break-word;
+}
+
+.midterm-teacher-summary-sub{
+  margin-top:6px;
+  font-size:12px;
+  color:#6b7280;
+}
+
+.midterm-teacher-summary-badges{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+.midterm-summary-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:7px 12px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.midterm-summary-badge.pending{
+  background:rgba(217,45,32,.10);
+  color:#d92d20;
+  border:1px solid rgba(217,45,32,.14);
+}
+
+.midterm-summary-badge.complete{
+  background:rgba(15,157,88,.10);
+  color:#0f9d58;
+  border:1px solid rgba(15,157,88,.14);
+}
+
+.midterm-teacher-summary-card-body{
+  padding:14px 16px 16px;
 }
 
 .midterm-teacher-summary-table-wrap{
   overflow:auto;
-  border:1px solid var(--line);
+  border:1px solid #e5e7eb;
   border-radius:16px;
   background:#fff;
 }
@@ -2150,12 +2215,24 @@ body.app-booting #appView{
 
 .midterm-teacher-summary-table th,
 .midterm-teacher-summary-table td{
-  padding:11px 12px;
+  padding:12px 14px;
   vertical-align:top;
+  border-bottom:1px solid #eef2f7;
+}
+
+.midterm-teacher-summary-table tbody tr:last-child td{
+  border-bottom:none;
+}
+
+.midterm-teacher-summary-table th{
+  background:#f8fbff;
+  color:#31465f;
+  font-weight:800;
+  text-align:left;
 }
 
 .midterm-teacher-summary-table th:nth-child(1){
-  width:35%;
+  width:34%;
 }
 
 .midterm-teacher-summary-table th:nth-child(2){
@@ -2167,7 +2244,17 @@ body.app-booting #appView{
 }
 
 .midterm-teacher-summary-table th:nth-child(4){
-  width:26%;
+  width:27%;
+}
+
+.midterm-summary-subject-code{
+  font-weight:800;
+  color:#172b4d;
+  margin-bottom:4px;
+}
+
+.midterm-summary-subject-name{
+  color:#25364a;
 }
 
 .midterm-summary-pending{
@@ -2180,13 +2267,42 @@ body.app-booting #appView{
   font-weight:800;
 }
 
+.midterm-summary-dash{
+  color:#98a2b3;
+  font-weight:700;
+}
 
-/* PDF */
+@media (max-width: 860px){
+
+  .midterm-teacher-summary-card-header{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .midterm-teacher-summary-badges{
+    justify-content:flex-start;
+  }
+
+}
+
 @media print{
 
-  .midterm-teacher-summary-block{
+  .midterm-teacher-summary-card{
+    box-shadow:none;
+    border:1px solid #cfd8e3;
+    border-radius:18px;
     break-inside:avoid;
     page-break-inside:avoid;
+  }
+
+  .midterm-teacher-summary-card-header{
+    background:#f7f9fc !important;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+  }
+
+  .midterm-teacher-summary-card-body{
+    padding:12px 14px 14px;
   }
 
   .midterm-teacher-summary-table-wrap{
@@ -2194,6 +2310,9 @@ body.app-booting #appView{
   }
 
 }
+
+
+
 
 
 
@@ -17972,118 +18091,56 @@ function renderMidtermSummary(){
   const container =
     el('midtermSummaryTeacherList');
 
-
   if(!container){
     return;
   }
 
-
   const rows =
     getMidtermSummaryRows();
 
-
-  /* =====================================================
-     จำนวนรายวิชา
-     ===================================================== */
-
   if(el('midtermSummaryCount')){
-
-    el('midtermSummaryCount')
-      .textContent =
+    el('midtermSummaryCount').textContent =
       String(rows.length);
-
   }
-
-
-  /* =====================================================
-     Subtitle
-     ===================================================== */
 
   const year =
-    String(
-      el('midtermFilterYear')
-        ?.value || '-'
-    );
-
+    String(el('midtermFilterYear')?.value || '-');
 
   const term =
-    String(
-      el('midtermFilterTerm')
-        ?.value || ''
-    );
-
+    String(el('midtermFilterTerm')?.value || '');
 
   const classLevel =
-    String(
-      el('midtermFilterClass')
-        ?.value || ''
-    );
-
+    String(el('midtermFilterClass')?.value || '');
 
   const subtitleParts = [
-
     `ปีการศึกษา ${year}`,
-
-    term
-      ? `ภาคเรียนที่ ${term}`
-      : 'ทุกภาคเรียน',
-
-    classLevel
-      ? `ระดับชั้น ${classLevel}`
-      : 'ทุกระดับชั้น'
-
+    term ? `ภาคเรียนที่ ${term}` : 'ทุกภาคเรียน',
+    classLevel ? `ระดับชั้น ${classLevel}` : 'ทุกระดับชั้น'
   ];
 
-
   if(el('midtermSummaryPrintSubtitle')){
-
-    el('midtermSummaryPrintSubtitle')
-      .textContent =
+    el('midtermSummaryPrintSubtitle').textContent =
       subtitleParts.join(' • ');
-
   }
-
-
-  /* =====================================================
-     ไม่มีข้อมูล
-     ===================================================== */
 
   if(!rows.length){
 
     container.innerHTML = `
-
       <div class="filter-empty-state">
-
         <div class="filter-empty-card">
-
-          <div class="filter-empty-icon">
-            📊
-          </div>
-
-          <div class="filter-empty-title">
-            ไม่พบข้อมูล
-          </div>
-
+          <div class="filter-empty-icon">📊</div>
+          <div class="filter-empty-title">ไม่พบข้อมูล</div>
           <div class="filter-empty-text">
             ไม่พบข้อมูลตามเงื่อนไขที่เลือก
           </div>
-
         </div>
-
       </div>
     `;
 
     return;
   }
 
-
-  /* =====================================================
-     Group by teacher
-     ===================================================== */
-
-  const teacherMap =
-    new Map();
-
+  const teacherMap = new Map();
 
   rows.forEach(row => {
 
@@ -18094,267 +18151,193 @@ function renderMidtermSummary(){
         ''
       ).trim();
 
-
     if(!teacherMap.has(teacherKey)){
-
       teacherMap.set(
         teacherKey,
         {
-          teacher_code:
-            row.teacher_code || '',
-
-          teacher_name:
-            row.teacher_name || '',
-
+          teacher_code: row.teacher_code || '',
+          teacher_name: row.teacher_name || '',
           rows: []
         }
       );
-
     }
 
-
-    teacherMap
-      .get(teacherKey)
-      .rows
-      .push(row);
-
+    teacherMap.get(teacherKey).rows.push(row);
   });
 
-
-  /* =====================================================
-     Render teacher blocks
-     ===================================================== */
-
   container.innerHTML =
-    Array.from(
-      teacherMap.values()
-    )
-    .map(teacher => {
+    Array.from(teacherMap.values())
+      .map(teacher => {
 
+        const teacherRows =
+          [...teacher.rows]
+            .sort((a, b) => {
 
-      /* -------------------------------------------------
-         ค้างก่อน / ครบทีหลัง
-         ------------------------------------------------- */
+              const aPending =
+                Array.isArray(a.pending_rooms) &&
+                a.pending_rooms.length > 0;
 
-      const teacherRows =
-        [...teacher.rows]
-        .sort((a, b) => {
+              const bPending =
+                Array.isArray(b.pending_rooms) &&
+                b.pending_rooms.length > 0;
 
-          const aPending =
-            Array.isArray(
-              a.pending_rooms
-            ) &&
-            a.pending_rooms.length > 0;
+              // ยังไม่รายงานก่อน
+              if(aPending !== bPending){
+                return aPending ? -1 : 1;
+              }
 
+              return compareSubjectCodeCustom(
+                a.subject_code,
+                b.subject_code
+              );
+            });
 
-          const bPending =
-            Array.isArray(
-              b.pending_rooms
-            ) &&
-            b.pending_rooms.length > 0;
+        const pendingSubjectCount =
+          teacherRows.filter(row =>
+            Array.isArray(row.pending_rooms) &&
+            row.pending_rooms.length > 0
+          ).length;
 
+        const completeSubjectCount =
+          teacherRows.filter(row =>
+            !Array.isArray(row.pending_rooms) ||
+            row.pending_rooms.length === 0
+          ).length;
 
-          if(aPending !== bPending){
-
-            return aPending
-              ? -1
-              : 1;
-
-          }
-
-
-          return compareSubjectCodeCustom(
-            a.subject_code,
-            b.subject_code
-          );
-
-        });
-
-
-      const rowsHtml =
-        teacherRows
-          .map(row => {
+        const rowsHtml =
+          teacherRows.map(row => {
 
             const pendingText =
               row.pending_rooms?.length
                 ? row.pending_rooms.join(', ')
                 : '-';
 
-
             const reportedText =
               row.reported_rooms?.length
                 ? row.reported_rooms.join(', ')
                 : '-';
 
-
             const hasPending =
               row.pending_rooms?.length > 0;
 
+            const hasReported =
+              row.reported_rooms?.length > 0;
 
             return `
-
               <tr>
 
-                <!-- รายวิชา -->
                 <td>
-
-                  <div
-                    class="mono"
-                    style="
-                      font-weight:800;
-                      margin-bottom:3px;
-                    "
-                  >
-                    ${escapeHtml(
-                      row.subject_code || '-'
-                    )}
+                  <div class="midterm-summary-subject-code">
+                    ${escapeHtml(row.subject_code || '-')}
                   </div>
-
-                  <div>
-                    ${escapeHtml(
-                      row.subject_name || '-'
-                    )}
+                  <div class="midterm-summary-subject-name">
+                    ${escapeHtml(row.subject_name || '-')}
                   </div>
-
                 </td>
 
-
-                <!-- ชั้น -->
                 <td>
-
                   <span style="font-weight:700;">
-                    ${escapeHtml(
-                      row.class_level || '-'
-                    )}
+                    ${escapeHtml(row.class_level || '-')}
                   </span>
-
                 </td>
 
-
-                <!-- ยังไม่ได้รายงาน -->
                 <td>
-
-                  <span
-                    class="${
-                      hasPending
-                        ? 'midterm-summary-pending'
-                        : ''
-                    }"
-                  >
-                    ${escapeHtml(
-                      pendingText
-                    )}
+                  <span class="${
+                    hasPending
+                      ? 'midterm-summary-pending'
+                      : 'midterm-summary-dash'
+                  }">
+                    ${escapeHtml(pendingText)}
                   </span>
-
                 </td>
 
-
-                <!-- รายงานแล้ว -->
                 <td>
-
-                  <span
-                    class="${
-                      row.reported_rooms?.length
-                        ? 'midterm-summary-reported'
-                        : ''
-                    }"
-                  >
-                    ${escapeHtml(
-                      reportedText
-                    )}
+                  <span class="${
+                    hasReported
+                      ? 'midterm-summary-reported'
+                      : 'midterm-summary-dash'
+                  }">
+                    ${escapeHtml(reportedText)}
                   </span>
-
                 </td>
 
               </tr>
-
             `;
+          }).join('');
 
-          })
-          .join('');
+        return `
+          <section class="midterm-teacher-summary-card">
 
+            <div class="midterm-teacher-summary-card-header">
 
-      return `
+              <div class="midterm-teacher-summary-title">
 
-        <section
-          class="midterm-teacher-summary-block"
-        >
+                <div>
+                  <span class="midterm-teacher-summary-code">
+                    ${escapeHtml(teacher.teacher_code || '-')}
+                  </span>
 
-          <!-- ชื่อครู -->
-          <div
-            class="midterm-teacher-summary-name"
-          >
+                  <span class="midterm-teacher-summary-name">
+                    ${escapeHtml(teacher.teacher_name || '-')}
+                  </span>
+                </div>
 
-            <span class="teacher-code">
-              ${escapeHtml(
-                teacher.teacher_code || '-'
-              )}
-            </span>
+                <div class="midterm-teacher-summary-sub">
+                  รายวิชาที่ยังค้างจะถูกแสดงก่อนรายวิชาที่รายงานครบแล้ว
+                </div>
 
-            ${escapeHtml(
-              teacher.teacher_name || '-'
-            )}
+              </div>
 
-          </div>
+              <div class="midterm-teacher-summary-badges">
 
+                <span class="midterm-summary-badge pending">
+                  ค้าง ${escapeHtml(String(pendingSubjectCount))} รายวิชา
+                </span>
 
-          <!-- ตารางของครู -->
-          <div
-            class="midterm-teacher-summary-table-wrap"
-          >
+                <span class="midterm-summary-badge complete">
+                  ครบ ${escapeHtml(String(completeSubjectCount))} รายวิชา
+                </span>
 
-            <table
-              class="midterm-teacher-summary-table"
-            >
+              </div>
 
-              <thead>
+            </div>
 
-                <tr>
+            <div class="midterm-teacher-summary-card-body">
 
-                  <th>
-                    รายวิชา
-                  </th>
+              <div class="midterm-teacher-summary-table-wrap">
 
-                  <th>
-                    ชั้น
-                  </th>
+                <table class="midterm-teacher-summary-table">
 
-                  <th>
-                    ยังไม่ได้รายงาน
-                    <span class="small">
-                      (ห้อง)
-                    </span>
-                  </th>
+                  <thead>
+                    <tr>
+                      <th>รายวิชา</th>
+                      <th>ชั้น</th>
+                      <th>
+                        ยังไม่ได้รายงาน
+                        <span class="small">(ห้อง)</span>
+                      </th>
+                      <th>
+                        รายงานแล้ว
+                        <span class="small">(ห้อง)</span>
+                      </th>
+                    </tr>
+                  </thead>
 
-                  <th>
-                    รายงานแล้ว
-                    <span class="small">
-                      (ห้อง)
-                    </span>
-                  </th>
+                  <tbody>
+                    ${rowsHtml}
+                  </tbody>
 
-                </tr>
+                </table>
 
-              </thead>
+              </div>
 
+            </div>
 
-              <tbody>
+          </section>
+        `;
 
-                ${rowsHtml}
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-        </section>
-
-      `;
-
-    })
-    .join('');
-
+      })
+      .join('');
 }
 
 function setMidtermViewMode(mode){
@@ -18523,18 +18506,19 @@ const tables =
     '.midterm-teacher-summary-table'
   );
 
-
 tables.forEach(table => {
+  table.style.minWidth = '0';
+  table.style.width = '100%';
+  table.style.fontSize = '12px';
+});
 
-  table.style.minWidth =
-    '0';
+const tableWraps =
+  clone.querySelectorAll(
+    '.midterm-teacher-summary-table-wrap'
+  );
 
-  table.style.width =
-    '100%';
-
-  table.style.fontSize =
-    '12px';
-
+tableWraps.forEach(wrap => {
+  wrap.style.overflow = 'visible';
 });
 
 const tableWraps =
