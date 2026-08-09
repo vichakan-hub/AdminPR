@@ -18507,10 +18507,13 @@ const tables =
   );
 
 tables.forEach(table => {
+
   table.style.minWidth = '0';
   table.style.width = '100%';
   table.style.fontSize = '12px';
+
 });
+
 
 const tableWraps =
   clone.querySelectorAll(
@@ -18518,19 +18521,8 @@ const tableWraps =
   );
 
 tableWraps.forEach(wrap => {
+
   wrap.style.overflow = 'visible';
-});
-
-const tableWraps =
-  clone.querySelectorAll(
-    '.midterm-teacher-summary-table-wrap'
-  );
-
-
-tableWraps.forEach(wrap => {
-
-  wrap.style.overflow =
-    'visible';
 
 });
 
@@ -18582,7 +18574,7 @@ pagebreak: {
 
   avoid: [
     'tr',
-    '.midterm-teacher-summary-name'
+    '.midterm-teacher-summary-card'
   ]
 
 }
