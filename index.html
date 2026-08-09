@@ -19,6 +19,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script
+  src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"
+></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -3160,6 +3163,35 @@ body.app-booting #appView{
 
   </div>
 
+  <div class="teacher-page-tabs" style="margin-top:6px;">
+
+  <button
+    id="midtermViewDetailBtn"
+    class="teacher-sub-btn active"
+    type="button"
+  >
+    📋 รายละเอียดรายห้อง
+  </button>
+
+  <button
+    id="midtermViewSummaryBtn"
+    class="teacher-sub-btn"
+    type="button"
+  >
+    📊 สรุปการรายงาน
+  </button>
+
+  <button
+    id="midtermExportPdfBtn"
+    class="btn-danger"
+    type="button"
+  >
+    📄 ส่งออก PDF
+  </button>
+
+</div>
+
+  <section id="midtermDetailView">
 
   <div
     id="midtermListStatus"
@@ -3260,7 +3292,157 @@ body.app-booting #appView{
     </table>
 
   </div>
+</section>
 
+  <!-- =========================================================
+     Midterm Summary
+     ========================================================= -->
+<section
+  id="midtermSummaryView"
+  class="hidden"
+>
+
+  <div class="report-summary-box">
+
+    <div
+      style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:14px;
+        flex-wrap:wrap;
+      "
+    >
+
+      <div>
+
+        <div
+          style="
+            font-size:18px;
+            font-weight:800;
+            margin-bottom:4px;
+          "
+        >
+          สรุปการรายงานคะแนนกลางภาคเรียน
+        </div>
+
+        <div class="small">
+          สรุปแยกตามครูผู้สอนและรายวิชา
+          พร้อมแสดงห้องที่รายงานแล้ว
+          และห้องที่ยังไม่ได้รายงาน
+        </div>
+
+      </div>
+
+      <div class="report-active-pill">
+        จำนวนรายวิชา:
+        <span
+          id="midtermSummaryCount"
+          style="margin-left:6px;"
+        >
+          0
+        </span>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ส่วนนี้ใช้สำหรับสร้าง PDF ด้วย -->
+  <div id="midtermSummaryPrintable">
+
+    <div
+      id="midtermSummaryPrintHeader"
+      style="
+        margin-bottom:16px;
+        text-align:center;
+      "
+    >
+
+      <div
+        style="
+          font-size:22px;
+          font-weight:800;
+        "
+      >
+        สรุปการรายงานคะแนนกลางภาคเรียน
+      </div>
+
+      <div
+        id="midtermSummaryPrintSubtitle"
+        style="
+          font-size:14px;
+          margin-top:4px;
+          color:#55657a;
+        "
+      >
+        -
+      </div>
+
+    </div>
+
+
+    <div class="table-wrap">
+
+      <table
+        id="midtermSummaryTable"
+        style="
+          min-width:900px;
+          table-layout:fixed;
+        "
+      >
+
+      <thead>
+  <tr>
+
+    <th style="width:24%;">
+      ครู
+    </th>
+
+    <th style="width:30%;">
+      รายวิชา
+    </th>
+
+    <th style="width:10%;">
+      ชั้น
+    </th>
+
+    <th style="width:18%;">
+      ยังไม่ได้รายงาน<br>
+      <span class="small">(ห้อง)</span>
+    </th>
+
+    <th style="width:18%;">
+      รายงานแล้ว<br>
+      <span class="small">(ห้อง)</span>
+    </th>
+
+  </tr>
+</thead>
+
+        <tbody id="midtermSummaryTbody">
+
+          <tr>
+
+<td
+  colspan="5"
+  class="small"
+>
+  ยังไม่มีข้อมูล
+</td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</section>
 </section>
         
         <section id="reportSubSignerPage" class="hidden">
@@ -5929,6 +6111,9 @@ midtermTeachingRowsRaw: [],
 midtermTeachingRows: [],
 midtermActiveStatFilter: 'all',
 midtermLoading: false,
+
+midtermViewMode: 'detail',
+midtermSummaryRows: [],
 
 gradeManageRows: [],
 gradeManageEditingId: null,
@@ -16731,44 +16916,6 @@ function applyMidtermFiltersAndRender(){
   renderMidtermReportingRows(
     rows
   );
-
-if(el('midtermClearStatFilterBtn')){
-
-  el('midtermClearStatFilterBtn')
-    .addEventListener(
-      'click',
-      () => {
-
-        state.midtermActiveStatFilter =
-          'all';
-
-
-        applyMidtermFiltersAndRender();
-
-      }
-    );
-
-}
-  if(el('midtermReloadBtn')){
-
-  el('midtermReloadBtn')
-    .addEventListener(
-      'click',
-      async () => {
-
-        await loadMidtermReportingRows();
-
-
-        showToast(
-          'โหลดใหม่สำเร็จ',
-          'อัปเดตสถานะคะแนนกลางภาคเรียบร้อยแล้ว',
-          'success'
-        );
-
-      }
-    );
-
-}
 }
 
 
@@ -17515,6 +17662,13 @@ offeringRows =
 
     applyMidtermFiltersAndRender();
 
+    if(
+  state.midtermViewMode ===
+  'summary'
+){
+  renderMidtermSummary();
+}
+
 
   }catch(err){
 
@@ -17561,6 +17715,668 @@ offeringRows =
 
     state.midtermLoading =
       false;
+
+  }
+}
+
+function getMidtermSummaryRows(){
+
+  const rows =
+    state.midtermTeachingRowsRaw || [];
+
+
+  const map =
+    new Map();
+
+
+  rows.forEach(row => {
+
+    const teacherKey =
+      String(
+        row.teacher_id ||
+        row.teacher_code ||
+        ''
+      ).trim();
+
+
+    const subjectCode =
+      normalizeSubjectCode(
+        row.subject_code || ''
+      );
+
+
+    /*
+     * class_level ใส่ใน key ด้วย
+     * ป้องกันกรณีรายวิชาเดียวกัน
+     * แต่เปิดสอนต่างระดับชั้น
+     */
+    const classLevel =
+      String(
+        row.class_level || ''
+      ).trim();
+
+
+    const key = [
+      teacherKey,
+      subjectCode,
+      classLevel
+    ].join('|');
+
+
+    if(!map.has(key)){
+
+      map.set(key, {
+
+        teacher_id:
+          row.teacher_id || null,
+
+        teacher_code:
+          row.teacher_code || '',
+
+        teacher_name:
+          row.teacher_name || '',
+
+        subject_code:
+          row.subject_code || '',
+
+        subject_name:
+          row.subject_name || '',
+
+        class_level:
+          row.class_level || '',
+
+        reported_rooms: [],
+
+        pending_rooms: []
+
+      });
+
+    }
+
+
+    const item =
+      map.get(key);
+
+
+    const room =
+      normalizeRoomValue(
+        row.room
+      );
+
+
+    if(!room){
+      return;
+    }
+
+
+    if(row.has_midterm_report){
+
+      item.reported_rooms.push(
+        room
+      );
+
+    }else{
+
+      item.pending_rooms.push(
+        room
+      );
+
+    }
+
+  });
+
+
+  const result =
+    Array.from(
+      map.values()
+    )
+    .map(item => ({
+
+      ...item,
+
+      reported_rooms:
+        getUniqueSortedRooms(
+          item.reported_rooms
+        ),
+
+      pending_rooms:
+        getUniqueSortedRooms(
+          item.pending_rooms
+        )
+
+    }))
+    .sort((a, b) => {
+
+      const teacherCompare =
+        String(
+          a.teacher_code || ''
+        ).localeCompare(
+          String(
+            b.teacher_code || ''
+          ),
+          'th'
+        );
+
+
+      if(teacherCompare !== 0){
+        return teacherCompare;
+      }
+
+
+      return compareSubjectCodeCustom(
+        a.subject_code,
+        b.subject_code
+      );
+
+    });
+
+
+  state.midtermSummaryRows =
+    result;
+
+
+  return result;
+}
+
+function renderMidtermSummary(){
+
+  const tbody =
+    el('midtermSummaryTbody');
+
+
+  if(!tbody){
+    return;
+  }
+
+
+  const rows =
+    getMidtermSummaryRows();
+
+
+  if(el('midtermSummaryCount')){
+
+    el('midtermSummaryCount')
+      .textContent =
+      String(rows.length);
+
+  }
+
+
+  const year =
+    String(
+      el('midtermFilterYear')
+        ?.value || '-'
+    );
+
+
+  const term =
+    String(
+      el('midtermFilterTerm')
+        ?.value || ''
+    );
+
+
+  const classLevel =
+    String(
+      el('midtermFilterClass')
+        ?.value || ''
+    );
+
+
+  const subtitleParts = [
+
+    `ปีการศึกษา ${year}`,
+
+    term
+      ? `ภาคเรียนที่ ${term}`
+      : 'ทุกภาคเรียน',
+
+    classLevel
+      ? `ระดับชั้น ${classLevel}`
+      : 'ทุกระดับชั้น'
+
+  ];
+
+
+  if(el('midtermSummaryPrintSubtitle')){
+
+    el('midtermSummaryPrintSubtitle')
+      .textContent =
+      subtitleParts.join(' • ');
+
+  }
+
+
+  if(!rows.length){
+
+    tbody.innerHTML = `
+      <tr>
+        <td
+          colspan="5"
+          class="small"
+        >
+          ไม่พบข้อมูลตามเงื่อนไขที่เลือก
+        </td>
+      </tr>
+    `;
+
+    return;
+  }
+
+
+  tbody.innerHTML =
+    rows.map(row => {
+
+      const pendingText =
+        row.pending_rooms.length
+          ? row.pending_rooms.join(', ')
+          : '-';
+
+
+      const reportedText =
+        row.reported_rooms.length
+          ? row.reported_rooms.join(', ')
+          : '-';
+
+
+      return `
+        <tr>
+
+          <td>
+
+            <div
+              style="
+                font-weight:700;
+                margin-bottom:3px;
+              "
+            >
+              ${escapeHtml(
+                [
+                  row.teacher_code,
+                  row.teacher_name
+                ]
+                .filter(Boolean)
+                .join(' ')
+              )}
+            </div>
+
+          </td>
+
+
+          <td>
+
+            <div
+              class="mono"
+              style="
+                font-weight:800;
+                margin-bottom:3px;
+              "
+            >
+              ${escapeHtml(
+                row.subject_code || '-'
+              )}
+            </div>
+
+            <div>
+              ${escapeHtml(
+                row.subject_name || '-'
+              )}
+            </div>
+
+   
+
+          </td>
+
+          <td>
+
+  <span
+    style="
+      font-weight:700;
+    "
+  >
+    ${escapeHtml(
+      row.class_level || '-'
+    )}
+  </span>
+
+</td>
+
+
+          <td>
+
+            ${
+              row.pending_rooms.length
+                ? `
+                  <span
+                    style="
+                      color:#d92d20;
+                      font-weight:800;
+                    "
+                  >
+                    ${escapeHtml(
+                      pendingText
+                    )}
+                  </span>
+                `
+                : `
+                  <span
+                    style="
+                      color:#0f9d58;
+                      font-weight:700;
+                    "
+                  >
+                    -
+                  </span>
+                `
+            }
+
+          </td>
+
+
+          <td>
+
+            ${
+              row.reported_rooms.length
+                ? `
+                  <span
+                    style="
+                      color:#0f9d58;
+                      font-weight:800;
+                    "
+                  >
+                    ${escapeHtml(
+                      reportedText
+                    )}
+                  </span>
+                `
+                : `
+                  <span
+                    style="
+                      color:#d92d20;
+                      font-weight:700;
+                    "
+                  >
+                    -
+                  </span>
+                `
+            }
+
+          </td>
+
+        </tr>
+      `;
+
+    }).join('');
+}
+
+function setMidtermViewMode(mode){
+
+  const next =
+    mode === 'summary'
+      ? 'summary'
+      : 'detail';
+
+
+  state.midtermViewMode =
+    next;
+
+
+  const isDetail =
+    next === 'detail';
+
+
+  el('midtermDetailView')
+    ?.classList.toggle(
+      'hidden',
+      !isDetail
+    );
+
+
+  el('midtermSummaryView')
+    ?.classList.toggle(
+      'hidden',
+      isDetail
+    );
+
+
+  if(el('midtermViewDetailBtn')){
+
+    el('midtermViewDetailBtn')
+      .className =
+      isDetail
+        ? 'teacher-sub-btn active'
+        : 'teacher-sub-btn';
+
+  }
+
+
+  if(el('midtermViewSummaryBtn')){
+
+    el('midtermViewSummaryBtn')
+      .className =
+      !isDetail
+        ? 'teacher-sub-btn active'
+        : 'teacher-sub-btn';
+
+  }
+
+
+  if(!isDetail){
+
+    renderMidtermSummary();
+
+  }
+}
+
+async function exportMidtermSummaryPdf(){
+
+  try{
+
+    const rows =
+      getMidtermSummaryRows();
+
+
+    if(!rows.length){
+
+      showToast(
+        'ยังส่งออกไม่ได้',
+        'ไม่พบข้อมูลสำหรับสร้างรายงาน PDF',
+        'warning'
+      );
+
+      return;
+    }
+
+
+    /*
+     * render ใหม่ก่อน export
+     */
+    renderMidtermSummary();
+
+
+    const source =
+      el('midtermSummaryPrintable');
+
+
+    if(!source){
+
+      throw new Error(
+        'ไม่พบพื้นที่รายงานสำหรับสร้าง PDF'
+      );
+
+    }
+
+
+    if(
+      typeof html2pdf ===
+      'undefined'
+    ){
+
+      throw new Error(
+        'ไม่พบ html2pdf กรุณาตรวจสอบการโหลด library'
+      );
+
+    }
+
+
+    /*
+     * รอ Kanit / Sarabun โหลดให้ครบ
+     * ป้องกันภาษาไทยเพี้ยน
+     */
+    if(document.fonts?.ready){
+
+      await document.fonts.ready;
+
+    }
+
+
+    const year =
+      String(
+        el('midtermFilterYear')
+          ?.value || ''
+      ).trim();
+
+
+    const term =
+      String(
+        el('midtermFilterTerm')
+          ?.value || ''
+      ).trim();
+
+
+    const filename = [
+      'midterm_report_summary',
+      year || 'all',
+      term
+        ? `term${term}`
+        : 'allterm'
+    ].join('_') + '.pdf';
+
+
+    const clone =
+      source.cloneNode(true);
+
+
+    /*
+     * ทำให้ตารางเหมาะกับ A4
+     */
+    clone.style.background =
+      '#ffffff';
+
+    clone.style.padding =
+      '8px';
+
+    clone.style.fontFamily =
+      "'Sarabun','Kanit',sans-serif";
+
+
+    const table =
+      clone.querySelector(
+        'table'
+      );
+
+    if(table){
+
+      table.style.minWidth =
+        '0';
+
+      table.style.width =
+        '100%';
+
+      table.style.fontSize =
+        '12px';
+
+    }
+
+
+    const options = {
+
+      margin: [
+        10,
+        10,
+        10,
+        10
+      ],
+
+      filename,
+
+      image: {
+        type: 'jpeg',
+        quality: 0.98
+      },
+
+      html2canvas: {
+
+        scale: 2,
+
+        useCORS: true,
+
+        backgroundColor:
+          '#ffffff'
+
+      },
+
+      jsPDF: {
+
+        unit: 'mm',
+
+        format: 'a4',
+
+        orientation:
+          'landscape'
+
+      },
+
+      pagebreak: {
+
+        mode: [
+          'css',
+          'legacy'
+        ],
+
+        avoid: [
+          'tr'
+        ]
+
+      }
+
+    };
+
+
+    showToast(
+      'กำลังสร้าง PDF',
+      'กรุณารอสักครู่...',
+      'info'
+    );
+
+
+    await html2pdf()
+      .set(options)
+      .from(clone)
+      .save();
+
+
+    showToast(
+      'สร้าง PDF สำเร็จ',
+      filename,
+      'success'
+    );
+
+
+  }catch(err){
+
+    console.error(
+      'exportMidtermSummaryPdf error:',
+      err
+    );
+
+
+    showToast(
+      'สร้าง PDF ไม่สำเร็จ',
+      err.message ||
+      'เกิดข้อผิดพลาด',
+      'error'
+    );
 
   }
 }
@@ -19921,6 +20737,8 @@ if(el('reportSubTrackingBtn')){
 }
 
 
+
+
 if(el('reportSubMidtermBtn')){
 
   el('reportSubMidtermBtn')
@@ -19952,6 +20770,135 @@ if(el('reportSubMidtermBtn')){
 
 }
 
+/* =========================================================
+   Midterm KPI
+   ========================================================= */
+document
+  .querySelectorAll(
+    '.report-stat-card[data-midterm-stat]'
+  )
+  .forEach(node => {
+
+    node.addEventListener(
+      'click',
+      () => {
+
+        const next =
+          node.dataset.midtermStat;
+
+        state.midtermActiveStatFilter =
+          state.midtermActiveStatFilter === next
+            ? 'all'
+            : next;
+
+        applyMidtermFiltersAndRender();
+
+        if(
+          state.midtermViewMode === 'summary'
+        ){
+          renderMidtermSummary();
+        }
+
+      }
+    );
+
+  });
+
+
+/* =========================================================
+   ล้างตัวกรอง KPI
+   ========================================================= */
+if(el('midtermClearStatFilterBtn')){
+
+  el('midtermClearStatFilterBtn')
+    .addEventListener(
+      'click',
+      () => {
+
+        state.midtermActiveStatFilter =
+          'all';
+
+        applyMidtermFiltersAndRender();
+
+        if(
+          state.midtermViewMode === 'summary'
+        ){
+          renderMidtermSummary();
+        }
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   โหลดข้อมูลกลางภาคใหม่
+   ========================================================= */
+if(el('midtermReloadBtn')){
+
+  el('midtermReloadBtn')
+    .addEventListener(
+      'click',
+      async () => {
+
+        await loadMidtermReportingRows();
+
+        showToast(
+          'โหลดใหม่สำเร็จ',
+          'อัปเดตสถานะคะแนนกลางภาคเรียบร้อยแล้ว',
+          'success'
+        );
+
+      }
+    );
+
+}
+      
+if(el('midtermViewDetailBtn')){
+
+  el('midtermViewDetailBtn').addEventListener(
+    'click',
+    () => {
+
+      setMidtermViewMode('detail');
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   Midterm view: สรุปการรายงาน
+   ========================================================= */
+if(el('midtermViewSummaryBtn')){
+
+  el('midtermViewSummaryBtn').addEventListener(
+    'click',
+    () => {
+
+      setMidtermViewMode('summary');
+
+    }
+  );
+
+}
+
+if(el('midtermExportPdfBtn')){
+
+  el('midtermExportPdfBtn').addEventListener(
+    'click',
+    async () => {
+
+      setMidtermViewMode('summary');
+
+      await exportMidtermSummaryPdf();
+
+    }
+  );
+
+}
 
 if(el('reportSubSignerBtn')){
   el('reportSubSignerBtn').addEventListener('click', async () => {
