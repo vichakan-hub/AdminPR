@@ -19,9 +19,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script
-  src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"
-></script>
+  <!-- PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -18539,9 +18540,141 @@ function setMidtermViewMode(mode){
   }
 }
 
+/* =========================================================
+   PDF Thai Font
+   Sarabun
+   ========================================================= */
+
+let midtermPdfFontCache = null;
+
+
+async function fetchPdfFontBase64(url){
+
+  const response =
+    await fetch(url);
+
+
+  if(!response.ok){
+
+    throw new Error(
+      `โหลดฟอนต์ PDF ไม่สำเร็จ (${response.status})`
+    );
+
+  }
+
+
+  const buffer =
+    await response.arrayBuffer();
+
+
+  const bytes =
+    new Uint8Array(buffer);
+
+
+  let binary = '';
+
+  const chunkSize =
+    0x8000;
+
+
+  for(
+    let i = 0;
+    i < bytes.length;
+    i += chunkSize
+  ){
+
+    const chunk =
+      bytes.subarray(
+        i,
+        i + chunkSize
+      );
+
+
+    binary +=
+      String.fromCharCode(
+        ...chunk
+      );
+
+  }
+
+
+  return btoa(binary);
+}
+
+
+async function prepareMidtermPdfThaiFont(doc){
+
+  /*
+   * โหลดครั้งแรกครั้งเดียว
+   * ครั้งต่อไปใช้ cache
+   */
+  if(!midtermPdfFontCache){
+
+    const [
+      regular,
+      bold
+    ] =
+      await Promise.all([
+
+        fetchPdfFontBase64(
+          'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/sarabun/Sarabun-Regular.ttf'
+        ),
+
+        fetchPdfFontBase64(
+          'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/sarabun/Sarabun-Bold.ttf'
+        )
+
+      ]);
+
+
+    midtermPdfFontCache = {
+      regular,
+      bold
+    };
+
+  }
+
+
+  doc.addFileToVFS(
+    'Sarabun-Regular.ttf',
+    midtermPdfFontCache.regular
+  );
+
+
+  doc.addFont(
+    'Sarabun-Regular.ttf',
+    'Sarabun',
+    'normal'
+  );
+
+
+  doc.addFileToVFS(
+    'Sarabun-Bold.ttf',
+    midtermPdfFontCache.bold
+  );
+
+
+  doc.addFont(
+    'Sarabun-Bold.ttf',
+    'Sarabun',
+    'bold'
+  );
+
+
+  doc.setFont(
+    'Sarabun',
+    'normal'
+  );
+}
+
 async function exportMidtermSummaryPdf(){
 
   try{
+
+    /* =====================================================
+       1. ข้อมูลจริงจาก Summary
+       รวมถึง KPI filter ที่เลือกอยู่
+       ===================================================== */
 
     const rows =
       getMidtermSummaryRows();
@@ -18559,180 +18692,641 @@ async function exportMidtermSummaryPdf(){
     }
 
 
-    /*
-     * render ใหม่ก่อน export
-     */
-    renderMidtermSummary();
-
-
-    const source =
-      el('midtermSummaryPrintable');
-
-
-    if(!source){
-
-      throw new Error(
-        'ไม่พบพื้นที่รายงานสำหรับสร้าง PDF'
-      );
-
-    }
-
+    /* =====================================================
+       2. ตรวจ jsPDF
+       ===================================================== */
 
     if(
-      typeof html2pdf ===
-      'undefined'
+      !window.jspdf ||
+      !window.jspdf.jsPDF
     ){
 
       throw new Error(
-        'ไม่พบ html2pdf กรุณาตรวจสอบการโหลด library'
+        'ไม่พบ jsPDF กรุณาตรวจสอบการโหลด library'
       );
 
     }
 
 
-    /*
-     * รอ Kanit / Sarabun โหลดให้ครบ
-     * ป้องกันภาษาไทยเพี้ยน
-     */
-    if(document.fonts?.ready){
+    const {
+      jsPDF
+    } = window.jspdf;
 
-      await document.fonts.ready;
+
+    const doc =
+      new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+
+    if(
+      typeof doc.autoTable !==
+      'function'
+    ){
+
+      throw new Error(
+        'ไม่พบ jsPDF AutoTable กรุณาตรวจสอบการโหลด library'
+      );
 
     }
 
+
+    showToast(
+      'กำลังสร้าง PDF',
+      'กำลังจัดทำตารางรายงาน...',
+      'info'
+    );
+
+
+    /* =====================================================
+       3. Font ภาษาไทย
+       ===================================================== */
+
+    await prepareMidtermPdfThaiFont(
+      doc
+    );
+
+
+    /* =====================================================
+       4. Filter / ชื่อไฟล์
+       ===================================================== */
 
     const year =
       String(
         el('midtermFilterYear')
-          ?.value || ''
+          ?.value ||
+        ''
       ).trim();
 
 
     const term =
       String(
         el('midtermFilterTerm')
-          ?.value || ''
+          ?.value ||
+        ''
       ).trim();
 
 
+    const classLevel =
+      String(
+        el('midtermFilterClass')
+          ?.value ||
+        ''
+      ).trim();
+
+
+    const learningArea =
+      String(
+        el('midtermFilterLearningArea')
+          ?.value ||
+        ''
+      ).trim();
+
+
+    const activeFilter =
+      state.midtermActiveStatFilter ||
+      'all';
+
+
     const filename = [
+
       'midterm_report_summary',
+
       year || 'all',
+
       term
         ? `term${term}`
         : 'allterm'
+
     ].join('_') + '.pdf';
 
 
-    const clone =
-      source.cloneNode(true);
+    /* =====================================================
+       5. หัวรายงาน
+       ===================================================== */
+
+    const pageWidth =
+      doc.internal.pageSize.getWidth();
 
 
-    /*
-     * ทำให้ตารางเหมาะกับ A4
-     */
-    clone.style.background =
-      '#ffffff';
-
-    clone.style.padding =
-      '8px';
-
-    clone.style.fontFamily =
-      "'Sarabun','Kanit',sans-serif";
-
-
-const tables =
-  clone.querySelectorAll(
-    '.midterm-teacher-summary-table'
-  );
-
-tables.forEach(table => {
-
-  table.style.minWidth = '0';
-  table.style.width = '100%';
-  table.style.fontSize = '12px';
-
-});
-
-
-const tableWraps =
-  clone.querySelectorAll(
-    '.midterm-teacher-summary-table-wrap'
-  );
-
-tableWraps.forEach(wrap => {
-
-  wrap.style.overflow = 'visible';
-
-});
-
-
-    const options = {
-
-      margin: [
-        10,
-        10,
-        10,
-        10
-      ],
-
-      filename,
-
-      image: {
-        type: 'jpeg',
-        quality: 0.98
-      },
-
-      html2canvas: {
-
-        scale: 2,
-
-        useCORS: true,
-
-        backgroundColor:
-          '#ffffff'
-
-      },
-
-      jsPDF: {
-
-        unit: 'mm',
-
-        format: 'a4',
-
-        orientation:
-          'landscape'
-
-      },
-
-pagebreak: {
-
-  mode: [
-    'css',
-    'legacy'
-  ],
-
-  avoid: [
-    'tr',
-    '.midterm-teacher-summary-card-header'
-  ]
-
-}
-
-    };
-
-
-    showToast(
-      'กำลังสร้าง PDF',
-      'กรุณารอสักครู่...',
-      'info'
+    doc.setFont(
+      'Sarabun',
+      'bold'
     );
 
 
-    await html2pdf()
-      .set(options)
-      .from(clone)
-      .save();
+    doc.setFontSize(17);
+
+
+    doc.setTextColor(
+      23,
+      50,
+      74
+    );
+
+
+    doc.text(
+      'สรุปการรายงานคะแนนกลางภาคเรียน',
+      pageWidth / 2,
+      14,
+      {
+        align: 'center'
+      }
+    );
+
+
+    /* -----------------------------------------------------
+       Subtitle
+       ----------------------------------------------------- */
+
+    const subtitleParts = [
+
+      `ปีการศึกษา ${year || '-'}`,
+
+      term
+        ? `ภาคเรียนที่ ${term}`
+        : 'ทุกภาคเรียน',
+
+      classLevel
+        ? `ระดับชั้น ${classLevel}`
+        : 'ทุกระดับชั้น'
+
+    ];
+
+
+    if(learningArea){
+
+      subtitleParts.push(
+        `กลุ่มสาระ ${learningArea}`
+      );
+
+    }
+
+
+    if(activeFilter !== 'all'){
+
+      subtitleParts.push(
+        `ตัวกรอง: ${getMidtermActiveStatFilterLabel()}`
+      );
+
+    }
+
+
+    doc.setFont(
+      'Sarabun',
+      'normal'
+    );
+
+
+    doc.setFontSize(9);
+
+
+    doc.setTextColor(
+      90,
+      105,
+      125
+    );
+
+
+    doc.text(
+      subtitleParts.join(' • '),
+      pageWidth / 2,
+      20,
+      {
+        align: 'center'
+      }
+    );
+
+
+    /* =====================================================
+       6. Group ตามครู
+       ===================================================== */
+
+    const teacherMap =
+      new Map();
+
+
+    rows.forEach(row => {
+
+      const teacherKey =
+        String(
+          row.teacher_id ||
+          row.teacher_code ||
+          ''
+        ).trim();
+
+
+      if(!teacherMap.has(teacherKey)){
+
+        teacherMap.set(
+          teacherKey,
+          {
+
+            teacher_code:
+              row.teacher_code || '',
+
+            teacher_name:
+              row.teacher_name || '',
+
+            rows: []
+
+          }
+        );
+
+      }
+
+
+      teacherMap
+        .get(teacherKey)
+        .rows
+        .push(row);
+
+    });
+
+
+    /* =====================================================
+       7. สร้าง Body ของ AutoTable
+
+       ครู = แถวหัวกลุ่ม
+       รายวิชา = แถวปกติ
+       ===================================================== */
+
+    const body = [];
+
+
+    Array.from(
+      teacherMap.values()
+    )
+    .forEach(teacher => {
+
+
+      const teacherRows =
+        [...teacher.rows];
+
+
+      const pendingCount =
+        teacherRows.filter(
+          row =>
+            Array.isArray(
+              row.pending_rooms
+            ) &&
+            row.pending_rooms.length > 0
+        ).length;
+
+
+      const completeCount =
+        teacherRows.filter(
+          row =>
+            !Array.isArray(
+              row.pending_rooms
+            ) ||
+            row.pending_rooms.length === 0
+        ).length;
+
+
+      /* ---------------------------------------------------
+         แถวชื่อครู
+         --------------------------------------------------- */
+
+      body.push([
+
+        {
+          content:
+            `${teacher.teacher_code || '-'}  ${teacher.teacher_name || '-'}`
+            +
+            `    |    ค้าง ${pendingCount} รายวิชา`
+            +
+            `    |    ครบ ${completeCount} รายวิชา`,
+
+          colSpan: 4,
+
+          styles: {
+
+            font: 'Sarabun',
+            fontStyle: 'bold',
+
+            fillColor: [
+              238,
+              244,
+              255
+            ],
+
+            textColor: [
+              23,
+              50,
+              74
+            ],
+
+            cellPadding: {
+              top: 3,
+              right: 3,
+              bottom: 3,
+              left: 3
+            }
+
+          }
+
+        }
+
+      ]);
+
+
+      /* ---------------------------------------------------
+         รายวิชา
+         --------------------------------------------------- */
+
+      teacherRows.forEach(row => {
+
+        const pendingText =
+          row.pending_rooms?.length
+            ? row.pending_rooms.join(', ')
+            : '-';
+
+
+        const reportedText =
+          row.reported_rooms?.length
+            ? row.reported_rooms.join(', ')
+            : '-';
+
+
+        body.push([
+
+          {
+            content:
+              `${row.subject_code || '-'}\n${row.subject_name || '-'}`,
+
+            styles: {
+              font: 'Sarabun'
+            }
+          },
+
+
+          {
+            content:
+              row.class_level || '-',
+
+            styles: {
+              font: 'Sarabun',
+              halign: 'center'
+            }
+          },
+
+
+          {
+            content:
+              pendingText,
+
+            styles: {
+
+              font: 'Sarabun',
+
+              fontStyle:
+                row.pending_rooms?.length
+                  ? 'bold'
+                  : 'normal',
+
+              textColor:
+                row.pending_rooms?.length
+                  ? [
+                      217,
+                      45,
+                      32
+                    ]
+                  : [
+                      130,
+                      140,
+                      155
+                    ]
+
+            }
+          },
+
+
+          {
+            content:
+              reportedText,
+
+            styles: {
+
+              font: 'Sarabun',
+
+              fontStyle:
+                row.reported_rooms?.length
+                  ? 'bold'
+                  : 'normal',
+
+              textColor:
+                row.reported_rooms?.length
+                  ? [
+                      15,
+                      157,
+                      88
+                    ]
+                  : [
+                      130,
+                      140,
+                      155
+                    ]
+
+            }
+          }
+
+        ]);
+
+      });
+
+    });
+
+
+    /* =====================================================
+       8. ตาราง PDF
+       ===================================================== */
+
+    doc.autoTable({
+
+      startY: 25,
+
+      margin: {
+        top: 12,
+        right: 12,
+        bottom: 12,
+        left: 12
+      },
+
+
+      head: [[
+
+        'รายวิชา',
+
+        'ชั้น',
+
+        'ยังไม่ได้รายงาน (ห้อง)',
+
+        'รายงานแล้ว (ห้อง)'
+
+      ]],
+
+
+      body,
+
+
+      theme: 'grid',
+
+
+      showHead: 'everyPage',
+
+
+      rowPageBreak: 'avoid',
+
+
+      styles: {
+
+        font: 'Sarabun',
+
+        fontStyle: 'normal',
+
+        fontSize: 9.5,
+
+        textColor: [
+          35,
+          50,
+          70
+        ],
+
+        lineColor: [
+          215,
+          225,
+          235
+        ],
+
+        lineWidth: 0.15,
+
+        cellPadding: {
+          top: 2.4,
+          right: 3,
+          bottom: 2.4,
+          left: 3
+        },
+
+        valign: 'middle',
+
+        overflow: 'linebreak'
+
+      },
+
+
+      headStyles: {
+
+        font: 'Sarabun',
+
+        fontStyle: 'bold',
+
+        fontSize: 9.5,
+
+        fillColor: [
+          248,
+          251,
+          255
+        ],
+
+        textColor: [
+          49,
+          70,
+          95
+        ],
+
+        lineColor: [
+          205,
+          218,
+          232
+        ],
+
+        lineWidth: 0.2,
+
+        halign: 'left'
+
+      },
+
+
+      columnStyles: {
+
+        0: {
+          cellWidth: 112
+        },
+
+        1: {
+          cellWidth: 25,
+          halign: 'center'
+        },
+
+        2: {
+          cellWidth: 68
+        },
+
+        3: {
+          cellWidth: 68
+        }
+
+      },
+
+
+      /* ===================================================
+         เลขหน้า
+         =================================================== */
+
+      didDrawPage: function(){
+
+        const currentPage =
+          doc.internal.getNumberOfPages();
+
+
+        const width =
+          doc.internal.pageSize.getWidth();
+
+
+        const height =
+          doc.internal.pageSize.getHeight();
+
+
+        doc.setFont(
+          'Sarabun',
+          'normal'
+        );
+
+
+        doc.setFontSize(8);
+
+
+        doc.setTextColor(
+          110,
+          120,
+          135
+        );
+
+
+        doc.text(
+          `หน้า ${currentPage}`,
+          width - 12,
+          height - 6,
+          {
+            align: 'right'
+          }
+        );
+
+      }
+
+    });
+
+
+    /* =====================================================
+       9. บันทึก
+       ===================================================== */
+
+    doc.save(
+      filename
+    );
 
 
     showToast(
@@ -21269,8 +21863,6 @@ if(el('midtermExportPdfBtn')){
   el('midtermExportPdfBtn').addEventListener(
     'click',
     async () => {
-
-      setMidtermViewMode('summary');
 
       await exportMidtermSummaryPdf();
 
