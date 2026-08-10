@@ -18900,144 +18900,144 @@ async function exportMidtermSummaryPdf(){
     );
 
 
-    /* =====================================================
-       6. Group ตามครู
-       ===================================================== */
+ /* =====================================================
+   6. Group ตามครู
+   ===================================================== */
 
-    const teacherMap =
-      new Map();
-
-
-    rows.forEach(row => {
-
-      const teacherKey =
-        String(
-          row.teacher_id ||
-          row.teacher_code ||
-          ''
-        ).trim();
+const teacherMap =
+  new Map();
 
 
-      if(!teacherMap.has(teacherKey)){
+rows.forEach(row => {
 
-        teacherMap.set(
-          teacherKey,
-          {
+  const teacherKey =
+    String(
+      row.teacher_id ||
+      row.teacher_code ||
+      ''
+    ).trim();
 
-            teacher_code:
-              row.teacher_code || '',
 
-            teacher_name:
-              row.teacher_name || '',
+  if(!teacherMap.has(teacherKey)){
 
-            rows: []
+    teacherMap.set(
+      teacherKey,
+      {
 
-          }
-        );
+        teacher_code:
+          row.teacher_code || '',
+
+        teacher_name:
+          row.teacher_name || '',
+
+        rows: []
 
       }
+    );
+
+  }
 
 
-      teacherMap
-        .get(teacherKey)
-        .rows
-        .push(row);
+  teacherMap
+    .get(teacherKey)
+    .rows
+    .push(row);
 
-    });
-
-
-    /* =====================================================
-       7. สร้าง Body ของ AutoTable
-
-       ครู = แถวหัวกลุ่ม
-       รายวิชา = แถวปกติ
-       ===================================================== */
-
-    const body = [];
+});
 
 
-    Array.from(
-      teacherMap.values()
-    )
-    .forEach(teacher => {
+const teachers =
+  Array.from(
+    teacherMap.values()
+  );
 
 
-      const teacherRows =
-        [...teacher.rows];
+/* =====================================================
+   7. สร้างตารางแยกทีละครู
+
+   หลักการ:
+   - ครู 1 คน = 1 AutoTable
+   - ถ้าพื้นที่หน้าปัจจุบันไม่พอ
+     AutoTable จะยกทั้งตารางไปหน้าใหม่
+   - ถ้าตารางยาวเกิน 1 หน้า จึงค่อยแบ่ง
+   ===================================================== */
+
+let nextStartY = 26;
 
 
-      const pendingCount =
-        teacherRows.filter(
-          row =>
-            Array.isArray(
-              row.pending_rooms
-            ) &&
-            row.pending_rooms.length > 0
-        ).length;
+teachers.forEach(
+  (teacher, teacherIndex) => {
 
 
-      const completeCount =
-        teacherRows.filter(
-          row =>
-            !Array.isArray(
-              row.pending_rooms
-            ) ||
-            row.pending_rooms.length === 0
-        ).length;
+    /* -------------------------------------------------
+       เรียงวิชาค้างก่อน / วิชาครบทีหลัง
+       ------------------------------------------------- */
+
+    const teacherRows =
+      [...teacher.rows]
+      .sort((a, b) => {
+
+        const aPending =
+          Array.isArray(
+            a.pending_rooms
+          ) &&
+          a.pending_rooms.length > 0;
 
 
-      /* ---------------------------------------------------
-         แถวชื่อครู
-         --------------------------------------------------- */
+        const bPending =
+          Array.isArray(
+            b.pending_rooms
+          ) &&
+          b.pending_rooms.length > 0;
 
-      body.push([
 
-        {
-          content:
-            `${teacher.teacher_code || '-'}  ${teacher.teacher_name || '-'}`
-            +
-            `    |    ค้าง ${pendingCount} รายวิชา`
-            +
-            `    |    ครบ ${completeCount} รายวิชา`,
+        if(aPending !== bPending){
 
-          colSpan: 4,
-
-          styles: {
-
-            font: 'Sarabun',
-            fontStyle: 'bold',
-
-            fillColor: [
-              238,
-              244,
-              255
-            ],
-
-            textColor: [
-              23,
-              50,
-              74
-            ],
-
-            cellPadding: {
-              top: 3,
-              right: 3,
-              bottom: 3,
-              left: 3
-            }
-
-          }
+          return aPending
+            ? -1
+            : 1;
 
         }
 
-      ]);
+
+        return compareSubjectCodeCustom(
+          a.subject_code,
+          b.subject_code
+        );
+
+      });
 
 
-      /* ---------------------------------------------------
-         รายวิชา
-         --------------------------------------------------- */
+    /* -------------------------------------------------
+       จำนวนค้าง / ครบ
+       ------------------------------------------------- */
 
-      teacherRows.forEach(row => {
+    const pendingCount =
+      teacherRows.filter(
+        row =>
+          Array.isArray(
+            row.pending_rooms
+          ) &&
+          row.pending_rooms.length > 0
+      ).length;
+
+
+    const completeCount =
+      teacherRows.filter(
+        row =>
+          !Array.isArray(
+            row.pending_rooms
+          ) ||
+          row.pending_rooms.length === 0
+      ).length;
+
+
+    /* -------------------------------------------------
+       Body ของครูคนนี้เท่านั้น
+       ------------------------------------------------- */
+
+    const teacherBody =
+      teacherRows.map(row => {
 
         const pendingText =
           row.pending_rooms?.length
@@ -19051,7 +19051,7 @@ async function exportMidtermSummaryPdf(){
             : '-';
 
 
-        body.push([
+        return [
 
           {
             content:
@@ -19089,16 +19089,8 @@ async function exportMidtermSummaryPdf(){
 
               textColor:
                 row.pending_rooms?.length
-                  ? [
-                      217,
-                      45,
-                      32
-                    ]
-                  : [
-                      130,
-                      140,
-                      155
-                    ]
+                  ? [217,45,32]
+                  : [130,140,155]
 
             }
           },
@@ -19119,66 +19111,123 @@ async function exportMidtermSummaryPdf(){
 
               textColor:
                 row.reported_rooms?.length
-                  ? [
-                      15,
-                      157,
-                      88
-                    ]
-                  : [
-                      130,
-                      140,
-                      155
-                    ]
+                  ? [15,157,88]
+                  : [130,140,155]
 
             }
           }
 
-        ]);
+        ];
 
       });
 
-    });
 
+    /* =================================================
+       ตารางของครูคนนี้
 
-    /* =====================================================
-       8. ตาราง PDF
-       ===================================================== */
+       head มี 2 แถว:
+       1. ชื่อครู
+       2. ชื่อคอลัมน์
+       ================================================= */
 
     doc.autoTable({
 
-      startY: 25,
+      startY:
+        nextStartY,
+
+
+      /*
+       * สำคัญที่สุด
+       *
+       * ถ้าตารางนี้ใส่พื้นที่ที่เหลือไม่พอ
+       * ให้เริ่มใหม่ในหน้าถัดไป
+       */
+      pageBreak:
+        'avoid',
+
+
+      /*
+       * ไม่ตัดหนึ่งแถวกลางหน้า
+       */
+      rowPageBreak:
+        'avoid',
+
 
       margin: {
         top: 12,
         right: 12,
-        bottom: 12,
+        bottom: 13,
         left: 12
       },
 
 
-      head: [[
+      head: [
 
-        'รายวิชา',
+        [
+          {
+            content:
+              `${teacher.teacher_code || '-'}  ${teacher.teacher_name || '-'}`
+              +
+              `     |     ค้าง ${pendingCount} รายวิชา`
+              +
+              `     |     ครบ ${completeCount} รายวิชา`,
 
-        'ชั้น',
+            colSpan: 4,
 
-        'ยังไม่ได้รายงาน (ห้อง)',
+            styles: {
 
-        'รายงานแล้ว (ห้อง)'
+              font: 'Sarabun',
+              fontStyle: 'bold',
+              fontSize: 10.5,
 
-      ]],
+              fillColor: [
+                238,
+                244,
+                255
+              ],
+
+              textColor: [
+                23,
+                50,
+                74
+              ],
+
+              cellPadding: {
+                top: 3,
+                right: 3,
+                bottom: 3,
+                left: 3
+              }
+
+            }
+
+          }
+        ],
+
+        [
+          'รายวิชา',
+          'ชั้น',
+          'ยังไม่ได้รายงาน (ห้อง)',
+          'รายงานแล้ว (ห้อง)'
+        ]
+
+      ],
 
 
-      body,
+      body:
+        teacherBody,
 
 
-      theme: 'grid',
+      theme:
+        'grid',
 
 
-      showHead: 'everyPage',
-
-
-      rowPageBreak: 'avoid',
+      /*
+       * หากครูคนนี้ยาวเกินหนึ่งหน้าจริง ๆ
+       * จะทำหัวครู + หัวตารางซ้ำในหน้าต่อไป
+       */
+      showHead:
+        'everyPage',
 
 
       styles: {
@@ -19210,9 +19259,11 @@ async function exportMidtermSummaryPdf(){
           left: 3
         },
 
-        valign: 'middle',
+        valign:
+          'middle',
 
-        overflow: 'linebreak'
+        overflow:
+          'linebreak'
 
       },
 
@@ -19243,9 +19294,7 @@ async function exportMidtermSummaryPdf(){
           232
         ],
 
-        lineWidth: 0.2,
-
-        halign: 'left'
+        lineWidth: 0.2
 
       },
 
@@ -19269,56 +19318,91 @@ async function exportMidtermSummaryPdf(){
           cellWidth: 68
         }
 
-      },
-
-
-      /* ===================================================
-         เลขหน้า
-         =================================================== */
-
-      didDrawPage: function(){
-
-        const currentPage =
-          doc.internal.getNumberOfPages();
-
-
-        const width =
-          doc.internal.pageSize.getWidth();
-
-
-        const height =
-          doc.internal.pageSize.getHeight();
-
-
-        doc.setFont(
-          'Sarabun',
-          'normal'
-        );
-
-
-        doc.setFontSize(8);
-
-
-        doc.setTextColor(
-          110,
-          120,
-          135
-        );
-
-
-        doc.text(
-          `หน้า ${currentPage}`,
-          width - 12,
-          height - 6,
-          {
-            align: 'right'
-          }
-        );
-
       }
 
     });
 
+
+    /* =================================================
+       ตำแหน่งเริ่มของครูคนถัดไป
+       ================================================= */
+
+    if(
+      doc.lastAutoTable &&
+      Number.isFinite(
+        doc.lastAutoTable.finalY
+      )
+    ){
+
+      nextStartY =
+        doc.lastAutoTable.finalY + 4;
+
+    }else{
+
+      nextStartY = 26;
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   8. ใส่เลขหน้าหลังสร้างตารางทั้งหมด
+
+   ทำทีหลังเพื่อไม่ให้ AutoTable แต่ละชุด
+   เขียนเลขหน้าซ้ำกัน
+   ===================================================== */
+
+const totalPages =
+  doc.internal.getNumberOfPages();
+
+
+for(
+  let pageNo = 1;
+  pageNo <= totalPages;
+  pageNo++
+){
+
+  doc.setPage(
+    pageNo
+  );
+
+
+  const width =
+    doc.internal.pageSize.getWidth();
+
+
+  const height =
+    doc.internal.pageSize.getHeight();
+
+
+  doc.setFont(
+    'Sarabun',
+    'normal'
+  );
+
+
+  doc.setFontSize(8);
+
+
+  doc.setTextColor(
+    110,
+    120,
+    135
+  );
+
+
+  doc.text(
+    `หน้า ${pageNo} / ${totalPages}`,
+    width - 12,
+    height - 6,
+    {
+      align: 'right'
+    }
+  );
+
+}
 
     /* =====================================================
        9. บันทึก
