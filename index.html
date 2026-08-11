@@ -2211,7 +2211,7 @@ body.app-booting #appView{
 
 .midterm-teacher-summary-table{
   width:100%;
-  min-width:760px;
+  min-width:860px;
   table-layout:fixed;
   border-collapse:collapse;
 }
@@ -2235,19 +2235,23 @@ body.app-booting #appView{
 }
 
 .midterm-teacher-summary-table th:nth-child(1){
-  width:34%;
+  width:32%;
 }
 
 .midterm-teacher-summary-table th:nth-child(2){
-  width:12%;
+  width:10%;
 }
 
 .midterm-teacher-summary-table th:nth-child(3){
-  width:27%;
+  width:19%;
 }
 
 .midterm-teacher-summary-table th:nth-child(4){
-  width:27%;
+  width:20%;
+}
+
+.midterm-teacher-summary-table th:nth-child(5){
+  width:19%;
 }
 
 .midterm-summary-subject-code{
@@ -2267,6 +2271,11 @@ body.app-booting #appView{
 
 .midterm-summary-reported{
   color:#0f9d58;
+  font-weight:800;
+}
+
+.midterm-summary-no-students{
+  color:#b26a00;
   font-weight:800;
 }
 
@@ -2926,7 +2935,7 @@ body.app-booting #appView{
           <div class="report-stat-card report-item-complete" data-report-stat="item_complete">
             <div class="k">รายการสอนที่รายงานแล้ว</div>
             <div id="reportItemCompleteCount" class="v">0</div>
-            <div class="s">รายการสอนที่มีข้อมูลผลการเรียนอยู่ในระบบแล้ว</div>
+            <div class="s"><div class="s">รายวิชา/ห้องที่รายงานคะแนนแล้ว</div>
           </div>
 
           <div class="report-stat-card report-item-pending" data-report-stat="item_pending">
@@ -3552,11 +3561,12 @@ body.app-booting #appView{
           สรุปการรายงานคะแนนกลางภาคเรียน
         </div>
 
-        <div class="small">
-          สรุปแยกตามครูผู้สอนและรายวิชา
-          พร้อมแสดงห้องที่รายงานแล้ว
-          และห้องที่ยังไม่ได้รายงาน
-        </div>
+<div class="small">
+  สรุปแยกตามครูผู้สอนและรายวิชา
+  พร้อมแยกห้องที่รายงานแล้ว
+  ห้องที่ไม่มีนักเรียนเลือก
+  และห้องที่ยังไม่ได้รายงาน
+</div>
 
       </div>
 
@@ -16762,9 +16772,9 @@ function buildMidtermTeacherStatusMap(rows){
     item.total += 1;
 
 
-    if(row.has_midterm_report){
-      item.reported += 1;
-    }
+if(row.is_midterm_resolved){
+  item.reported += 1;
+}
 
   });
 
@@ -16872,19 +16882,19 @@ function getMidtermStatCounts(rows){
   });
 
 
-  (rows || []).forEach(row => {
+(rows || []).forEach(row => {
 
-    if(row.has_midterm_report){
+  if(row.is_midterm_resolved){
 
-      counts.item_complete += 1;
+    counts.item_complete += 1;
 
-    }else{
+  }else{
 
-      counts.item_pending += 1;
+    counts.item_pending += 1;
 
-    }
+  }
 
-  });
+});
 
 
   return counts;
@@ -17043,27 +17053,27 @@ function applyMidtermFiltersAndRender(){
         'pending'
     );
 
-  }else if(
-    activeFilter ===
-    'item_complete'
-  ){
+}else if(
+  activeFilter ===
+  'item_complete'
+){
 
-    rows = rows.filter(
-      row =>
-        !!row.has_midterm_report
-    );
+  rows = rows.filter(
+    row =>
+      !!row.is_midterm_resolved
+  );
 
-  }else if(
-    activeFilter ===
-    'item_pending'
-  ){
+}else if(
+  activeFilter ===
+  'item_pending'
+){
 
-    rows = rows.filter(
-      row =>
-        !row.has_midterm_report
-    );
+  rows = rows.filter(
+    row =>
+      !row.is_midterm_resolved
+  );
 
-  }
+}
 
 
   state.midtermTeachingRows =
@@ -17179,10 +17189,12 @@ function renderMidtermReportingRows(rows){
             : '<span class="badge red">ยังไม่รายงาน</span>';
 
 
-      const itemBadge =
-        row.has_midterm_report
-          ? '<span class="badge green">รายงานแล้ว</span>'
-          : '<span class="badge red">ยังไม่รายงาน</span>';
+const itemBadge =
+  row.has_midterm_report
+    ? '<span class="badge green">รายงานแล้ว</span>'
+    : row.has_midterm_no_students
+      ? '<span class="badge orange">ไม่มีนักเรียนเลือก</span>'
+      : '<span class="badge red">ยังไม่รายงาน</span>';
 
 
       return `
@@ -17272,24 +17284,30 @@ function renderMidtermReportingRows(rows){
 
 
           <td>
-            ${
-              row.has_midterm_report
-                ? `
-                  <span class="badge">
-                    ${escapeHtml(
-                      String(
-                        row.midterm_student_count ||
-                        0
-                      )
-                    )} คน
-                  </span>
-                `
-                : `
-                  <span class="small">
-                    0 คน
-                  </span>
-                `
-            }
+${
+  row.has_midterm_report
+    ? `
+      <span class="badge">
+        ${escapeHtml(
+          String(
+            row.midterm_student_count ||
+            0
+          )
+        )} คน
+      </span>
+    `
+    : row.has_midterm_no_students
+      ? `
+        <span class="badge orange">
+          0 คน
+        </span>
+      `
+      : `
+        <span class="small">
+          0 คน
+        </span>
+      `
+}
           </td>
 
 
@@ -17621,6 +17639,105 @@ offeringRows =
         pageSize;
     }
 
+    /* =====================================================
+   2.1 โหลด declaration
+       "ไม่มีนักเรียนเลือกเรียน"
+   ===================================================== */
+
+let declarationFrom = 0;
+
+let declarationRows = [];
+
+
+while(true){
+
+  let query =
+    supabaseClient
+      .from(
+        'midterm_report_declarations'
+      )
+      .select(`
+        academic_year,
+        term,
+        subject_code,
+        teacher_code,
+        class_level,
+        room,
+        report_status,
+        declared_at,
+        updated_at
+      `)
+      .eq(
+        'academic_year',
+        Number(year)
+      )
+      .eq(
+        'report_status',
+        'no_students'
+      )
+      .range(
+        declarationFrom,
+        declarationFrom +
+          pageSize -
+          1
+      );
+
+
+  if(term){
+
+    query =
+      query.eq(
+        'term',
+        Number(term)
+      );
+
+  }
+
+
+  if(classLevel){
+
+    query =
+      query.eq(
+        'class_level',
+        classLevel
+      );
+
+  }
+
+
+  const {
+    data,
+    error
+  } = await query;
+
+
+  if(error){
+    throw error;
+  }
+
+
+  const batch =
+    data || [];
+
+
+  declarationRows =
+    declarationRows.concat(
+      batch
+    );
+
+
+  if(
+    batch.length <
+    pageSize
+  ){
+    break;
+  }
+
+
+  declarationFrom +=
+    pageSize;
+}
+
 
     /* =====================================================
        3. ทำ Map สำหรับจับคู่
@@ -17632,6 +17749,9 @@ offeringRows =
 
     const statusByComposite =
       new Map();
+
+    const declarationByComposite =
+  new Map();
 
 
     statusRows.forEach(row => {
@@ -17659,6 +17779,24 @@ offeringRows =
       );
 
     });
+
+    declarationRows.forEach(row => {
+
+  if(
+    String(
+      row.report_status || ''
+    ).trim() !== 'no_students'
+  ){
+    return;
+  }
+
+
+  declarationByComposite.set(
+    getMidtermCompositeKey(row),
+    row
+  );
+
+});
 
 
     /* =====================================================
@@ -17698,43 +17836,122 @@ offeringRows =
         }
 
 
-        const studentCount =
-          Number(
-            midtermStatus
-              ?.student_count ||
-            0
-          );
+const studentCount =
+  Number(
+    midtermStatus
+      ?.student_count ||
+    0
+  );
 
 
-        return {
+/*
+ * declaration ของห้องนี้
+ */
+const declaration =
+  declarationByComposite.get(
+    getMidtermCompositeKey(row)
+  ) || null;
 
-          ...row,
 
-          teacher_name:
-            row.teacher_name ||
-            row.full_name ||
-            '',
+/*
+ * มีคะแนนจริงหรือไม่
+ */
+const hasMidtermReport =
+  studentCount > 0;
 
-          learning_area:
-            getNormalizedLearningAreaBySubject(
-              row
-            ),
 
-          has_midterm_report:
-            studentCount > 0,
+/*
+ * ถ้ามีคะแนนจริง ให้คะแนนจริงชนะ declaration
+ * ป้องกัน declaration เก่าค้าง
+ */
+const hasNoStudents =
+  !hasMidtermReport &&
+  String(
+    declaration
+      ?.report_status ||
+    ''
+  ).trim() === 'no_students';
 
-          midterm_student_count:
-            studentCount,
 
-          latest_midterm_updated_at:
-            midtermStatus
-              ?.latest_updated_at ||
-            null,
+/*
+ * รายการนี้ดำเนินการแล้วหรือไม่
+ */
+const isResolved =
+  hasMidtermReport ||
+  hasNoStudents;
 
-          teacher_report_status:
-            'pending'
 
-        };
+return {
+
+  ...row,
+
+  teacher_name:
+    row.teacher_name ||
+    row.full_name ||
+    '',
+
+  learning_area:
+    getNormalizedLearningAreaBySubject(
+      row
+    ),
+
+
+  /*
+   * มีคะแนนจริง
+   */
+  has_midterm_report:
+    hasMidtermReport,
+
+
+  /*
+   * ยืนยันว่าไม่มีนักเรียน
+   */
+  has_midterm_no_students:
+    hasNoStudents,
+
+
+  /*
+   * ใช้สำหรับ KPI / ครู / ตัวกรอง
+   */
+  is_midterm_resolved:
+    isResolved,
+
+
+  /*
+   * สถานะ 3 แบบ
+   */
+  midterm_item_status:
+    hasMidtermReport
+      ? 'reported'
+      : (
+          hasNoStudents
+            ? 'no_students'
+            : 'pending'
+        ),
+
+
+  midterm_student_count:
+    studentCount,
+
+
+  /*
+   * ถ้าเป็น no_students
+   * ใช้เวลาที่ยืนยันแทนเวลาบันทึกคะแนน
+   */
+  latest_midterm_updated_at:
+    midtermStatus
+      ?.latest_updated_at ||
+    declaration
+      ?.updated_at ||
+    declaration
+      ?.declared_at ||
+    null,
+
+
+  teacher_report_status:
+    'pending'
+
+};
 
       });
 
@@ -17993,9 +18210,11 @@ function getMidtermSummaryRows(){
         class_level:
           row.class_level || '',
 
-        reported_rooms: [],
+reported_rooms: [],
 
-        pending_rooms: []
+no_students_rooms: [],
+
+pending_rooms: []
 
       });
 
@@ -18017,19 +18236,32 @@ function getMidtermSummaryRows(){
     }
 
 
-    if(row.has_midterm_report){
+/*
+ * แยก 3 สถานะออกจากกัน
+ *
+ * 1. มีคะแนนจริง
+ * 2. ไม่มีนักเรียนเลือก
+ * 3. ยังไม่รายงาน
+ */
+if(row.has_midterm_report){
 
-      item.reported_rooms.push(
-        room
-      );
+  item.reported_rooms.push(
+    room
+  );
 
-    }else{
+}else if(row.has_midterm_no_students){
 
-      item.pending_rooms.push(
-        room
-      );
+  item.no_students_rooms.push(
+    room
+  );
 
-    }
+}else{
+
+  item.pending_rooms.push(
+    room
+  );
+
+}
 
   });
 
@@ -18046,15 +18278,20 @@ function getMidtermSummaryRows(){
 
       ...item,
 
-      reported_rooms:
-        getUniqueSortedRooms(
-          item.reported_rooms
-        ),
+reported_rooms:
+  getUniqueSortedRooms(
+    item.reported_rooms
+  ),
 
-      pending_rooms:
-        getUniqueSortedRooms(
-          item.pending_rooms
-        )
+no_students_rooms:
+  getUniqueSortedRooms(
+    item.no_students_rooms
+  ),
+
+pending_rooms:
+  getUniqueSortedRooms(
+    item.pending_rooms
+  )
 
     }));
 
@@ -18119,7 +18356,36 @@ function getMidtermSummaryRows(){
           Array.isArray(
             row.reported_rooms
           ) &&
+          }else if(
+  activeFilter ===
+  'item_complete'
+){
+
+  /*
+   * ดำเนินการแล้ว =
+   *
+   * - มีการรายงานคะแนนจริง
+   * หรือ
+   * - ครูยืนยันว่าไม่มีนักเรียนเลือก
+   */
+  result =
+    result.filter(
+      row =>
+        (
+          Array.isArray(
+            row.reported_rooms
+          ) &&
           row.reported_rooms.length > 0
+        ) ||
+        (
+          Array.isArray(
+            row.no_students_rooms
+          ) &&
+          row.no_students_rooms.length > 0
+        )
+    );
+
+}
       );
 
   }else if(
@@ -18348,21 +18614,34 @@ if(activeStatFilter !== 'all'){
         const rowsHtml =
           teacherRows.map(row => {
 
-            const pendingText =
-              row.pending_rooms?.length
-                ? row.pending_rooms.join(', ')
-                : '-';
+const pendingText =
+  row.pending_rooms?.length
+    ? row.pending_rooms.join(', ')
+    : '-';
 
-            const reportedText =
-              row.reported_rooms?.length
-                ? row.reported_rooms.join(', ')
-                : '-';
 
-            const hasPending =
-              row.pending_rooms?.length > 0;
+const noStudentsText =
+  row.no_students_rooms?.length
+    ? row.no_students_rooms.join(', ')
+    : '-';
 
-            const hasReported =
-              row.reported_rooms?.length > 0;
+
+const reportedText =
+  row.reported_rooms?.length
+    ? row.reported_rooms.join(', ')
+    : '-';
+
+
+const hasPending =
+  row.pending_rooms?.length > 0;
+
+
+const hasNoStudents =
+  row.no_students_rooms?.length > 0;
+
+
+const hasReported =
+  row.reported_rooms?.length > 0;
 
             return `
               <tr>
@@ -18391,6 +18670,16 @@ if(activeStatFilter !== 'all'){
                     ${escapeHtml(pendingText)}
                   </span>
                 </td>
+
+                <td>
+  <span class="${
+    hasNoStudents
+      ? 'midterm-summary-no-students'
+      : 'midterm-summary-dash'
+  }">
+    ${escapeHtml(noStudentsText)}
+  </span>
+</td>
 
                 <td>
                   <span class="${
@@ -18451,16 +18740,24 @@ if(activeStatFilter !== 'all'){
 
                   <thead>
                     <tr>
-                      <th>รายวิชา</th>
-                      <th>ชั้น</th>
-                      <th>
-                        ยังไม่ได้รายงาน
-                        <span class="small">(ห้อง)</span>
-                      </th>
-                      <th>
-                        รายงานแล้ว
-                        <span class="small">(ห้อง)</span>
-                      </th>
+<th>รายวิชา</th>
+
+<th>ชั้น</th>
+
+<th>
+  ยังไม่ได้รายงาน
+  <span class="small">(ห้อง)</span>
+</th>
+
+<th>
+  ไม่มีนักเรียนเลือก
+  <span class="small">(ห้อง)</span>
+</th>
+
+<th>
+  รายงานแล้ว
+  <span class="small">(ห้อง)</span>
+</th>
                     </tr>
                   </thead>
 
