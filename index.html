@@ -18341,29 +18341,13 @@ pending_rooms:
           'pending'
       );
 
-  }else if(
-    activeFilter ===
-    'item_complete'
-  ){
-
-    /*
-     * แสดงรายวิชาที่มีอย่างน้อย 1 ห้อง
-     * รายงานแล้ว
-     */
-    result =
-      result.filter(
-        row =>
-          Array.isArray(
-            row.reported_rooms
-          ) &&
-          }else if(
+}else if(
   activeFilter ===
   'item_complete'
 ){
 
   /*
    * ดำเนินการแล้ว =
-   *
    * - มีการรายงานคะแนนจริง
    * หรือ
    * - ครูยืนยันว่าไม่มีนักเรียนเลือก
@@ -18385,8 +18369,7 @@ pending_rooms:
         )
     );
 
-}
-      );
+
 
   }else if(
     activeFilter ===
