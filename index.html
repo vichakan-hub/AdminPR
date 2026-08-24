@@ -14251,11 +14251,11 @@ function getGradeOptionsHtml(selectedValue = '', allowBlank = true){
 
 
 
-  async function loadTeachers(){
-    const {data,error} = await supabaseClient
-      .from('teachers')
-      .select('id, teacher_code, first_name, last_name, full_name, password_hash, is_active, last_login_at, created_at, updated_at')
-      .order('teacher_code',{ascending:true});
+async function loadTeachers(){
+  const {data,error} = await supabaseClient
+    .from('teachers')
+    .select('id, teacher_code, first_name, last_name, full_name, is_active, last_login_at, created_at, updated_at')
+    .order('teacher_code',{ascending:true});
 
     if(error) throw error;
 
