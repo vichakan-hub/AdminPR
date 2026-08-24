@@ -14286,16 +14286,16 @@ populateReportTeacherFilter();
     refreshTeacherStats();
   }
 
-  async function fetchStudentsPage(from, to){
-    const { data, error } = await supabaseClient
-      .from('students')
-      .select('id, sid, raw_full_name, current_room, current_no, entry_academic_year, entry_level, student_status, resigned_date, password_hash, is_active, last_login_at, created_at, updated_at')
-      .order('sid', { ascending:true })
-      .range(from, to);
+async function fetchStudentsPage(from, to){
+  const { data, error } = await supabaseClient
+    .from('students')
+    .select('id, sid, raw_full_name, current_room, current_no, entry_academic_year, entry_level, student_status, resigned_date, is_active, last_login_at, created_at, updated_at')
+    .order('sid', { ascending:true })
+    .range(from, to);
 
-    if(error) throw error;
-    return data || [];
-  }
+  if(error) throw error;
+  return data || [];
+}
 
   async function loadStudents(){
     const pageSize = 1000;
