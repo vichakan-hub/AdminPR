@@ -6811,36 +6811,78 @@ async function hashAndUpsertStudent({
     return { count: ids.length, fallback: true };
   }
 
-async function replaceGradeResultsForOfferings(offeringIds, rowsToInsert){
-  const ids = [...new Set((offeringIds || []).map(x => String(x)).filter(Boolean))];
+async function replaceGradeResultsForOfferings(
+  offeringIds,
+  rowsToInsert
+){
+  const ids = [
+    ...new Set(
+      (offeringIds || [])
+        .map(x => String(x))
+        .filter(Boolean)
+    )
+  ];
 
   if(!ids.length){
-    throw new Error('ไม่พบรายการสอนที่ต้องการแทนที่ผลการเรียน');
+    throw new Error(
+      'ไม่พบรายการสอนที่ต้องการแทนที่ผลการเรียน'
+    );
   }
 
-  const { error: deleteError } = await supabaseClient
-    .from('grade_results')
-    .delete()
-    .in('subject_offering_id', ids);
 
-  if(deleteError) throw deleteError;
+  /*
+   * =====================================================
+   * 1) ลบผลการเรียนเดิม
+   * =====================================================
+   */
 
-  if(rowsToInsert && rowsToInsert.length){
-    const { error: insertError } = await supabaseClient
+  const { error: deleteError } =
+    await supabaseClient
       .from('grade_results')
-      .insert(rowsToInsert);
+      .delete()
+      .in(
+        'subject_offering_id',
+        ids
+      );
 
-    if(insertError) throw insertError;
+  if(deleteError){
+    throw deleteError;
   }
 
-  const { error: refreshError } = await supabaseClient.rpc(
-    'refresh_grade_report_status',
-    {
-      p_subject_offering_ids: ids
-    }
-  );
 
-  if(refreshError) throw refreshError;
+  /*
+   * =====================================================
+   * 2) บันทึกผลการเรียนชุดใหม่
+   * =====================================================
+   */
+
+  if(
+    rowsToInsert &&
+    rowsToInsert.length
+  ){
+    const { error: insertError } =
+      await supabaseClient
+        .from('grade_results')
+        .insert(rowsToInsert);
+
+    if(insertError){
+      throw insertError;
+    }
+  }
+
+
+  /*
+   * =====================================================
+   * ไม่ต้องเรียก
+   * refresh_grade_report_status()
+   *
+   * เพราะ grade_results มี Trigger
+   * grade_results_refresh_report_status
+   *
+   * ซึ่ง refresh grade_report_status
+   * ให้อัตโนมัติหลัง INSERT / UPDATE / DELETE
+   * =====================================================
+   */
 
   return true;
 }
