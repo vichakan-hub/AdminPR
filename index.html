@@ -14563,23 +14563,260 @@ async function login(){
   }
 }
 
-  function restoreSession(){
-    try{
-      const raw = sessionStorage.getItem('registrarUser');
-      if(!raw) return false;
+function clearAdminSessionStorage(){
 
-      state.currentUser = JSON.parse(raw);
-      if(!String(state.currentUser.teacher_code || '').startsWith('G')) return false;
+  try{
 
-      el('loginView').classList.add('hidden');
-      el('appView').classList.remove('hidden');
-      el('currentUserBox').innerHTML = `${escapeHtml(state.currentUser.teacher_code)} ${escapeHtml(state.currentUser.full_name)}`;
-      el('homeUserName').textContent = `คุณ ${state.currentUser.full_name}`;
-      return true;
-    }catch(e){
+    sessionStorage.removeItem(
+      ADMIN_USER_SESSION_KEY
+    );
+
+    sessionStorage.removeItem(
+      ADMIN_TOKEN_SESSION_KEY
+    );
+
+    sessionStorage.removeItem(
+      ADMIN_EXPIRES_SESSION_KEY
+    );
+
+  }catch(error){
+
+    console.warn(
+      'CLEAR ADMIN SESSION STORAGE SKIPPED',
+      error
+    );
+
+  }
+}
+
+
+/*
+ * =========================================================
+ * Restore Admin Session
+ *
+ * ไม่เชื่อ registrarUser ที่ Browser เก็บไว้
+ * แต่ใช้ Session Token ส่งกลับไปตรวจที่ Database ทุกครั้ง
+ * =========================================================
+ */
+async function restoreSession(){
+
+  try{
+
+    const token =
+      String(
+        sessionStorage.getItem(
+          ADMIN_TOKEN_SESSION_KEY
+        ) || ''
+      )
+      .trim();
+
+
+    /*
+     * ไม่มี token = ไม่มี session
+     */
+    if(!token){
+
+      state.currentUser = null;
+      state.adminSessionToken = null;
+      state.adminSessionExpiresAt = null;
+
+      clearAdminSessionStorage();
+
       return false;
     }
+
+
+    /*
+     * =====================================================
+     * ตรวจ Session กับ Database
+     * =====================================================
+     */
+
+    const { data, error } =
+      await supabaseClient.rpc(
+        'get_teacher_session_context',
+        {
+          p_token: token
+        }
+      );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    if(
+      !data ||
+      data.ok !== true ||
+      !data.user
+    ){
+
+      state.currentUser = null;
+      state.adminSessionToken = null;
+      state.adminSessionExpiresAt = null;
+
+      clearAdminSessionStorage();
+
+      return false;
+    }
+
+
+    /*
+     * =====================================================
+     * ใช้ข้อมูล User ที่ Database คืนมาเท่านั้น
+     * =====================================================
+     */
+
+    const user =
+      data.user;
+
+
+    const code =
+      normalizeTeacherCode(
+        user.teacher_code || ''
+      );
+
+
+    /*
+     * AdminPR ต้องเป็นบัญชี G เท่านั้น
+     */
+    if(
+      !code.startsWith('G') ||
+      (
+        user.account_type &&
+        String(user.account_type) !== 'admin'
+      )
+    ){
+
+      state.currentUser = null;
+      state.adminSessionToken = null;
+      state.adminSessionExpiresAt = null;
+
+      clearAdminSessionStorage();
+
+      return false;
+    }
+
+
+    /*
+     * =====================================================
+     * สร้าง User ใหม่จากข้อมูล Database
+     *
+     * ไม่อ่าน registrarUser เดิมมาใช้เป็นสิทธิ์
+     * =====================================================
+     */
+
+    state.currentUser = {
+
+      id:
+        user.id || '',
+
+      teacher_code:
+        code,
+
+      first_name:
+        user.first_name || '',
+
+      last_name:
+        user.last_name || '',
+
+      full_name:
+        user.full_name ||
+        [
+          user.first_name || '',
+          user.last_name || ''
+        ]
+        .join(' ')
+        .trim() ||
+        code,
+
+      account_type:
+        user.account_type || 'admin',
+
+      role_prefix:
+        'G',
+
+      is_active:
+        true
+    };
+
+
+    state.adminSessionToken =
+      token;
+
+
+    state.adminSessionExpiresAt =
+      data.expires_at || null;
+
+
+    /*
+     * เขียน User เวอร์ชันล่าสุดกลับ sessionStorage
+     *
+     * registrarUser ยังเก็บไว้เพื่อ UI ได้
+     * แต่ไม่ได้ใช้เป็นหลักฐานยืนยันสิทธิ์อีกแล้ว
+     */
+    saveAdminSession();
+
+
+    /*
+     * =====================================================
+     * แสดงหน้า AdminPR
+     * =====================================================
+     */
+
+    el('loginView')
+      .classList.add('hidden');
+
+
+    el('appView')
+      .classList.remove('hidden');
+
+
+    if(el('currentUserBox')){
+
+      el('currentUserBox').innerHTML =
+        `${escapeHtml(
+          state.currentUser.teacher_code
+        )} ${escapeHtml(
+          state.currentUser.full_name
+        )}`;
+
+    }
+
+
+    if(el('homeUserName')){
+
+      el('homeUserName').textContent =
+        `คุณ ${state.currentUser.full_name}`;
+
+    }
+
+
+    return true;
+
+
+  }catch(error){
+
+    console.warn(
+      'RESTORE ADMIN SESSION ERROR',
+      error
+    );
+
+
+    state.currentUser = null;
+    state.adminSessionToken = null;
+    state.adminSessionExpiresAt = null;
+
+
+    clearAdminSessionStorage();
+
+
+    return false;
   }
+}
+
+
 
   function logout(){
     state.currentUser = null;
@@ -22776,7 +23013,7 @@ setReportPreviewFilter('all');
   updateEmptysecAutoFields();
 
 try{
-  if(restoreSession()){
+  if(await restoreSession()){
     await initApp();
     setActivePage('home');
   }else{
