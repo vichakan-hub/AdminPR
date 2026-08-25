@@ -14818,14 +14818,112 @@ async function restoreSession(){
 
 
 
-  function logout(){
-    state.currentUser = null;
-    sessionStorage.removeItem('registrarUser');
-    el('appView').classList.add('hidden');
-    el('loginView').classList.remove('hidden');
-    el('loginPassword').value = '';
-    setStatus('loginStatus','ออกจากระบบแล้ว','info');
+async function logout(){
+
+  /*
+   * =====================================================
+   * 1) เก็บ Token ก่อนล้าง State
+   * =====================================================
+   */
+
+  const token =
+    String(
+      state.adminSessionToken ||
+      sessionStorage.getItem(
+        ADMIN_TOKEN_SESSION_KEY
+      ) ||
+      ''
+    ).trim();
+
+
+  /*
+   * =====================================================
+   * 2) Revoke Session ที่ Database
+   *
+   * ถ้า network มีปัญหา
+   * ยังต้อง logout ฝั่ง Browser ต่อ
+   * =====================================================
+   */
+
+  if(token){
+
+    try{
+
+      const { error } =
+        await supabaseClient.rpc(
+          'logout_teacher_session',
+          {
+            p_token: token
+          }
+        );
+
+
+      if(error){
+        throw error;
+      }
+
+    }catch(error){
+
+      console.warn(
+        'ADMIN SESSION REVOKE ERROR',
+        error
+      );
+
+    }
+
   }
+
+
+  /*
+   * =====================================================
+   * 3) ล้าง State
+   * =====================================================
+   */
+
+  state.currentUser = null;
+
+  state.adminSessionToken = null;
+
+  state.adminSessionExpiresAt = null;
+
+
+  /*
+   * =====================================================
+   * 4) ล้าง Session Storage ทั้งหมดของ AdminPR
+   * =====================================================
+   */
+
+  clearAdminSessionStorage();
+
+
+  /*
+   * =====================================================
+   * 5) กลับหน้า Login
+   * =====================================================
+   */
+
+  el('appView')
+    .classList.add('hidden');
+
+
+  el('loginView')
+    .classList.remove('hidden');
+
+
+  if(el('loginPassword')){
+
+    el('loginPassword').value = '';
+
+  }
+
+
+  setStatus(
+    'loginStatus',
+    'ออกจากระบบแล้ว',
+    'info'
+  );
+
+}
 
   function refreshActiveSubjects(){
     state.subjects = (state.allSubjects || []).filter(s => s.is_active !== false);
