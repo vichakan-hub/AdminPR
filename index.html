@@ -12474,53 +12474,47 @@ async function validateTransferRows(){
 }
 
 function buildTransferPayloadRows(){
-  const student = state.transferStudent;
-  const year = getTransferAcademicYear();
-  const term = getTransferTerm();
-  const classLevel = getTransferClassLevel();
-  const room = String(el('transferRoomInput')?.value || '').trim();
 
-  return getTransferValidatedSavableRows().map(row => ({
-    subject_offering_id: null,
-    subject_id: row.subject?.id || null,
-    teacher_id: row.teacher?.id || null,
-    student_id: student?.id || null,
+  /*
+   * =====================================================
+   * ส่งเฉพาะข้อมูลที่ RPC จำเป็นต้องใช้
+   *
+   * ข้อมูลนักเรียน / ชื่อวิชา / ชื่อครู / audit
+   * Database จะหาเอง
+   * =====================================================
+   */
 
-    academic_year: year,
-    term: term,
-    class_level: classLevel,
-    room: room,
+  return getTransferValidatedSavableRows()
+    .map(row => ({
 
-    subject_code: row.subject_code,
-    subject_name: row.subject?.subject_name || row.subject_code,
+      /*
+       * ใช้กรณีแก้ไขรายการเดิม
+       */
+      existing_result_id:
+        row.existing_result_id || null,
 
-    student_code: student?.sid || '',
-    student_name: student?.raw_full_name || '',
-    student_no: student?.current_no || null,
 
-grade_code: row.grade_code,
-retest_grade_code: null,
+      /*
+       * Subject และ Teacher
+       *
+       * RPC จะตรวจซ้ำกับ subject_offerings
+       */
+      subject_id:
+        row.subject?.id || null,
 
-// ใช้ค่าที่ผ่าน constraint เดิมของ grade_results
-grading_status: 'submitted',
+      teacher_id:
+        row.teacher?.id || null,
 
-is_active: true,
 
-// ใช้ field นี้แยกว่าเป็นผลเทียบโอน
-result_source: 'transfer',
-transfer_note: 'ผลการเรียนเทียบโอนรายบุคคล',
-    imported_at: new Date().toISOString(),
+      /*
+       * ผลการเรียน
+       */
+      grade_code:
+        normalizeGradeValue(
+          row.grade_code || ''
+        )
 
-    created_by_teacher_id: getGradeManageCurrentUserTeacherId(),
-    created_by_teacher_code: getGradeManageCurrentUserCode(),
-    created_by_teacher_name: getGradeManageCurrentUserName(),
-
-    updated_by_teacher_id: getGradeManageCurrentUserTeacherId(),
-    updated_by_teacher_code: getGradeManageCurrentUserCode(),
-    updated_by_teacher_name: getGradeManageCurrentUserName(),
-
-    grade_edit_note: 'บันทึกจากเมนูผลการเรียนเทียบโอนรายบุคคล'
-  }));
+    }));
 }
 
 function openTransferReplaceOverlay(duplicateRows, payloadRows){
@@ -12562,25 +12556,216 @@ function closeTransferReplaceOverlay(){
   setStatus('transferReplaceStatus', '', 'info');
 }
 
-async function saveTransferPayloadRows(payloadRows, duplicateRows = []){
-  const duplicateIds = (duplicateRows || []).map(r => r.id).filter(Boolean);
+async function saveTransferPayloadRows(
+  payloadRows,
+  duplicateRows = []
+){
 
-  if(duplicateIds.length){
-    const { error: deleteError } = await supabaseClient
-      .from('grade_results')
-      .delete()
-      .in('id', duplicateIds);
+  /*
+   * =====================================================
+   * 1) ตรวจ Admin Session
+   * =====================================================
+   */
 
-    if(deleteError) throw deleteError;
+  const token =
+    String(
+      state.adminSessionToken || ''
+    ).trim();
+
+
+  if(!token){
+
+    throw new Error(
+      'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+    );
+
   }
 
-  const { error: insertError } = await supabaseClient
-    .from('grade_results')
-    .insert(payloadRows);
 
-  if(insertError) throw insertError;
+  /*
+   * =====================================================
+   * 2) ตรวจ Student
+   * =====================================================
+   */
 
-  return true;
+  const student =
+    state.transferStudent;
+
+
+  if(!student?.id){
+
+    throw new Error(
+      'ไม่พบนักเรียนที่ต้องการบันทึกผลเทียบโอน'
+    );
+
+  }
+
+
+  /*
+   * =====================================================
+   * 3) ข้อมูลปี / เทอม / ชั้น / ห้อง
+   * =====================================================
+   */
+
+  const academicYear =
+    Number(
+      getTransferAcademicYear()
+    );
+
+
+  const term =
+    Number(
+      getTransferTerm()
+    );
+
+
+  const classLevel =
+    String(
+      getTransferClassLevel() || ''
+    ).trim();
+
+
+  const room =
+    String(
+      el('transferRoomInput')
+        ?.value || ''
+    ).trim();
+
+
+  if(!academicYear){
+
+    throw new Error(
+      'กรุณาระบุปีการศึกษา'
+    );
+
+  }
+
+
+  if(!term){
+
+    throw new Error(
+      'กรุณาระบุภาคเรียน'
+    );
+
+  }
+
+
+  if(!classLevel){
+
+    throw new Error(
+      'ไม่สามารถระบุระดับชั้นได้'
+    );
+
+  }
+
+
+  if(!room){
+
+    throw new Error(
+      'กรุณาระบุห้อง'
+    );
+
+  }
+
+
+  /*
+   * =====================================================
+   * 4) ตรวจ Payload
+   * =====================================================
+   */
+
+  const rows =
+    Array.isArray(payloadRows)
+      ? payloadRows
+      : [];
+
+
+  if(!rows.length){
+
+    throw new Error(
+      'ไม่พบข้อมูลผลการเรียนเทียบโอน'
+    );
+
+  }
+
+
+  /*
+   * duplicateRows ใช้แค่บอกว่า
+   * Admin กดยืนยัน Replace แล้วหรือยัง
+   *
+   * เราไม่ส่ง duplicate ID ไปให้ Database เชื่อ
+   */
+  const allowReplace =
+    Array.isArray(duplicateRows) &&
+    duplicateRows.length > 0;
+
+
+  /*
+   * =====================================================
+   * 5) เรียก Session-secured RPC
+   * =====================================================
+   */
+
+  const { data, error } =
+    await supabaseClient.rpc(
+      'admin_save_transfer_grade_results_session',
+      {
+
+        p_token:
+          token,
+
+        p_student_id:
+          student.id,
+
+        p_academic_year:
+          academicYear,
+
+        p_term:
+          term,
+
+        p_class_level:
+          classLevel,
+
+        p_room:
+          room,
+
+        p_rows:
+          rows,
+
+        p_allow_replace:
+          allowReplace
+
+      }
+    );
+
+
+  if(error){
+
+    throw error;
+
+  }
+
+
+  const result =
+    Array.isArray(data)
+      ? data[0]
+      : data;
+
+
+  if(
+    !result ||
+    result.ok !== true
+  ){
+
+    throw new Error(
+      result?.message ||
+      'บันทึกผลการเรียนเทียบโอนไม่สำเร็จ'
+    );
+
+  }
+
+
+  return result;
 }
 
 async function reloadTransferAfterSave(successMessage){
@@ -12670,31 +12855,102 @@ async function saveTransferRows(){
 }
 
 async function confirmTransferReplace(){
+
   try{
-    const payloadRows = state.transferPendingPayloadRows || [];
-    const duplicateRows = state.transferPendingDuplicateRows || [];
+
+    const payloadRows =
+      state.transferPendingPayloadRows || [];
+
+
+    const duplicateRows =
+      state.transferPendingDuplicateRows || [];
+
 
     if(!payloadRows.length){
-      setStatus('transferReplaceStatus', 'ไม่พบข้อมูลที่จะบันทึก', 'error');
+
+      setStatus(
+        'transferReplaceStatus',
+        'ไม่พบข้อมูลที่จะบันทึก',
+        'error'
+      );
+
       return;
     }
 
-    setStatus('transferReplaceStatus', 'กำลังแทนที่รายการซ้ำและบันทึกข้อมูลใหม่...', 'info');
 
+    setStatus(
+      'transferReplaceStatus',
+      'กำลังแทนที่รายการซ้ำและบันทึกข้อมูลใหม่...',
+      'info'
+    );
+
+
+    /*
+     * =====================================================
+     * บันทึกจริงก่อนปิด Overlay
+     *
+     * duplicateRows.length > 0
+     * → RPC จะได้รับ p_allow_replace = true
+     * =====================================================
+     */
+
+    const result =
+      await saveTransferPayloadRows(
+        payloadRows,
+        duplicateRows
+      );
+
+
+    /*
+     * สำเร็จจริงแล้วจึงปิด Overlay
+     */
     closeTransferReplaceOverlay();
 
-    const successMessage = `แทนที่รายการซ้ำและบันทึกผลเทียบโอนสำเร็จ ${payloadRows.length} รายการ และโหลดข้อมูลล่าสุดแล้ว`;
+
+    const savedCount =
+      Number(result?.saved_count) ||
+      payloadRows.length;
+
+
+    const successMessage =
+      `แทนที่รายการซ้ำและบันทึกผลเทียบโอนสำเร็จ ${savedCount} รายการ และโหลดข้อมูลล่าสุดแล้ว`;
+
 
     showToast(
       'บันทึกสำเร็จ',
-      `แทนที่รายการซ้ำและบันทึกผลเทียบโอน ${payloadRows.length} รายการ`,
+      `แทนที่รายการซ้ำและบันทึกผลเทียบโอน ${savedCount} รายการ`,
       'success'
     );
 
-    await reloadTransferAfterSave(successMessage);
+
+    await reloadTransferAfterSave(
+      successMessage
+    );
+
+
   }catch(err){
-    setStatus('transferReplaceStatus', err.message || 'แทนที่รายการซ้ำไม่สำเร็จ', 'error');
-    showToast('บันทึกไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+
+    console.error(
+      'ADMIN TRANSFER REPLACE ERROR',
+      err
+    );
+
+
+    setStatus(
+      'transferReplaceStatus',
+      err.message ||
+      'แทนที่รายการซ้ำไม่สำเร็จ',
+      'error'
+    );
+
+
+    showToast(
+      'บันทึกไม่สำเร็จ',
+      err.message ||
+      'เกิดข้อผิดพลาด',
+      'error'
+    );
+
   }
 }
 
