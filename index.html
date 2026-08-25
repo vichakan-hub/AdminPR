@@ -6259,6 +6259,15 @@ body.app-booting #appView{
   }
 ];
 
+    const ADMIN_USER_SESSION_KEY =
+  'registrarUser';
+
+const ADMIN_TOKEN_SESSION_KEY =
+  'registrarSessionToken';
+
+const ADMIN_EXPIRES_SESSION_KEY =
+  'registrarSessionExpiresAt';
+
   const state = {
     allSubjects: [],
     subjects: [],
@@ -6274,6 +6283,9 @@ body.app-booting #appView{
      emptysecSelectedIds: [],
 
     currentUser: null,
+
+adminSessionToken: null,
+adminSessionExpiresAt: null,
 
      gradeYearCopyPreview: null,
      gradeYearCopyBusy: false,
@@ -14159,79 +14171,397 @@ function getGradeOptionsHtml(selectedValue = '', allowBlank = true){
     return { ok:true, user: normalizedUser };
   }
 
-  async function loginWithSupabase(teacherCode, password){
-    // รองรับชื่อ parameter หลายแบบ เพื่อใช้ได้กับ RPC login_teacher เดิมหรือ RPC ที่แนบในโฟลเดอร์ sql
-    const attempts = [
-      { p_teacher_code: teacherCode, p_password: password },
-      { p_teacher_code: teacherCode, p_plain_password: password },
-      { teacher_code: teacherCode, password: password },
-      { p_code: teacherCode, p_password: password }
-    ];
+async function loginWithSupabase(
+  teacherCodeRaw,
+  passwordRaw
+){
+  const teacherCode =
+    normalizeTeacherCode(
+      teacherCodeRaw
+    );
 
-    let lastError = null;
+  const password =
+    String(
+      passwordRaw || ''
+    );
 
-    for(const args of attempts){
-      const { data, error } = await supabaseClient.rpc('login_teacher', args);
 
-      if(error){
-        lastError = error;
-        continue;
-      }
+  /*
+   * =====================================================
+   * AdminPR อนุญาตเฉพาะบัญชี G
+   * =====================================================
+   */
 
-      return normalizeLoginResponse(data);
-    }
-
-    throw lastError || new Error('ไม่พบ RPC login_teacher');
+  if(!teacherCode){
+    throw new Error(
+      'กรุณากรอกรหัสผู้ใช้'
+    );
   }
 
-  async function login(){
-    setStatus('loginStatus','กำลังตรวจสอบสิทธิ์...','info');
 
-    const teacherCode = normalizeTeacherCode(el('loginTeacherCode').value);
-    const password = el('loginPassword').value || '';
+  if(!teacherCode.startsWith('G')){
+    throw new Error(
+      'AdminPR อนุญาตเฉพาะบัญชีรหัส G'
+    );
+  }
 
-    if(!teacherCode){
-      setStatus('loginStatus','กรุณากรอกรหัสครู','error');
-      return;
-    }
-    if(!teacherCode.startsWith('G')){
-      setStatus('loginStatus','หน้านี้อนุญาตเฉพาะรหัส G เท่านั้น','error');
-      return;
-    }
-    if(!password){
-      setStatus('loginStatus','กรุณากรอกรหัสผ่าน','error');
-      return;
-    }
 
+  if(!password){
+    throw new Error(
+      'กรุณากรอกรหัสผ่าน'
+    );
+  }
+
+
+  /*
+   * =====================================================
+   * Login ผ่าน Session RPC
+   * =====================================================
+   */
+
+  const { data, error } =
+    await supabaseClient.rpc(
+      'login_teacher_session',
+      {
+        p_teacher_code:
+          teacherCode,
+
+        p_password:
+          password
+      }
+    );
+
+
+  if(error){
+    throw error;
+  }
+
+
+  const result =
+    Array.isArray(data)
+      ? data[0]
+      : data;
+
+
+  if(
+    !result ||
+    result.ok !== true ||
+    !result.user ||
+    !result.session_token
+  ){
+    throw new Error(
+      result?.message ||
+      'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'
+    );
+  }
+
+
+  const user =
+    result.user;
+
+
+  const returnedCode =
+    normalizeTeacherCode(
+      user.teacher_code || ''
+    );
+
+
+  /*
+   * =====================================================
+   * ตรวจซ้ำจากข้อมูลที่ Database คืนมา
+   *
+   * ไม่เชื่อเพียงรหัสที่ Browser ส่งเข้าไป
+   * =====================================================
+   */
+
+  if(
+    !returnedCode.startsWith('G') ||
+    (
+      user.account_type &&
+      String(user.account_type) !== 'admin'
+    )
+  ){
+    /*
+     * หาก RPC สร้าง Session มาแล้ว
+     * แต่ไม่ใช่บัญชี Admin ให้ revoke ทันที
+     */
     try{
-      const res = await loginWithSupabase(teacherCode, password);
-
-      if(!res || !res.ok || !res.user){
-        const msg = res?.message || 'เข้าสู่ระบบไม่สำเร็จ';
-        setStatus('loginStatus', msg, 'error');
-        showToast('เข้าสู่ระบบไม่สำเร็จ', msg, 'error');
-        return;
-      }
-
-      state.currentUser = res.user;
-      sessionStorage.setItem('registrarUser', JSON.stringify(state.currentUser));
-
-      el('loginView').classList.add('hidden');
-      el('appView').classList.remove('hidden');
-
-      el('currentUserBox').innerHTML = `${escapeHtml(state.currentUser.teacher_code)} ${escapeHtml(state.currentUser.full_name)}`;
-      el('homeUserName').textContent = `คุณ ${state.currentUser.full_name}`;
-
-      showToast('เข้าสู่ระบบสำเร็จ', `ยินดีต้อนรับ ${state.currentUser.full_name}`, 'success');
-
-      await initApp();
-      setActivePage('home');
-    }catch(err){
-      const msg = (err && err.message) || 'เข้าสู่ระบบไม่สำเร็จ';
-      setStatus('loginStatus', msg, 'error');
-      showToast('เข้าสู่ระบบไม่สำเร็จ', msg, 'error');
+      await supabaseClient.rpc(
+        'logout_teacher_session',
+        {
+          p_token:
+            result.session_token
+        }
+      );
+    }catch(logoutError){
+      console.warn(
+        'REVOKE INVALID ADMIN SESSION ERROR',
+        logoutError
+      );
     }
+
+
+    throw new Error(
+      'บัญชีนี้ไม่มีสิทธิ์ใช้งาน AdminPR'
+    );
   }
+
+
+  /*
+   * =====================================================
+   * คืนข้อมูลให้ login() ใช้
+   * =====================================================
+   */
+
+  return {
+    ok: true,
+
+    user: {
+      ...user,
+
+      teacher_code:
+        returnedCode,
+
+      full_name:
+        user.full_name ||
+        [
+          user.first_name || '',
+          user.last_name || ''
+        ]
+        .join(' ')
+        .trim() ||
+        returnedCode
+    },
+
+    sessionToken:
+      result.session_token,
+
+    expiresAt:
+      result.expires_at || null
+  };
+}
+
+    function saveAdminSession(){
+
+  if(
+    !state.currentUser ||
+    !state.adminSessionToken
+  ){
+    return;
+  }
+
+
+  sessionStorage.setItem(
+    ADMIN_USER_SESSION_KEY,
+    JSON.stringify(state.currentUser)
+  );
+
+
+  sessionStorage.setItem(
+    ADMIN_TOKEN_SESSION_KEY,
+    String(state.adminSessionToken)
+  );
+
+
+  if(state.adminSessionExpiresAt){
+
+    sessionStorage.setItem(
+      ADMIN_EXPIRES_SESSION_KEY,
+      String(state.adminSessionExpiresAt)
+    );
+
+  }else{
+
+    sessionStorage.removeItem(
+      ADMIN_EXPIRES_SESSION_KEY
+    );
+
+  }
+}
+
+async function login(){
+
+  setStatus(
+    'loginStatus',
+    'กำลังตรวจสอบสิทธิ์...',
+    'info'
+  );
+
+
+  const teacherCode =
+    normalizeTeacherCode(
+      el('loginTeacherCode').value
+    );
+
+  const password =
+    el('loginPassword').value || '';
+
+
+  if(!teacherCode){
+
+    setStatus(
+      'loginStatus',
+      'กรุณากรอกรหัสครู',
+      'error'
+    );
+
+    return;
+  }
+
+
+  if(!teacherCode.startsWith('G')){
+
+    setStatus(
+      'loginStatus',
+      'หน้านี้อนุญาตเฉพาะรหัส G เท่านั้น',
+      'error'
+    );
+
+    return;
+  }
+
+
+  if(!password){
+
+    setStatus(
+      'loginStatus',
+      'กรุณากรอกรหัสผ่าน',
+      'error'
+    );
+
+    return;
+  }
+
+
+  try{
+
+    const res =
+      await loginWithSupabase(
+        teacherCode,
+        password
+      );
+
+
+    /*
+     * ต้องได้ทั้ง User และ Session Token
+     */
+    if(
+      !res ||
+      res.ok !== true ||
+      !res.user ||
+      !res.sessionToken
+    ){
+
+      const msg =
+        res?.message ||
+        'เข้าสู่ระบบไม่สำเร็จ';
+
+
+      setStatus(
+        'loginStatus',
+        msg,
+        'error'
+      );
+
+
+      showToast(
+        'เข้าสู่ระบบไม่สำเร็จ',
+        msg,
+        'error'
+      );
+
+
+      return;
+    }
+
+
+    /*
+     * =====================================================
+     * เก็บ Session ที่ผ่านการตรวจจาก Database
+     * =====================================================
+     */
+
+    state.currentUser =
+      res.user;
+
+
+    state.adminSessionToken =
+      res.sessionToken;
+
+
+    state.adminSessionExpiresAt =
+      res.expiresAt || null;
+
+
+    saveAdminSession();
+
+
+    /*
+     * =====================================================
+     * เปิดหน้า AdminPR
+     * =====================================================
+     */
+
+    el('loginView')
+      .classList.add('hidden');
+
+
+    el('appView')
+      .classList.remove('hidden');
+
+
+    el('currentUserBox').innerHTML =
+      `${escapeHtml(
+        state.currentUser.teacher_code
+      )} ${escapeHtml(
+        state.currentUser.full_name
+      )}`;
+
+
+    el('homeUserName').textContent =
+      `คุณ ${state.currentUser.full_name}`;
+
+
+    showToast(
+      'เข้าสู่ระบบสำเร็จ',
+      `ยินดีต้อนรับ ${state.currentUser.full_name}`,
+      'success'
+    );
+
+
+    await initApp();
+
+    setActivePage('home');
+
+
+  }catch(err){
+
+    console.error(
+      'ADMIN LOGIN ERROR',
+      err
+    );
+
+
+    const msg =
+      (err && err.message) ||
+      'เข้าสู่ระบบไม่สำเร็จ';
+
+
+    setStatus(
+      'loginStatus',
+      msg,
+      'error'
+    );
+
+
+    showToast(
+      'เข้าสู่ระบบไม่สำเร็จ',
+      msg,
+      'error'
+    );
+
+  }
+}
 
   function restoreSession(){
     try{
