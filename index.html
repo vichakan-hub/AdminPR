@@ -6827,76 +6827,125 @@ async function replaceGradeResultsForOfferings(
   offeringIds,
   rowsToInsert
 ){
+
+  /*
+   * =====================================================
+   * 1) ต้องมี Admin Session
+   * =====================================================
+   */
+
+  const token =
+    String(
+      state.adminSessionToken || ''
+    ).trim();
+
+
+  if(!token){
+
+    throw new Error(
+      'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+    );
+
+  }
+
+
+  /*
+   * =====================================================
+   * 2) เตรียม Offering IDs
+   * =====================================================
+   */
+
   const ids = [
     ...new Set(
       (offeringIds || [])
-        .map(x => String(x))
+        .map(x => String(x || '').trim())
         .filter(Boolean)
     )
   ];
 
+
   if(!ids.length){
+
     throw new Error(
       'ไม่พบรายการสอนที่ต้องการแทนที่ผลการเรียน'
     );
+
   }
 
 
   /*
    * =====================================================
-   * 1) ลบผลการเรียนเดิม
+   * 3) ตรวจข้อมูลผลการเรียน
    * =====================================================
    */
 
-  const { error: deleteError } =
-    await supabaseClient
-      .from('grade_results')
-      .delete()
-      .in(
-        'subject_offering_id',
-        ids
-      );
+  const rows =
+    Array.isArray(rowsToInsert)
+      ? rowsToInsert
+      : [];
 
-  if(deleteError){
-    throw deleteError;
+
+  if(!rows.length){
+
+    throw new Error(
+      'ไม่พบข้อมูลผลการเรียนสำหรับบันทึก'
+    );
+
   }
 
 
   /*
    * =====================================================
-   * 2) บันทึกผลการเรียนชุดใหม่
+   * 4) ส่งให้ Database จัดการ
+   *
+   * DELETE + INSERT จะเกิดใน Transaction เดียวกัน
+   * Browser ไม่เขียน grade_results โดยตรงแล้ว
    * =====================================================
    */
+
+  const { data, error } =
+    await supabaseClient.rpc(
+      'admin_replace_grade_results_session',
+      {
+        p_token:
+          token,
+
+        p_subject_offering_ids:
+          ids,
+
+        p_rows:
+          rows
+      }
+    );
+
+
+  if(error){
+
+    throw error;
+
+  }
+
+
+  const result =
+    Array.isArray(data)
+      ? data[0]
+      : data;
+
 
   if(
-    rowsToInsert &&
-    rowsToInsert.length
+    !result ||
+    result.ok !== true
   ){
-    const { error: insertError } =
-      await supabaseClient
-        .from('grade_results')
-        .insert(rowsToInsert);
 
-    if(insertError){
-      throw insertError;
-    }
+    throw new Error(
+      result?.message ||
+      'บันทึกผลการเรียนไม่สำเร็จ'
+    );
+
   }
 
 
-  /*
-   * =====================================================
-   * ไม่ต้องเรียก
-   * refresh_grade_report_status()
-   *
-   * เพราะ grade_results มี Trigger
-   * grade_results_refresh_report_status
-   *
-   * ซึ่ง refresh grade_report_status
-   * ให้อัตโนมัติหลัง INSERT / UPDATE / DELETE
-   * =====================================================
-   */
-
-  return true;
+  return result;
 }
 
   function getCurrentThaiAcademicYear(){ return new Date().getFullYear() + 543; }
@@ -9661,92 +9710,394 @@ function cancelGradeManageEdit(){
 }
 
 async function saveGradeManageEdit(id){
+
   try{
-    const row = (state.gradeManageRows || []).find(x => String(x.id) === String(id));
+
+    /*
+     * =====================================================
+     * 1) ตรวจ Admin Session
+     * =====================================================
+     */
+
+    const token =
+      String(
+        state.adminSessionToken || ''
+      ).trim();
+
+
+    if(!token){
+
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+
+    }
+
+
+    /*
+     * =====================================================
+     * 2) หาแถวที่กำลังแก้ไข
+     * =====================================================
+     */
+
+    const row =
+      (state.gradeManageRows || [])
+        .find(
+          x =>
+            String(x.id) ===
+            String(id)
+        );
+
 
     if(!row){
-      setStatus('gradeManageStatus', 'ไม่พบแถวผลการเรียนที่ต้องการบันทึก', 'error');
+
+      setStatus(
+        'gradeManageStatus',
+        'ไม่พบแถวผลการเรียนที่ต้องการบันทึก',
+        'error'
+      );
+
       return;
     }
 
-    const gradeSelect = document.querySelector(`[data-grade-manage-edit-grade="${CSS.escape(String(id))}"]`);
-    const retestSelect = document.querySelector(`[data-grade-manage-edit-retest="${CSS.escape(String(id))}"]`);
 
-    const newGrade = normalizeGradeValue(gradeSelect?.value || '');
-    const newRetestGrade = normalizeGradeValue(retestSelect?.value || '');
+    /*
+     * =====================================================
+     * 3) อ่านค่าจากช่องแก้ไข
+     * =====================================================
+     */
+
+    const gradeSelect =
+      document.querySelector(
+        `[data-grade-manage-edit-grade="${CSS.escape(String(id))}"]`
+      );
+
+
+    const retestSelect =
+      document.querySelector(
+        `[data-grade-manage-edit-retest="${CSS.escape(String(id))}"]`
+      );
+
+
+    const newGrade =
+      normalizeGradeValue(
+        gradeSelect?.value || ''
+      );
+
+
+    const newRetestGrade =
+      normalizeGradeValue(
+        retestSelect?.value || ''
+      );
+
+
+    /*
+     * =====================================================
+     * 4) Validation ฝั่ง UI
+     *
+     * Database จะตรวจซ้ำอีกชั้น
+     * =====================================================
+     */
 
     if(!newGrade){
-      setStatus('gradeManageStatus', 'กรุณาเลือกผลการเรียน', 'error');
-      showToast('ยังบันทึกไม่ได้', 'กรุณาเลือกผลการเรียน', 'warning');
+
+      setStatus(
+        'gradeManageStatus',
+        'กรุณาเลือกผลการเรียน',
+        'error'
+      );
+
+      showToast(
+        'ยังบันทึกไม่ได้',
+        'กรุณาเลือกผลการเรียน',
+        'warning'
+      );
+
       return;
     }
 
-    const allowedGrades = ['4','3.5','3','2.5','2','1.5','1','0','ร','มส','ผ','มผ'];
 
-    if(!allowedGrades.includes(newGrade)){
-      setStatus('gradeManageStatus', 'ผลการเรียนไม่ถูกต้อง', 'error');
-      showToast('ยังบันทึกไม่ได้', 'ผลการเรียนไม่ถูกต้อง', 'warning');
+    const allowedGrades = [
+      '4',
+      '3.5',
+      '3',
+      '2.5',
+      '2',
+      '1.5',
+      '1',
+      '0',
+      'ร',
+      'มส',
+      'ผ',
+      'มผ'
+    ];
+
+
+    if(
+      !allowedGrades.includes(
+        newGrade
+      )
+    ){
+
+      setStatus(
+        'gradeManageStatus',
+        'ผลการเรียนไม่ถูกต้อง',
+        'error'
+      );
+
+      showToast(
+        'ยังบันทึกไม่ได้',
+        'ผลการเรียนไม่ถูกต้อง',
+        'warning'
+      );
+
       return;
     }
 
-    if(newRetestGrade && !allowedGrades.includes(newRetestGrade)){
-      setStatus('gradeManageStatus', 'ผลการเรียนแก้ตัวไม่ถูกต้อง', 'error');
-      showToast('ยังบันทึกไม่ได้', 'ผลการเรียนแก้ตัวไม่ถูกต้อง', 'warning');
+
+    if(
+      newRetestGrade &&
+      !allowedGrades.includes(
+        newRetestGrade
+      )
+    ){
+
+      setStatus(
+        'gradeManageStatus',
+        'ผลการเรียนแก้ตัวไม่ถูกต้อง',
+        'error'
+      );
+
+      showToast(
+        'ยังบันทึกไม่ได้',
+        'ผลการเรียนแก้ตัวไม่ถูกต้อง',
+        'warning'
+      );
+
       return;
     }
 
-    if(newRetestGrade && !isValidRetestGradeByOriginalGrade(newGrade, newRetestGrade)){
-  const ruleText = getRetestRuleText(newGrade);
 
-  setStatus('gradeManageStatus', ruleText, 'error');
-  showToast('ยังบันทึกไม่ได้', ruleText, 'warning');
-  return;
-}
+    if(
+      newRetestGrade &&
+      !isValidRetestGradeByOriginalGrade(
+        newGrade,
+        newRetestGrade
+      )
+    ){
 
-    if(newGrade === row.grade_code && newRetestGrade === row.retest_grade_code){
-      state.gradeManageEditingId = null;
+      const ruleText =
+        getRetestRuleText(
+          newGrade
+        );
+
+
+      setStatus(
+        'gradeManageStatus',
+        ruleText,
+        'error'
+      );
+
+
+      showToast(
+        'ยังบันทึกไม่ได้',
+        ruleText,
+        'warning'
+      );
+
+
+      return;
+    }
+
+
+    /*
+     * =====================================================
+     * 5) ไม่มีการเปลี่ยนแปลง
+     * =====================================================
+     */
+
+    const oldGrade =
+      normalizeGradeValue(
+        row.grade_code || ''
+      );
+
+
+    const oldRetestGrade =
+      normalizeGradeValue(
+        row.retest_grade_code || ''
+      );
+
+
+    if(
+      newGrade === oldGrade &&
+      newRetestGrade === oldRetestGrade
+    ){
+
+      state.gradeManageEditingId =
+        null;
+
+
       renderGradeManageRows();
-      setStatus('gradeManageStatus', 'ไม่มีการเปลี่ยนแปลงข้อมูล', 'info');
+
+
+      setStatus(
+        'gradeManageStatus',
+        'ไม่มีการเปลี่ยนแปลงข้อมูล',
+        'info'
+      );
+
+
       return;
     }
 
-    setStatus('gradeManageStatus', 'กำลังบันทึกการแก้ไขผลการเรียน...', 'info');
 
-    const payload = {
-      grade_code: newGrade,
-      retest_grade_code: newRetestGrade || null,
+    /*
+     * =====================================================
+     * 6) บันทึกผ่าน Admin Session-secured RPC
+     * =====================================================
+     */
 
-      updated_by_teacher_id: getGradeManageCurrentUserTeacherId(),
-      updated_by_teacher_code: getGradeManageCurrentUserCode(),
-      updated_by_teacher_name: getGradeManageCurrentUserName(),
+    setStatus(
+      'gradeManageStatus',
+      'กำลังบันทึกการแก้ไขผลการเรียน...',
+      'info'
+    );
 
-      grade_edit_note: 'แก้ไขจากหน้าจัดการผลการเรียน'
-    };
 
-    const { error } = await supabaseClient
-      .from('grade_results')
-      .update(payload)
-      .eq('id', id);
+    const { data, error } =
+      await supabaseClient.rpc(
+        'admin_update_grade_result_session',
+        {
+          p_token:
+            token,
 
-    if(error) throw error;
+          p_grade_result_id:
+            id,
 
-    row.grade_code = newGrade;
-    row.retest_grade_code = newRetestGrade;
-    row.updated_by_teacher_id = payload.updated_by_teacher_id;
-    row.updated_by_teacher_code = payload.updated_by_teacher_code;
-    row.updated_by_teacher_name = payload.updated_by_teacher_name;
-    row.grade_edit_note = payload.grade_edit_note;
-    row.grade_edited_at = new Date().toISOString();
+          p_grade_code:
+            newGrade,
 
-    state.gradeManageEditingId = null;
+          p_retest_grade_code:
+            newRetestGrade || null
+        }
+      );
+
+
+    if(error){
+
+      throw error;
+
+    }
+
+
+    const result =
+      Array.isArray(data)
+        ? data[0]
+        : data;
+
+
+    if(
+      !result ||
+      result.ok !== true
+    ){
+
+      throw new Error(
+        result?.message ||
+        'บันทึกผลการเรียนไม่สำเร็จ'
+      );
+
+    }
+
+
+    /*
+     * =====================================================
+     * 7) Update State จากผลที่ Database ยืนยันแล้ว
+     * =====================================================
+     */
+
+    row.grade_code =
+      normalizeGradeValue(
+        result.grade_code || newGrade
+      );
+
+
+    row.retest_grade_code =
+      normalizeGradeValue(
+        result.retest_grade_code || ''
+      );
+
+
+    row.updated_by_teacher_id =
+      result.updated_by_teacher_id || null;
+
+
+    row.updated_by_teacher_code =
+      result.updated_by_teacher_code || '';
+
+
+    row.updated_by_teacher_name =
+      result.updated_by_teacher_name || '';
+
+
+    row.grade_edit_note =
+      'แก้ไขจากหน้าจัดการผลการเรียน';
+
+
+    row.grade_edited_at =
+      new Date().toISOString();
+
+
+    /*
+     * =====================================================
+     * 8) กลับสู่โหมดแสดงผล
+     * =====================================================
+     */
+
+    state.gradeManageEditingId =
+      null;
+
 
     renderGradeManageRows();
 
-    setStatus('gradeManageStatus', 'บันทึกการแก้ไขผลการเรียนเรียบร้อยแล้ว', 'success');
-    showToast('บันทึกสำเร็จ', `${row.student_code || ''} ${row.student_name || ''} | ${row.subject_code || ''}`, 'success');
+
+    setStatus(
+      'gradeManageStatus',
+      result.message ||
+      'บันทึกการแก้ไขผลการเรียนเรียบร้อยแล้ว',
+      'success'
+    );
+
+
+    showToast(
+      'บันทึกสำเร็จ',
+      `${row.student_code || ''} ${row.student_name || ''} | ${row.subject_code || ''}`,
+      'success'
+    );
+
+
   }catch(err){
-    setStatus('gradeManageStatus', err.message || 'บันทึกผลการเรียนไม่สำเร็จ', 'error');
-    showToast('บันทึกไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+
+    console.error(
+      'ADMIN UPDATE GRADE RESULT ERROR',
+      err
+    );
+
+
+    setStatus(
+      'gradeManageStatus',
+      err.message ||
+      'บันทึกผลการเรียนไม่สำเร็จ',
+      'error'
+    );
+
+
+    showToast(
+      'บันทึกไม่สำเร็จ',
+      err.message ||
+      'เกิดข้อผิดพลาด',
+      'error'
+    );
+
   }
 }
 
