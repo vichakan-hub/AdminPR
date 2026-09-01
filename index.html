@@ -6751,20 +6751,60 @@ async function hashAndUpsertStudent({
   plain_password = null,
   birth_date = null
 }){
-  const { data, error } = await supabaseClient.rpc('upsert_student_with_password', {
-    p_id: id,
-    p_sid: sid,
-    p_raw_full_name: raw_full_name,
-    p_entry_academic_year: entry_academic_year,
-    p_entry_level: entry_level,
-    p_current_room: current_room,
-    p_current_no: current_no,
-    p_is_active: is_active,
-    p_plain_password: plain_password,
-    p_birth_date: birth_date
-  });
 
-  if(error) throw error;
+  const token =
+    String(
+      state.adminSessionToken || ''
+    ).trim();
+
+  if(!token){
+    throw new Error(
+      'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+    );
+  }
+
+
+  const { data, error } =
+    await supabaseClient.rpc(
+      'admin_upsert_student_with_password_session',
+      {
+        p_token: token,
+
+        p_id: id,
+
+        p_sid: sid,
+
+        p_raw_full_name:
+          raw_full_name,
+
+        p_entry_academic_year:
+          entry_academic_year,
+
+        p_entry_level:
+          entry_level,
+
+        p_current_room:
+          current_room,
+
+        p_current_no:
+          current_no,
+
+        p_is_active:
+          is_active,
+
+        p_plain_password:
+          plain_password,
+
+        p_birth_date:
+          birth_date
+      }
+    );
+
+
+  if(error){
+    throw error;
+  }
+
   return data;
 }
 
