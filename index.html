@@ -6814,25 +6814,65 @@ async function hashAndUpsertStudent({
     return data;
   }
 
-  async function hashAndUpsertTeacher({
-    id = null,
-    teacher_code,
-    first_name,
-    last_name,
-    is_active = true,
-    plain_password = null
-  }){
-    const { data, error } = await supabaseClient.rpc('upsert_teacher_with_password', {
-      p_id: id,
-      p_teacher_code: teacher_code,
-      p_first_name: first_name,
-      p_last_name: last_name,
-      p_is_active: is_active,
-      p_plain_password: plain_password
-    });
-    if(error) throw error;
-    return data;
+async function hashAndUpsertTeacher({
+  id = null,
+  teacher_code,
+  first_name,
+  last_name,
+  is_active = true,
+  plain_password = null
+}){
+
+  const token =
+    String(
+      state.adminSessionToken || ''
+    ).trim();
+
+
+  if(!token){
+
+    throw new Error(
+      'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+    );
+
   }
+
+
+  const { data, error } =
+    await supabaseClient.rpc(
+      'admin_upsert_teacher_with_password_session',
+      {
+        p_token:
+          token,
+
+        p_id:
+          id,
+
+        p_teacher_code:
+          teacher_code,
+
+        p_first_name:
+          first_name,
+
+        p_last_name:
+          last_name,
+
+        p_is_active:
+          is_active,
+
+        p_plain_password:
+          plain_password
+      }
+    );
+
+
+  if(error){
+    throw error;
+  }
+
+
+  return data;
+}
 
   async function bulkHashAndUpsertTeachers(rows){
     const { data, error } = await supabaseClient.rpc('bulk_upsert_teachers_with_password', { p_rows: rows });
