@@ -17305,20 +17305,106 @@ async function confirmStudentRenumber(){
       });
     });
 
-    tbody.querySelectorAll('[data-teacher-delete]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if(!confirm('ยืนยันลบข้อมูลครูนี้ใช่หรือไม่')) return;
-        try{
-          const { error } = await supabaseClient.from('teachers').delete().eq('id', btn.dataset.teacherDelete);
-          if(error) throw error;
-          await loadTeachers();
-          await loadTeacherAdvisers();
-          showToast('ลบสำเร็จ', 'ลบข้อมูลครูเรียบร้อยแล้ว', 'success');
-        }catch(err){
-          showToast('ลบไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+tbody
+  .querySelectorAll(
+    '[data-teacher-delete]'
+  )
+  .forEach(btn => {
+
+    btn.addEventListener(
+      'click',
+      async () => {
+
+        if(
+          !confirm(
+            'ยืนยันลบข้อมูลครูนี้ใช่หรือไม่'
+          )
+        ){
+          return;
         }
-      });
-    });
+
+
+        try{
+
+          const token =
+            String(
+              state.adminSessionToken || ''
+            ).trim();
+
+
+          if(!token){
+            throw new Error(
+              'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+            );
+          }
+
+
+          const teacherId =
+            String(
+              btn.dataset.teacherDelete || ''
+            ).trim();
+
+
+          if(!teacherId){
+            throw new Error(
+              'ไม่พบรหัสข้อมูลครู'
+            );
+          }
+
+
+          const { data, error } =
+            await supabaseClient.rpc(
+              'admin_delete_teacher_session',
+              {
+                p_token: token,
+                p_teacher_id: teacherId
+              }
+            );
+
+
+          if(error){
+            throw error;
+          }
+
+
+          if(
+            !data ||
+            data.ok !== true
+          ){
+            throw new Error(
+              data?.message ||
+              'ไม่สามารถลบข้อมูลครูได้'
+            );
+          }
+
+
+          await loadTeachers();
+
+          await loadTeacherAdvisers();
+
+
+          showToast(
+            'ลบสำเร็จ',
+            'ลบข้อมูลครูเรียบร้อยแล้ว',
+            'success'
+          );
+
+
+        }catch(err){
+
+          showToast(
+            'ลบไม่สำเร็จ',
+            err.message ||
+              'เกิดข้อผิดพลาด',
+            'error'
+          );
+
+        }
+
+      }
+    );
+
+  });
 
     setStatus('teacherListStatus', `พบ ${rows.length} รายการ`, 'success');
   }
