@@ -9394,57 +9394,14 @@ if(!token){
 /*
  * =====================================================
  * Secure Admin Grade Reader
- * =====================================================
- */
-
-const buildQuery = () =>
-  supabaseClient.rpc(
-    'admin_get_grade_manage_rows_session',
-    {
-
-      p_token:
-        token,
-
-      p_academic_year:
-        filters.year,
-
-      p_term:
-        filters.term,
-
-      p_class_level:
-        filters.classLevel || null,
-
-      p_room:
-        filters.room || null,
-
-      p_teacher_id:
-        filters.teacherId || null,
-
-      p_subject_code:
-        filters.subjectCode || null,
-
-      p_student_code:
-        filters.studentCode || null,
-
-      p_grade_type:
-        filters.gradeType || null
-
-    }
-  );
-
-
-/*
- * =====================================================
- * Pagination
- *
- * ต้องรองรับมากกว่า 1000 แถวเหมือนเดิม
+ * Internal Pagination
  * =====================================================
  */
 
 const pageSize =
-  1000;
+  500;
 
-let from =
+let offset =
   0;
 
 let rows =
@@ -9453,12 +9410,58 @@ let rows =
 
 while(true){
 
-  const batch =
-    await fetchGradeManagePage(
-      buildQuery(),
-      from,
-      from + pageSize - 1
+  const { data, error } =
+    await supabaseClient.rpc(
+      'admin_get_grade_manage_rows_session',
+      {
+
+        p_token:
+          token,
+
+        p_academic_year:
+          filters.year,
+
+        p_term:
+          filters.term,
+
+        p_class_level:
+          filters.classLevel || null,
+
+        p_room:
+          filters.room || null,
+
+        p_teacher_id:
+          filters.teacherId || null,
+
+        p_subject_code:
+          filters.subjectCode || null,
+
+        p_student_code:
+          filters.studentCode || null,
+
+        p_grade_type:
+          filters.gradeType || null,
+
+        /*
+         * Pagination ทำใน PostgreSQL
+         */
+        p_limit:
+          pageSize,
+
+        p_offset:
+          offset
+
+      }
     );
+
+
+  if(error){
+    throw error;
+  }
+
+
+  const batch =
+    data || [];
 
 
   rows =
@@ -9467,6 +9470,9 @@ while(true){
     );
 
 
+  /*
+   * ได้ไม่ครบ 500 = หน้าสุดท้าย
+   */
   if(
     batch.length <
     pageSize
@@ -9475,10 +9481,14 @@ while(true){
   }
 
 
-  from +=
+  offset +=
     pageSize;
 
 }
+
+
+
+
 
     const activeStudentCodes = new Set(
   (state.students || [])
