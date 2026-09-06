@@ -11609,33 +11609,41 @@ async function loadTransferExistingResults(){
 
   setStatus('transferStatus', 'กำลังโหลดผลการเรียนเดิมของนักเรียน...', 'info');
 
-  const { data, error } = await supabaseClient
-    .from('grade_results')
-    .select(`
-      id,
-      subject_id,
-      teacher_id,
-      student_id,
-      student_code,
-      student_name,
-      academic_year,
-      term,
-      class_level,
-      room,
-      subject_code,
-      subject_name,
-      grade_code,
-      retest_grade_code,
-      result_source,
-      transfer_note,
-      imported_at
-    `)
-    .eq('student_code', student.sid)
-    .eq('academic_year', year)
-    .eq('term', term)
-    .order('subject_code', { ascending: true });
+ const token =
+  String(
+    state.adminSessionToken || ''
+  ).trim();
 
-  if(error) throw error;
+
+if(!token){
+  throw new Error(
+    'ไม่พบ Admin Session Token กรุณาเข้าสู่ระบบใหม่'
+  );
+}
+
+
+const { data, error } =
+  await supabaseClient.rpc(
+    'admin_get_transfer_existing_results_session',
+    {
+      p_token:
+        token,
+
+      p_student_code:
+        student.sid,
+
+      p_academic_year:
+        year,
+
+      p_term:
+        term
+    }
+  );
+
+
+if(error){
+  throw error;
+}
 
   const existingRows = sortTransferRows(
   (data || []).map(makeExistingTransferRowFromGradeResult)
