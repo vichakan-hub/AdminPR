@@ -12415,23 +12415,106 @@ async function fetchTransferOfferingMap(rows = []){
 }
 
 async function fetchTransferDuplicates(validRows){
-  const student = state.transferStudent;
-  const year = getTransferAcademicYear();
-  const term = getTransferTerm();
-  const subjectCodes = [...new Set(validRows.map(r => r.subject_code).filter(Boolean))];
 
-  if(!student || !year || !term || !subjectCodes.length) return [];
+  const student =
+    state.transferStudent;
 
-  const { data, error } = await supabaseClient
-    .from('grade_results')
-    .select('id, student_code, academic_year, term, subject_code, subject_name, grade_code, result_source')
-    .eq('student_code', student.sid)
-    .eq('academic_year', year)
-    .eq('term', term)
-    .in('subject_code', subjectCodes);
+  const year =
+    getTransferAcademicYear();
 
-  if(error) throw error;
-  return data || [];
+  const term =
+    getTransferTerm();
+
+  const subjectCodes = [
+    ...new Set(
+      validRows
+        .map(r => r.subject_code)
+        .filter(Boolean)
+    )
+  ];
+
+
+  if(
+    !student ||
+    !year ||
+    !term ||
+    !subjectCodes.length
+  ){
+    return [];
+  }
+
+
+  /*
+   * =====================================================
+   * Secure Admin Session
+   * =====================================================
+   */
+
+  const token =
+    String(
+      state.adminSessionToken || ''
+    ).trim();
+
+
+  if(!token){
+    throw new Error(
+      'ไม่พบ Admin Session Token กรุณาเข้าสู่ระบบใหม่'
+    );
+  }
+
+
+  /*
+   * =====================================================
+   * ใช้ Secure Reader เดียวกับผลการเรียนเดิม
+   *
+   * Reader คืนข้อมูลทั้งหมดของ:
+   * นักเรียน + ปี + เทอม
+   *
+   * แล้วจึงจำกัด subject_code ตาม validRows
+   * ใน Browser
+   *
+   * จำนวนข้อมูลต่อนักเรียนมีน้อย
+   * จึงไม่เพิ่ม RPC ซ้ำโดยไม่จำเป็น
+   * =====================================================
+   */
+
+  const { data, error } =
+    await supabaseClient.rpc(
+      'admin_get_transfer_existing_results_session',
+      {
+        p_token:
+          token,
+
+        p_student_code:
+          student.sid,
+
+        p_academic_year:
+          year,
+
+        p_term:
+          term
+      }
+    );
+
+
+  if(error){
+    throw error;
+  }
+
+
+  const subjectCodeSet =
+    new Set(
+      subjectCodes
+    );
+
+
+  return (data || []).filter(
+    row =>
+      subjectCodeSet.has(
+        row.subject_code
+      )
+  );
+
 }
 
 async function validateTransferRows(){
