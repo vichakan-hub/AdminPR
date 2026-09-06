@@ -11948,15 +11948,94 @@ async function removeTransferRow(uid){
     try{
       setStatus('transferStatus', `กำลังลบเกรด ${row.subject_code || '-'}...`, 'info');
 
-      const { error } = await supabaseClient
-        .from('grade_results')
-        .delete()
-        .eq('id', resultId)
-        .eq('student_code', state.transferStudent?.sid || '')
-        .eq('academic_year', getTransferAcademicYear())
-        .eq('term', getTransferTerm());
+const token =
+  String(
+    state.adminSessionToken || ''
+  ).trim();
 
-      if(error) throw error;
+
+if(!token){
+
+  throw new Error(
+    'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+  );
+
+}
+
+
+const studentId =
+  state.transferStudent?.id;
+
+
+if(!studentId){
+
+  throw new Error(
+    'ไม่พบนักเรียนที่ต้องการลบผลการเรียน'
+  );
+
+}
+
+
+const academicYear =
+  Number(
+    getTransferAcademicYear()
+  );
+
+
+const term =
+  Number(
+    getTransferTerm()
+  );
+
+
+const { data, error } =
+  await supabaseClient.rpc(
+    'admin_delete_grade_result_session',
+    {
+
+      p_token:
+        token,
+
+      p_grade_result_id:
+        resultId,
+
+      p_student_id:
+        studentId,
+
+      p_academic_year:
+        academicYear,
+
+      p_term:
+        term
+
+    }
+  );
+
+
+if(error){
+
+  throw error;
+
+}
+
+
+const result =
+  Array.isArray(data)
+    ? data[0]
+    : data;
+
+
+if(
+  !result ||
+  result.ok !== true
+){
+
+  throw new Error(
+    result?.message ||
+    'ลบผลการเรียนไม่สำเร็จ'
+  );
+
+}
 
       state.transferValidatedRows = [];
       state.transferPendingDuplicateRows = [];
