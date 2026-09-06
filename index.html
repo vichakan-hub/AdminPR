@@ -10126,53 +10126,20 @@ async function saveGradeManageEdit(id){
     row.grade_edited_at =
       new Date().toISOString();
 
+
+
     /*
- * =====================================================
- * 7.1) Refresh StudentPR cache ของนักเรียนคนนี้
- * =====================================================
- */
+     * =====================================================
+     * 7.1) StudentPR cache ถูก Refresh ฝั่ง Database แล้ว
+     *
+     * admin_update_grade_result_session
+     * เป็นผู้เรียก refresh_student_grade_report_cache()
+     * ภายใน SECURITY DEFINER Function
+     *
+     * Browser ไม่ต้องเรียก legacy RPC ซ้ำ
+     * =====================================================
+     */
 
-let studentCacheRefreshOk = true;
-
-const studentCodeForCache =
-  String(
-    row.student_code || ''
-  ).trim();
-
-
-if(studentCodeForCache){
-
-  const {
-    error: cacheRefreshError
-  } =
-    await supabaseClient.rpc(
-      'refresh_student_grade_report_cache',
-      {
-        p_student_code:
-          studentCodeForCache
-      }
-    );
-
-
-  if(cacheRefreshError){
-
-    studentCacheRefreshOk =
-      false;
-
-    console.warn(
-      'REFRESH STUDENT REPORT CACHE ERROR',
-      {
-        studentCode:
-          studentCodeForCache,
-
-        error:
-          cacheRefreshError
-      }
-    );
-
-  }
-
-}
 
     /*
      * =====================================================
@@ -10187,43 +10154,19 @@ if(studentCodeForCache){
     renderGradeManageRows();
 
 
-  if(studentCacheRefreshOk){
-
-  setStatus(
-    'gradeManageStatus',
-    result.message ||
-    'บันทึกการแก้ไขผลการเรียนและปรับปรุง StudentPR เรียบร้อยแล้ว',
-    'success'
-  );
+    setStatus(
+      'gradeManageStatus',
+      result.message ||
+      'บันทึกการแก้ไขผลการเรียนเรียบร้อยแล้ว',
+      'success'
+    );
 
 
-  showToast(
-    'บันทึกสำเร็จ',
-    `${row.student_code || ''} ${row.student_name || ''} | ${row.subject_code || ''}`,
-    'success'
-  );
-
-}else{
-
-  /*
-   * เกรดถูกบันทึกแล้ว
-   * ห้ามแจ้งว่า "บันทึกไม่สำเร็จ"
-   * เพราะผิดเฉพาะขั้น refresh cache
-   */
-  setStatus(
-    'gradeManageStatus',
-    'บันทึกผลการเรียนสำเร็จ แต่ปรับปรุงข้อมูล StudentPR ไม่สำเร็จ กรุณาลองอีกครั้ง',
-    'warning'
-  );
-
-
-  showToast(
-    'บันทึกแล้ว',
-    'ผลการเรียนถูกบันทึกแล้ว แต่ StudentPR ยังอาจแสดงข้อมูลเดิม',
-    'warning'
-  );
-
-}
+    showToast(
+      'บันทึกสำเร็จ',
+      `${row.student_code || ''} ${row.student_name || ''} | ${row.subject_code || ''}`,
+      'success'
+    );
 
 
   }catch(err){
