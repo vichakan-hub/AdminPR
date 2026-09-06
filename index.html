@@ -13963,100 +13963,104 @@ async function loadRepeatGradeResults(){
       `;
     }
 
-    let query = supabaseClient
-      .from('grade_results')
-      .select(`
-        id,
-        subject_offering_id,
-        subject_id,
-        teacher_id,
-        student_id,
+/*
+ * =====================================================
+ * Secure Repeat Grade Reader
+ * =====================================================
+ */
 
-        academic_year,
-        term,
-        class_level,
-        room,
+const token =
+  String(
+    state.adminSessionToken || ''
+  ).trim();
 
-        subject_code,
-        subject_name,
 
-        student_code,
-        student_name,
-        student_no,
+if(!token){
+  throw new Error(
+    'ไม่พบ Admin Session Token กรุณาเข้าสู่ระบบใหม่'
+  );
+}
 
-        grade_code,
-        retest_grade_code,
-        grading_status,
 
-        is_active,
-        record_status,
-        status_reason,
-        status_note,
-        status_changed_at,
-        status_changed_by,
+/*
+ * =====================================================
+ * Internal Pagination
+ * =====================================================
+ */
 
-        imported_at,
-        updated_at
-      `)
-      .eq(
-        'student_code',
-        normalizeStudentSid(student.sid)
-      )
-      .eq(
-        'academic_year',
-        sourceYear
-      )
-      .order('term', {
-        ascending: true
-      })
-      .order('subject_code', {
-        ascending: true
-      });
+const pageSize =
+  500;
 
-    if(sourceTerm){
-      query = query.eq(
-        'term',
-        sourceTerm
-      );
+let offset =
+  0;
+
+let rows =
+  [];
+
+
+while(true){
+
+  const {
+    data,
+    error
+  } = await supabaseClient.rpc(
+    'admin_get_repeat_grade_results_session',
+    {
+
+      p_token:
+        token,
+
+      p_student_code:
+        normalizeStudentSid(
+          student.sid
+        ),
+
+      p_academic_year:
+        sourceYear,
+
+      p_term:
+        sourceTerm || null,
+
+      p_class_level:
+        sourceClass || null,
+
+      p_limit:
+        pageSize,
+
+      p_offset:
+        offset
+
     }
+  );
 
-    if(sourceClass){
-      query = query.eq(
-        'class_level',
-        sourceClass
-      );
-    }
 
-    /*
-      รองรับกรณีนักเรียนมีผลการเรียนจำนวนมากกว่า 1,000 แถว
-    */
-    const pageSize = 1000;
-    let from = 0;
-    let rows = [];
+  if(error){
+    throw error;
+  }
 
-    while(true){
-      const {
-        data,
-        error
-      } = await query.range(
-        from,
-        from + pageSize - 1
-      );
 
-      if(error){
-        throw error;
-      }
+  const batch =
+    data || [];
 
-      const batch = data || [];
 
-      rows = rows.concat(batch);
+  rows =
+    rows.concat(
+      batch
+    );
 
-      if(batch.length < pageSize){
-        break;
-      }
 
-      from += pageSize;
-    }
+  if(
+    batch.length <
+    pageSize
+  ){
+    break;
+  }
+
+
+  offset +=
+    pageSize;
+
+}
 
     rows = rows
       .map(row => ({
