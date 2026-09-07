@@ -2669,7 +2669,85 @@ body.app-booting #appView{
   }
 
 }
+/* =========================================================
+   Exam Eligibility KPI Clickable
+   ========================================================= */
 
+.ms-report-stat-card[data-ms-report-stat]{
+  cursor:pointer;
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    border-color .18s ease;
+}
+
+
+.ms-report-stat-card[data-ms-report-stat]:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 28px rgba(18,38,63,.10);
+}
+
+
+.ms-report-stat-card[data-ms-report-stat].active{
+  border-color:#7aa7ff;
+  box-shadow:
+    0 0 0 3px rgba(37,99,235,.12),
+    0 12px 28px rgba(18,38,63,.10);
+}
+
+
+/* KPI มีสิทธิ์สอบ */
+
+.ms-report-stat-card.eligible.active{
+  border-color:#63c18e;
+  box-shadow:
+    0 0 0 3px rgba(15,157,88,.12),
+    0 12px 28px rgba(18,38,63,.10);
+}
+
+
+/* KPI มส */
+
+.ms-report-stat-card.ms.active{
+  border-color:#ef8d86;
+  box-shadow:
+    0 0 0 3px rgba(217,45,32,.12),
+    0 12px 28px rgba(18,38,63,.10);
+}
+
+
+/* =========================================================
+   Student Card with มส
+   ========================================================= */
+
+.ms-report-student-card.has-ms{
+  border-color:#f0aaa5;
+  box-shadow:
+    0 0 0 2px rgba(217,45,32,.05),
+    0 10px 28px rgba(217,45,32,.08);
+}
+
+
+.ms-report-student-card.has-ms
+.ms-report-student-card-header{
+  background:linear-gradient(
+    135deg,
+    rgba(217,45,32,.08),
+    rgba(255,255,255,.65)
+  );
+}
+
+
+/* แถวรายวิชาที่เป็น มส */
+
+.ms-report-row-ms td{
+  background:#fffafa;
+}
+
+
+.ms-report-row-ms:hover td{
+  background:#fff5f4;
+}
 
 
 
@@ -4062,7 +4140,10 @@ body.app-booting #appView{
     </div>
 
 
-    <div class="ms-report-stat-card eligible">
+  <div
+  class="ms-report-stat-card eligible"
+  data-ms-report-stat="eligible"
+>
       <div class="k">
         มีสิทธิ์สอบ
       </div>
@@ -4080,7 +4161,10 @@ body.app-booting #appView{
     </div>
 
 
-    <div class="ms-report-stat-card ms">
+    <div
+  class="ms-report-stat-card ms"
+  data-ms-report-stat="ms"
+>
       <div class="k">
         มส (ไม่มีสิทธิ์สอบ)
       </div>
@@ -9864,6 +9948,37 @@ function getMsReportClassNumber(classLevel){
 }
 
 
+function syncMsReportKpiActiveState(){
+
+  const status =
+    String(
+      el('msReportFilterStatus')
+        ?.value || ''
+    ).trim();
+
+
+  document
+    .querySelectorAll(
+      '.ms-report-stat-card[data-ms-report-stat]'
+    )
+    .forEach(card => {
+
+      const cardStatus =
+        String(
+          card.dataset.msReportStat || ''
+        );
+
+
+      card.classList.toggle(
+        'active',
+        status === cardStatus
+      );
+
+    });
+
+}
+
+
 /* =========================================================
    Apply Filters
    ========================================================= */
@@ -9872,6 +9987,8 @@ function applyMsReportFiltersAndRender(){
 
   const filters =
     getMsReportFilterValues();
+
+    syncMsReportKpiActiveState();
 
 
   let rows =
@@ -10451,8 +10568,14 @@ function renderMsReportStudentCards(rows){
             .join(' | ');
 
 
-          return `
-            <tr>
+return `
+  <tr
+    class="${
+      status === 'ms'
+        ? 'ms-report-row-ms'
+        : ''
+    }"
+  >
 
               <td>
                 <div class="mono">
@@ -10492,8 +10615,14 @@ function renderMsReportStudentCards(rows){
         }).join('');
 
 
-      return `
-        <section class="ms-report-student-card">
+return `
+  <section
+    class="ms-report-student-card ${
+      msCount > 0
+        ? 'has-ms'
+        : ''
+    }"
+  >
 
           <div class="ms-report-student-card-header">
 
@@ -25989,6 +26118,60 @@ if(el('reportSubMsBtn')){
     );
 
 }
+
+/* =========================================================
+   Exam Eligibility / มส KPI
+   ========================================================= */
+
+document
+  .querySelectorAll(
+    '.ms-report-stat-card[data-ms-report-stat]'
+  )
+  .forEach(node => {
+
+    node.addEventListener(
+      'click',
+      () => {
+
+        const next =
+          String(
+            node.dataset.msReportStat || ''
+          );
+
+
+        const statusSelect =
+          el('msReportFilterStatus');
+
+
+        if(!statusSelect){
+          return;
+        }
+
+
+        /*
+         * ถ้ากด KPI เดิมซ้ำ
+         * ให้กลับเป็นทั้งหมด
+         */
+        if(
+          statusSelect.value === next
+        ){
+
+          statusSelect.value = '';
+
+        }else{
+
+          statusSelect.value =
+            next;
+
+        }
+
+
+        applyMsReportFiltersAndRender();
+
+      }
+    );
+
+  });
 
 /* =========================================================
    Exam Eligibility / มส Filters
