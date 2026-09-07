@@ -7061,8 +7061,13 @@ repeatGradeResults: [],
 repeatSelectedGradeResultIds: [],
 repeatLoadingStudent: false,
 
+msReportRowsRaw: [],
+msReportRows: [],
+msReportLoading: false,
+
 reportSubPage: 'tracking',
 reportSignerRows: [],
+
   };
 
   function setStatus(id, text, type = 'info'){
@@ -9492,6 +9497,1393 @@ function setReportSubPage(page){
       isSigner
         ? 'teacher-sub-btn active'
         : 'teacher-sub-btn';
+
+  }
+
+}
+
+    /* =========================================================
+   Exam Eligibility / มส Tracking
+   ========================================================= */
+
+function getMsReportFilterValues(){
+
+  return {
+
+    academicYear:
+      safeNumber(
+        el('msReportFilterYear')?.value,
+        null
+      ),
+
+    term:
+      safeNumber(
+        el('msReportFilterTerm')?.value,
+        null
+      ),
+
+    classLevel:
+      String(
+        el('msReportFilterClass')?.value || ''
+      ).trim(),
+
+    room:
+      String(
+        el('msReportFilterRoom')?.value || ''
+      ).trim(),
+
+    subjectCode:
+      normalizeSubjectCode(
+        el('msReportFilterSubject')?.value || ''
+      ),
+
+    teacherCode:
+      normalizeTeacherCode(
+        el('msReportFilterTeacher')?.value || ''
+      ),
+
+    status:
+      String(
+        el('msReportFilterStatus')?.value || ''
+      ).trim(),
+
+    keyword:
+      normalizeName(
+        el('msReportFilterKeyword')?.value || ''
+      ).toLowerCase()
+
+  };
+
+}
+
+
+/* =========================================================
+   เติมตัวเลือก รายวิชา / ครู
+   จากข้อมูล exam_eligibility_reports ที่โหลดมา
+   ========================================================= */
+
+function populateMsReportDynamicFilters(){
+
+  const rows =
+    state.msReportRowsRaw || [];
+
+
+  const subjectSelect =
+    el('msReportFilterSubject');
+
+  const teacherSelect =
+    el('msReportFilterTeacher');
+
+
+  const oldSubject =
+    normalizeSubjectCode(
+      subjectSelect?.value || ''
+    );
+
+  const oldTeacher =
+    normalizeTeacherCode(
+      teacherSelect?.value || ''
+    );
+
+
+  /* =====================================================
+     รายวิชา
+     ===================================================== */
+
+  if(subjectSelect){
+
+    const subjectMap =
+      new Map();
+
+
+    rows.forEach(row => {
+
+      const code =
+        normalizeSubjectCode(
+          row.subject_code || ''
+        );
+
+
+      if(!code){
+        return;
+      }
+
+
+      if(!subjectMap.has(code)){
+
+        subjectMap.set(
+          code,
+          normalizeName(
+            row.subject_name || ''
+          )
+        );
+
+      }
+
+    });
+
+
+    const subjects =
+      Array.from(
+        subjectMap.entries()
+      )
+      .sort((a,b) =>
+        String(a[0]).localeCompare(
+          String(b[0]),
+          'th'
+        )
+      );
+
+
+    subjectSelect.innerHTML = `
+      <option value="">
+        ทั้งหมด
+      </option>
+
+      ${
+        subjects.map(
+          ([code, name]) => `
+            <option value="${escapeHtml(code)}">
+              ${escapeHtml(code)}
+              ${name ? ` | ${escapeHtml(name)}` : ''}
+            </option>
+          `
+        ).join('')
+      }
+    `;
+
+
+    if(
+      oldSubject &&
+      subjects.some(
+        ([code]) =>
+          code === oldSubject
+      )
+    ){
+
+      subjectSelect.value =
+        oldSubject;
+
+    }
+
+  }
+
+
+  /* =====================================================
+     ครูผู้สอน
+     ===================================================== */
+
+  if(teacherSelect){
+
+    const teacherMap =
+      new Map();
+
+
+    rows.forEach(row => {
+
+      const code =
+        normalizeTeacherCode(
+          row.teacher_code || ''
+        );
+
+
+      if(!code){
+        return;
+      }
+
+
+      if(!teacherMap.has(code)){
+
+        teacherMap.set(
+          code,
+          normalizeName(
+            row.teacher_name || ''
+          )
+        );
+
+      }
+
+    });
+
+
+    const teachers =
+      Array.from(
+        teacherMap.entries()
+      )
+      .sort((a,b) =>
+        String(a[0]).localeCompare(
+          String(b[0]),
+          'th'
+        )
+      );
+
+
+    teacherSelect.innerHTML = `
+      <option value="">
+        ทั้งหมด
+      </option>
+
+      ${
+        teachers.map(
+          ([code, name]) => `
+            <option value="${escapeHtml(code)}">
+              ${escapeHtml(code)}
+              ${name ? ` | ${escapeHtml(name)}` : ''}
+            </option>
+          `
+        ).join('')
+      }
+    `;
+
+
+    if(
+      oldTeacher &&
+      teachers.some(
+        ([code]) =>
+          code === oldTeacher
+      )
+    ){
+
+      teacherSelect.value =
+        oldTeacher;
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   Update KPI
+   ========================================================= */
+
+function updateMsReportKpi(rows){
+
+  const data =
+    rows || [];
+
+
+  const studentKeys =
+    new Set();
+
+
+  data.forEach(row => {
+
+    const code =
+      normalizeStudentSid(
+        row.student_code || ''
+      );
+
+
+    if(code){
+      studentKeys.add(code);
+    }
+
+  });
+
+
+  const eligibleCount =
+    data.filter(row =>
+      String(
+        row.exam_status || ''
+      ).trim() === 'eligible'
+    ).length;
+
+
+  const msCount =
+    data.filter(row =>
+      String(
+        row.exam_status || ''
+      ).trim() === 'ms'
+    ).length;
+
+
+  if(el('msReportStudentCount')){
+
+    el('msReportStudentCount')
+      .textContent =
+      String(
+        studentKeys.size
+      );
+
+  }
+
+
+  if(el('msReportTotalCount')){
+
+    el('msReportTotalCount')
+      .textContent =
+      String(
+        data.length
+      );
+
+  }
+
+
+  if(el('msReportEligibleCount')){
+
+    el('msReportEligibleCount')
+      .textContent =
+      String(
+        eligibleCount
+      );
+
+  }
+
+
+  if(el('msReportMsCount')){
+
+    el('msReportMsCount')
+      .textContent =
+      String(
+        msCount
+      );
+
+  }
+
+}
+
+
+/* =========================================================
+   Sort helper
+   ========================================================= */
+
+function getMsReportClassNumber(classLevel){
+
+  const match =
+    String(
+      classLevel || ''
+    ).match(/\d+/);
+
+
+  return match
+    ? Number(match[0])
+    : 999;
+
+}
+
+
+/* =========================================================
+   Apply Filters
+   ========================================================= */
+
+function applyMsReportFiltersAndRender(){
+
+  const filters =
+    getMsReportFilterValues();
+
+
+  let rows =
+    [
+      ...(
+        state.msReportRowsRaw ||
+        []
+      )
+    ];
+
+
+  /* =====================================================
+     ชั้น
+     ===================================================== */
+
+  if(filters.classLevel){
+
+    rows =
+      rows.filter(row =>
+        String(
+          row.class_level || ''
+        ).trim() ===
+        filters.classLevel
+      );
+
+  }
+
+
+  /* =====================================================
+     ห้อง
+     ===================================================== */
+
+  if(filters.room){
+
+    rows =
+      rows.filter(row =>
+        String(
+          row.room || ''
+        ).trim() ===
+        filters.room
+      );
+
+  }
+
+
+  /* =====================================================
+     รายวิชา
+     ===================================================== */
+
+  if(filters.subjectCode){
+
+    rows =
+      rows.filter(row =>
+        normalizeSubjectCode(
+          row.subject_code || ''
+        ) ===
+        filters.subjectCode
+      );
+
+  }
+
+
+  /* =====================================================
+     ครูผู้สอน
+     ===================================================== */
+
+  if(filters.teacherCode){
+
+    rows =
+      rows.filter(row =>
+        normalizeTeacherCode(
+          row.teacher_code || ''
+        ) ===
+        filters.teacherCode
+      );
+
+  }
+
+
+  /* =====================================================
+     สถานะ
+     ===================================================== */
+
+  if(filters.status){
+
+    rows =
+      rows.filter(row =>
+        String(
+          row.exam_status || ''
+        ).trim() ===
+        filters.status
+      );
+
+  }
+
+
+  /* =====================================================
+     ค้นหานักเรียน
+     ===================================================== */
+
+  if(filters.keyword){
+
+    rows =
+      rows.filter(row => {
+
+        const haystack =
+          [
+            row.student_code,
+            row.student_name
+          ]
+          .join(' ')
+          .toLowerCase();
+
+
+        return haystack.includes(
+          filters.keyword
+        );
+
+      });
+
+  }
+
+
+  /* =====================================================
+     Sort
+     ===================================================== */
+
+  rows.sort((a,b) => {
+
+    const classCompare =
+      getMsReportClassNumber(
+        a.class_level
+      ) -
+      getMsReportClassNumber(
+        b.class_level
+      );
+
+
+    if(classCompare !== 0){
+      return classCompare;
+    }
+
+
+    const roomCompare =
+      String(
+        a.room || ''
+      ).localeCompare(
+        String(
+          b.room || ''
+        ),
+        'th',
+        {
+          numeric:true
+        }
+      );
+
+
+    if(roomCompare !== 0){
+      return roomCompare;
+    }
+
+
+    const noA =
+      safeNumber(
+        a.student_no,
+        9999
+      );
+
+
+    const noB =
+      safeNumber(
+        b.student_no,
+        9999
+      );
+
+
+    if(noA !== noB){
+      return noA - noB;
+    }
+
+
+    const studentCompare =
+      String(
+        a.student_name || ''
+      ).localeCompare(
+        String(
+          b.student_name || ''
+        ),
+        'th'
+      );
+
+
+    if(studentCompare !== 0){
+      return studentCompare;
+    }
+
+
+    return String(
+      a.subject_code || ''
+    ).localeCompare(
+      String(
+        b.subject_code || ''
+      ),
+      'th'
+    );
+
+  });
+
+
+  state.msReportRows =
+    rows;
+
+
+  updateMsReportKpi(
+    rows
+  );
+
+
+  renderMsReportStudentCards(
+    rows
+  );
+
+}
+
+
+/* =========================================================
+   Render Student Cards
+   ========================================================= */
+
+function renderMsReportStudentCards(rows){
+
+  const container =
+    el('msReportStudentList');
+
+
+  if(!container){
+    return;
+  }
+
+
+  const data =
+    rows || [];
+
+
+  /* =====================================================
+     Group by student
+     ===================================================== */
+
+  const studentMap =
+    new Map();
+
+
+  data.forEach(row => {
+
+    const studentCode =
+      normalizeStudentSid(
+        row.student_code || ''
+      );
+
+
+    /*
+     * เผื่อข้อมูลเก่าไม่มี student_code
+     * จะไม่ให้เด็กหลายคนถูกรวมกันผิดคน
+     */
+    const key =
+      studentCode ||
+      [
+        normalizeName(
+          row.student_name || ''
+        ),
+        row.class_level || '',
+        row.room || '',
+        row.student_no ?? ''
+      ].join('|');
+
+
+    if(!studentMap.has(key)){
+
+      studentMap.set(
+        key,
+        {
+          student_code:
+            studentCode,
+
+          student_name:
+            normalizeName(
+              row.student_name || ''
+            ),
+
+          class_level:
+            String(
+              row.class_level || ''
+            ).trim(),
+
+          room:
+            String(
+              row.room || ''
+            ).trim(),
+
+          student_no:
+            row.student_no,
+
+          rows: []
+        }
+      );
+
+    }
+
+
+    studentMap
+      .get(key)
+      .rows
+      .push(row);
+
+  });
+
+
+  const students =
+    Array.from(
+      studentMap.values()
+    );
+
+
+  students.sort((a,b) => {
+
+    const classCompare =
+      getMsReportClassNumber(
+        a.class_level
+      ) -
+      getMsReportClassNumber(
+        b.class_level
+      );
+
+
+    if(classCompare !== 0){
+      return classCompare;
+    }
+
+
+    const roomCompare =
+      String(
+        a.room || ''
+      ).localeCompare(
+        String(
+          b.room || ''
+        ),
+        'th',
+        {
+          numeric:true
+        }
+      );
+
+
+    if(roomCompare !== 0){
+      return roomCompare;
+    }
+
+
+    const noA =
+      safeNumber(
+        a.student_no,
+        9999
+      );
+
+
+    const noB =
+      safeNumber(
+        b.student_no,
+        9999
+      );
+
+
+    if(noA !== noB){
+      return noA - noB;
+    }
+
+
+    return String(
+      a.student_name || ''
+    ).localeCompare(
+      String(
+        b.student_name || ''
+      ),
+      'th'
+    );
+
+  });
+
+
+  /* =====================================================
+     Count
+     ===================================================== */
+
+  if(el('msReportVisibleStudentCount')){
+
+    el('msReportVisibleStudentCount')
+      .textContent =
+      String(
+        students.length
+      );
+
+  }
+
+
+  if(el('msReportVisibleRowCount')){
+
+    el('msReportVisibleRowCount')
+      .textContent =
+      String(
+        data.length
+      );
+
+  }
+
+
+  /* =====================================================
+     Empty
+     ===================================================== */
+
+  if(!students.length){
+
+    container.innerHTML = `
+      <div class="filter-empty-state">
+
+        <div class="filter-empty-card">
+
+          <div class="filter-empty-icon">
+            🔎
+          </div>
+
+          <div class="filter-empty-title">
+            ไม่พบข้อมูลตามเงื่อนไข
+          </div>
+
+          <div class="filter-empty-text">
+            ไม่พบรายการรายงานสิทธิ์สอบ
+            ที่ตรงกับตัวกรองปัจจุบัน
+          </div>
+
+          <div class="filter-empty-hint">
+            ลองเปลี่ยนชั้น ห้อง รายวิชา ครู หรือสถานะ
+          </div>
+
+        </div>
+
+      </div>
+    `;
+
+
+    setStatus(
+      'msReportListStatus',
+      'ไม่พบข้อมูลตามเงื่อนไข',
+      'warning'
+    );
+
+
+    return;
+
+  }
+
+
+  /* =====================================================
+     Cards
+     ===================================================== */
+
+  container.innerHTML =
+    students.map(student => {
+
+
+      const studentRows =
+        [
+          ...student.rows
+        ]
+        .sort((a,b) => {
+
+          const subjectCompare =
+            String(
+              a.subject_code || ''
+            ).localeCompare(
+              String(
+                b.subject_code || ''
+              ),
+              'th'
+            );
+
+
+          if(subjectCompare !== 0){
+            return subjectCompare;
+          }
+
+
+          return String(
+            a.teacher_code || ''
+          ).localeCompare(
+            String(
+              b.teacher_code || ''
+            ),
+            'th'
+          );
+
+        });
+
+
+      const eligibleCount =
+        studentRows.filter(row =>
+          String(
+            row.exam_status || ''
+          ) === 'eligible'
+        ).length;
+
+
+      const msCount =
+        studentRows.filter(row =>
+          String(
+            row.exam_status || ''
+          ) === 'ms'
+        ).length;
+
+
+      const tableRows =
+        studentRows.map(row => {
+
+
+          const attendance =
+            safeNumber(
+              row.attendance_percent,
+              null
+            );
+
+
+          const attendanceHtml =
+            attendance === null
+              ? `
+                <span class="small">
+                  -
+                </span>
+              `
+              : `
+                <span class="${
+                  attendance < 80
+                    ? 'ms-report-attendance-danger'
+                    : 'ms-report-attendance-ok'
+                }">
+                  ${escapeHtml(
+                    attendance.toFixed(2)
+                  )}%
+                </span>
+              `;
+
+
+          const status =
+            String(
+              row.exam_status || ''
+            ).trim();
+
+
+          const statusHtml =
+            status === 'ms'
+              ? `
+                <span class="ms-report-status ms">
+                  🔴 มส (ไม่มีสิทธิ์สอบ)
+                </span>
+              `
+              : `
+                <span class="ms-report-status eligible">
+                  🟢 มีสิทธิ์สอบ
+                </span>
+              `;
+
+
+          const teacherText =
+            [
+              row.teacher_code,
+              row.teacher_name
+            ]
+            .filter(Boolean)
+            .join(' | ');
+
+
+          return `
+            <tr>
+
+              <td>
+                <div class="mono">
+                  ${escapeHtml(
+                    row.subject_code || '-'
+                  )}
+                </div>
+              </td>
+
+
+              <td>
+                ${escapeHtml(
+                  row.subject_name || '-'
+                )}
+              </td>
+
+
+              <td>
+                ${escapeHtml(
+                  teacherText || '-'
+                )}
+              </td>
+
+
+              <td>
+                ${attendanceHtml}
+              </td>
+
+
+              <td>
+                ${statusHtml}
+              </td>
+
+            </tr>
+          `;
+
+        }).join('');
+
+
+      return `
+        <section class="ms-report-student-card">
+
+          <div class="ms-report-student-card-header">
+
+            <div class="ms-report-student-main">
+
+              <div class="ms-report-student-avatar">
+                🧑‍🎓
+              </div>
+
+
+              <div>
+
+                <div class="ms-report-student-name">
+
+                  ${
+                    student.student_code
+                      ? `
+                        <span class="mono">
+                          ${escapeHtml(
+                            student.student_code
+                          )}
+                        </span>
+                        &nbsp;
+                      `
+                      : ''
+                  }
+
+                  ${escapeHtml(
+                    student.student_name || '-'
+                  )}
+
+                </div>
+
+
+                <div class="ms-report-student-meta">
+
+                  ${
+                    student.class_level
+                      ? escapeHtml(
+                          student.class_level
+                        )
+                      : '-'
+                  }
+
+                  ${
+                    student.room
+                      ? `/ ${escapeHtml(
+                          student.room
+                        )}`
+                      : ''
+                  }
+
+                  ${
+                    student.student_no !== null &&
+                    student.student_no !== undefined &&
+                    student.student_no !== ''
+                      ? ` • เลขที่ ${escapeHtml(
+                          String(
+                            student.student_no
+                          )
+                        )}`
+                      : ''
+                  }
+
+                  • ${studentRows.length} รายการ
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="ms-report-student-summary">
+
+              <span class="ms-report-summary-pill eligible">
+                มีสิทธิ์สอบ ${eligibleCount}
+              </span>
+
+              <span class="ms-report-summary-pill ms">
+                มส ${msCount}
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="ms-report-student-body">
+
+            <div class="ms-report-table-wrap">
+
+              <table class="ms-report-table">
+
+                <thead>
+                  <tr>
+                    <th>รหัสวิชา</th>
+                    <th>ชื่อวิชา</th>
+                    <th>ครูผู้สอน</th>
+                    <th>% เวลาเรียน</th>
+                    <th>สถานะ</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  ${tableRows}
+                </tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+        </section>
+      `;
+
+    }).join('');
+
+
+  setStatus(
+    'msReportListStatus',
+    `พบนักเรียน ${students.length} คน • ${data.length} รายการ`,
+    'success'
+  );
+
+}
+
+
+/* =========================================================
+   Load exam_eligibility_reports
+   ========================================================= */
+
+async function loadMsReportingRows(){
+
+  if(state.msReportLoading){
+    return;
+  }
+
+
+  state.msReportLoading =
+    true;
+
+
+  try{
+
+    setStatus(
+      'msReportListStatus',
+      'กำลังโหลดข้อมูลรายงานสิทธิ์สอบ...',
+      'info'
+    );
+
+
+    const year =
+      safeNumber(
+        el('msReportFilterYear')?.value,
+        null
+      );
+
+
+    const term =
+      safeNumber(
+        el('msReportFilterTerm')?.value,
+        null
+      );
+
+
+    if(!year){
+
+      throw new Error(
+        'กรุณาระบุปีการศึกษา'
+      );
+
+    }
+
+
+    /* =====================================================
+       Pagination
+       Supabase ปกติจำกัดข้อมูลต่อรอบ
+       ===================================================== */
+
+    const pageSize =
+      1000;
+
+
+    let from =
+      0;
+
+
+    let allRows =
+      [];
+
+
+    while(true){
+
+      let query =
+        supabaseClient
+          .from(
+            'exam_eligibility_reports'
+          )
+          .select(`
+            academic_year,
+            term,
+            subject_offering_id,
+            subject_id,
+            teacher_id,
+            teacher_code,
+            teacher_name,
+            subject_code,
+            subject_name,
+            class_level,
+            room,
+            student_id,
+            student_code,
+            student_no,
+            student_name,
+            attendance_score,
+            attendance_max,
+            attendance_percent,
+            exam_status,
+            updated_at
+          `)
+          .eq(
+            'academic_year',
+            year
+          )
+          .order(
+            'class_level',
+            {
+              ascending:true
+            }
+          )
+          .order(
+            'room',
+            {
+              ascending:true
+            }
+          )
+          .order(
+            'student_no',
+            {
+              ascending:true
+            }
+          )
+          .order(
+            'student_code',
+            {
+              ascending:true
+            }
+          )
+          .order(
+            'subject_code',
+            {
+              ascending:true
+            }
+          )
+          .range(
+            from,
+            from + pageSize - 1
+          );
+
+
+      if(term){
+
+        query =
+          query.eq(
+            'term',
+            term
+          );
+
+      }
+
+
+      const {
+        data,
+        error
+      } =
+        await query;
+
+
+      if(error){
+        throw error;
+      }
+
+
+      const pageRows =
+        data || [];
+
+
+      allRows.push(
+        ...pageRows
+      );
+
+
+      if(
+        pageRows.length <
+        pageSize
+      ){
+        break;
+      }
+
+
+      from +=
+        pageSize;
+
+    }
+
+
+    state.msReportRowsRaw =
+      allRows;
+
+
+    /* =====================================================
+       เติมรายวิชา / ครูลง dropdown
+       ===================================================== */
+
+    populateMsReportDynamicFilters();
+
+
+    /* =====================================================
+       Apply filters + render
+       ===================================================== */
+
+    applyMsReportFiltersAndRender();
+
+
+    if(!allRows.length){
+
+      setStatus(
+        'msReportListStatus',
+        `ไม่พบข้อมูลรายงานสิทธิ์สอบ ปีการศึกษา ${year}${
+          term
+            ? ` ภาคเรียน ${term}`
+            : ''
+        }`,
+        'warning'
+      );
+
+    }
+
+
+  }catch(err){
+
+    console.error(
+      'loadMsReportingRows error:',
+      err
+    );
+
+
+    state.msReportRowsRaw =
+      [];
+
+
+    state.msReportRows =
+      [];
+
+
+    populateMsReportDynamicFilters();
+
+
+    updateMsReportKpi(
+      []
+    );
+
+
+    renderMsReportStudentCards(
+      []
+    );
+
+
+    setStatus(
+      'msReportListStatus',
+      err.message ||
+      'โหลดข้อมูลรายงานสิทธิ์สอบไม่สำเร็จ',
+      'error'
+    );
+
+
+    showToast(
+      'โหลดข้อมูลไม่สำเร็จ',
+      err.message ||
+      'เกิดข้อผิดพลาด',
+      'error'
+    );
+
+
+  }finally{
+
+    state.msReportLoading =
+      false;
 
   }
 
@@ -24566,16 +25958,204 @@ if(el('reportSubMidtermBtn')){
     );
 
 }
-      if(el('reportSubMsBtn')){
+
+if(el('reportSubMsBtn')){
 
   el('reportSubMsBtn')
     .addEventListener(
       'click',
-      () => {
+      async () => {
 
         setReportSubPage(
           'ms'
         );
+
+
+        if(
+          !el('msReportFilterYear')
+            ?.value
+        ){
+
+          el('msReportFilterYear')
+            .value =
+            getCurrentThaiAcademicYear();
+
+        }
+
+
+        await loadMsReportingRows();
+
+      }
+    );
+
+}
+
+/* =========================================================
+   Exam Eligibility / มส Filters
+   ========================================================= */
+
+
+/*
+ * ปี / เทอม
+ * ต้องโหลดข้อมูลใหม่จาก Supabase
+ */
+[
+  'msReportFilterYear',
+  'msReportFilterTerm'
+]
+.forEach(id => {
+
+  const node =
+    el(id);
+
+
+  if(!node){
+    return;
+  }
+
+
+  node.addEventListener(
+    'change',
+    async () => {
+
+      await loadMsReportingRows();
+
+    }
+  );
+
+});
+
+
+/*
+ * ตัวกรองอื่น
+ * ใช้ข้อมูลที่โหลดไว้แล้ว ไม่ยิง Supabase ใหม่
+ */
+[
+  'msReportFilterClass',
+  'msReportFilterRoom',
+  'msReportFilterSubject',
+  'msReportFilterTeacher',
+  'msReportFilterStatus'
+]
+.forEach(id => {
+
+  const node =
+    el(id);
+
+
+  if(!node){
+    return;
+  }
+
+
+  node.addEventListener(
+    'change',
+    () => {
+
+      applyMsReportFiltersAndRender();
+
+    }
+  );
+
+});
+
+
+/*
+ * ค้นหานักเรียน
+ */
+if(el('msReportFilterKeyword')){
+
+  el('msReportFilterKeyword')
+    .addEventListener(
+      'input',
+      () => {
+
+        applyMsReportFiltersAndRender();
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   โหลดใหม่
+   ========================================================= */
+
+if(el('msReportReloadBtn')){
+
+  el('msReportReloadBtn')
+    .addEventListener(
+      'click',
+      async () => {
+
+        await loadMsReportingRows();
+
+
+        showToast(
+          'โหลดใหม่สำเร็จ',
+          'อัปเดตข้อมูลรายงานสิทธิ์สอบเรียบร้อยแล้ว',
+          'success'
+        );
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   ล้างตัวกรอง
+   เก็บปีการศึกษาไว้
+   ========================================================= */
+
+if(el('msReportClearFilterBtn')){
+
+  el('msReportClearFilterBtn')
+    .addEventListener(
+      'click',
+      async () => {
+
+        if(el('msReportFilterTerm')){
+          el('msReportFilterTerm').value = '';
+        }
+
+
+        if(el('msReportFilterClass')){
+          el('msReportFilterClass').value = '';
+        }
+
+
+        if(el('msReportFilterRoom')){
+          el('msReportFilterRoom').value = '';
+        }
+
+
+        if(el('msReportFilterSubject')){
+          el('msReportFilterSubject').value = '';
+        }
+
+
+        if(el('msReportFilterTeacher')){
+          el('msReportFilterTeacher').value = '';
+        }
+
+
+        if(el('msReportFilterStatus')){
+          el('msReportFilterStatus').value = '';
+        }
+
+
+        if(el('msReportFilterKeyword')){
+          el('msReportFilterKeyword').value = '';
+        }
+
+
+        /*
+         * เนื่องจากล้างภาคเรียนจากเทอมใดเทอมหนึ่ง
+         * เป็น "ทั้งหมด" จึงโหลดข้อมูลใหม่
+         */
+        await loadMsReportingRows();
 
       }
     );
