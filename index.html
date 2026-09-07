@@ -4370,6 +4370,14 @@ body.app-booting #appView{
       style="margin:0;"
     >
 
+       <button
+    id="msReportExportPdfBtn"
+    class="btn-danger"
+    type="button"
+  >
+    📄 ส่งออก PDF รายชื่อนักเรียน มส
+  </button>
+
       <button
         id="msReportClearFilterBtn"
         class="btn-secondary"
@@ -11013,6 +11021,1374 @@ async function loadMsReportingRows(){
 
     state.msReportLoading =
       false;
+
+  }
+
+}
+
+/* =========================================================
+   PDF รายชื่อนักเรียน มส
+   ========================================================= */
+
+function getMsReportPdfRows(){
+
+  const filters =
+    getMsReportFilterValues();
+
+
+  /*
+   * ใช้ข้อมูล RAW
+   * เพื่อให้ PDF บังคับเฉพาะ มส
+   * โดยไม่ขึ้นกับ dropdown สถานะบนหน้าจอ
+   */
+  let rows =
+    [
+      ...(
+        state.msReportRowsRaw ||
+        []
+      )
+    ];
+
+
+  /* =====================================================
+     เฉพาะ มส
+     ===================================================== */
+
+  rows =
+    rows.filter(row =>
+      String(
+        row.exam_status || ''
+      ).trim() === 'ms'
+    );
+
+
+  /* =====================================================
+     ชั้น
+     ===================================================== */
+
+  if(filters.classLevel){
+
+    rows =
+      rows.filter(row =>
+        String(
+          row.class_level || ''
+        ).trim() ===
+        filters.classLevel
+      );
+
+  }
+
+
+  /* =====================================================
+     ห้อง
+     ===================================================== */
+
+  if(filters.room){
+
+    rows =
+      rows.filter(row =>
+        String(
+          row.room || ''
+        ).trim() ===
+        filters.room
+      );
+
+  }
+
+
+  /* =====================================================
+     รายวิชา
+     ===================================================== */
+
+  if(filters.subjectCode){
+
+    rows =
+      rows.filter(row =>
+        normalizeSubjectCode(
+          row.subject_code || ''
+        ) ===
+        filters.subjectCode
+      );
+
+  }
+
+
+  /* =====================================================
+     ครูผู้สอน
+     ===================================================== */
+
+  if(filters.teacherCode){
+
+    rows =
+      rows.filter(row =>
+        normalizeTeacherCode(
+          row.teacher_code || ''
+        ) ===
+        filters.teacherCode
+      );
+
+  }
+
+
+  /* =====================================================
+     ค้นหานักเรียน
+     ===================================================== */
+
+  if(filters.keyword){
+
+    rows =
+      rows.filter(row => {
+
+        const haystack =
+          [
+            row.student_code,
+            row.student_name
+          ]
+          .join(' ')
+          .toLowerCase();
+
+
+        return haystack.includes(
+          filters.keyword
+        );
+
+      });
+
+  }
+
+
+  /* =====================================================
+     Sort
+     ===================================================== */
+
+  rows.sort((a,b) => {
+
+    const classCompare =
+      getMsReportClassNumber(
+        a.class_level
+      ) -
+      getMsReportClassNumber(
+        b.class_level
+      );
+
+
+    if(classCompare !== 0){
+      return classCompare;
+    }
+
+
+    const roomCompare =
+      String(
+        a.room || ''
+      ).localeCompare(
+        String(
+          b.room || ''
+        ),
+        'th',
+        {
+          numeric:true
+        }
+      );
+
+
+    if(roomCompare !== 0){
+      return roomCompare;
+    }
+
+
+    const noA =
+      safeNumber(
+        a.student_no,
+        9999
+      );
+
+
+    const noB =
+      safeNumber(
+        b.student_no,
+        9999
+      );
+
+
+    if(noA !== noB){
+      return noA - noB;
+    }
+
+
+    const studentCompare =
+      String(
+        a.student_name || ''
+      ).localeCompare(
+        String(
+          b.student_name || ''
+        ),
+        'th'
+      );
+
+
+    if(studentCompare !== 0){
+      return studentCompare;
+    }
+
+
+    return String(
+      a.subject_code || ''
+    ).localeCompare(
+      String(
+        b.subject_code || ''
+      ),
+      'th'
+    );
+
+  });
+
+
+  return rows;
+
+}
+
+
+/* =========================================================
+   Export PDF
+   ========================================================= */
+
+async function exportMsReportPdf(){
+
+  try{
+
+    /* =====================================================
+       1. เตรียมข้อมูล
+       ===================================================== */
+
+    const rows =
+      getMsReportPdfRows();
+
+
+    if(!rows.length){
+
+      showToast(
+        'ยังส่งออกไม่ได้',
+        'ไม่พบรายการนักเรียนที่มีสถานะ มส ตามเงื่อนไขที่เลือก',
+        'warning'
+      );
+
+      return;
+
+    }
+
+
+    /* =====================================================
+       2. ตรวจ Library
+       ===================================================== */
+
+    if(
+      !window.jspdf ||
+      !window.jspdf.jsPDF
+    ){
+
+      throw new Error(
+        'ไม่พบ jsPDF กรุณาตรวจสอบการโหลด library'
+      );
+
+    }
+
+
+    const {
+      jsPDF
+    } =
+      window.jspdf;
+
+
+    /*
+     * ใช้ Landscape
+     * เพราะมี 7 คอลัมน์
+     * โดยเฉพาะช่องลงชื่อครู
+     */
+    const doc =
+      new jsPDF({
+        orientation:'landscape',
+        unit:'mm',
+        format:'a4'
+      });
+
+
+    if(
+      typeof doc.autoTable !==
+      'function'
+    ){
+
+      throw new Error(
+        'ไม่พบ jsPDF AutoTable กรุณาตรวจสอบการโหลด library'
+      );
+
+    }
+
+
+    showToast(
+      'กำลังสร้าง PDF',
+      'กำลังจัดทำแบบติดตามการแก้ มส...',
+      'info'
+    );
+
+
+    /* =====================================================
+       3. Font ภาษาไทย
+       ใช้ระบบเดิมของ Midterm
+       ===================================================== */
+
+    await prepareMidtermPdfThaiFont(
+      doc
+    );
+
+
+    /* =====================================================
+       4. Filter สำหรับหัวรายงาน
+       ===================================================== */
+
+    const year =
+      String(
+        el('msReportFilterYear')
+          ?.value || ''
+      ).trim();
+
+
+    const term =
+      String(
+        el('msReportFilterTerm')
+          ?.value || ''
+      ).trim();
+
+
+    const classLevel =
+      String(
+        el('msReportFilterClass')
+          ?.value || ''
+      ).trim();
+
+
+    const room =
+      String(
+        el('msReportFilterRoom')
+          ?.value || ''
+      ).trim();
+
+
+    const subjectCode =
+      String(
+        el('msReportFilterSubject')
+          ?.value || ''
+      ).trim();
+
+
+    const teacherCode =
+      String(
+        el('msReportFilterTeacher')
+          ?.value || ''
+      ).trim();
+
+
+    /* =====================================================
+       5. Filename
+       ===================================================== */
+
+    const filenameParts = [
+
+      'MS_followup',
+
+      year || 'all',
+
+      term
+        ? `term${term}`
+        : 'allterm'
+
+    ];
+
+
+    if(classLevel){
+
+      filenameParts.push(
+        classLevel.replace(
+          '.',
+          ''
+        )
+      );
+
+    }
+
+
+    if(room){
+
+      filenameParts.push(
+        `room${room}`
+      );
+
+    }
+
+
+    const filename =
+      filenameParts.join('_') +
+      '.pdf';
+
+
+    /* =====================================================
+       6. Page constants
+       ===================================================== */
+
+    const pageWidth =
+      doc.internal.pageSize.getWidth();
+
+
+    const pageHeight =
+      doc.internal.pageSize.getHeight();
+
+
+    const marginLeft =
+      10;
+
+
+    const marginRight =
+      10;
+
+
+    const bottomMargin =
+      12;
+
+
+    /* =====================================================
+       7. Report Header
+       ===================================================== */
+
+    doc.setFont(
+      'Sarabun',
+      'bold'
+    );
+
+
+    doc.setFontSize(
+      16
+    );
+
+
+    doc.setTextColor(
+      23,
+      50,
+      74
+    );
+
+
+    doc.text(
+      'โรงเรียนท่าใหม่ “พูลสวัสดิ์ราษฎร์นุกูล”',
+      pageWidth / 2,
+      12,
+      {
+        align:'center'
+      }
+    );
+
+
+    doc.setFontSize(
+      15
+    );
+
+
+    doc.text(
+      'แบบติดตามการแก้ผลการเรียน มส (ไม่มีสิทธิ์สอบ)',
+      pageWidth / 2,
+      19,
+      {
+        align:'center'
+      }
+    );
+
+
+    /* =====================================================
+       Subtitle
+       ===================================================== */
+
+    const subtitleParts = [
+
+      `ปีการศึกษา ${year || '-'}`,
+
+      term
+        ? `ภาคเรียนที่ ${term}`
+        : 'ทุกภาคเรียน',
+
+      classLevel
+        ? `ชั้น ${classLevel}`
+        : 'ทุกระดับชั้น',
+
+      room
+        ? `ห้อง ${room}`
+        : 'ทุกห้อง'
+
+    ];
+
+
+    if(subjectCode){
+
+      subtitleParts.push(
+        `รายวิชา ${subjectCode}`
+      );
+
+    }
+
+
+    if(teacherCode){
+
+      subtitleParts.push(
+        `ครู ${teacherCode}`
+      );
+
+    }
+
+
+    doc.setFont(
+      'Sarabun',
+      'normal'
+    );
+
+
+    doc.setFontSize(
+      9
+    );
+
+
+    doc.setTextColor(
+      85,
+      100,
+      120
+    );
+
+
+    doc.text(
+      subtitleParts.join('   '),
+      pageWidth / 2,
+      25,
+      {
+        align:'center'
+      }
+    );
+
+
+    /* =====================================================
+       8. Group นักเรียน
+       ===================================================== */
+
+    const studentMap =
+      new Map();
+
+
+    rows.forEach(row => {
+
+      const studentCode =
+        String(
+          row.student_code || ''
+        ).trim();
+
+
+      const key =
+        studentCode ||
+        [
+          row.student_name,
+          row.class_level,
+          row.room,
+          row.student_no
+        ]
+        .join('|');
+
+
+      if(
+        !studentMap.has(key)
+      ){
+
+        studentMap.set(
+          key,
+          {
+            student_code:
+              studentCode,
+
+            student_name:
+              String(
+                row.student_name || ''
+              ).trim(),
+
+            class_level:
+              String(
+                row.class_level || ''
+              ).trim(),
+
+            room:
+              String(
+                row.room || ''
+              ).trim(),
+
+            student_no:
+              row.student_no,
+
+            rows:[]
+          }
+        );
+
+      }
+
+
+      studentMap
+        .get(key)
+        .rows
+        .push(row);
+
+    });
+
+
+    const students =
+      Array.from(
+        studentMap.values()
+      );
+
+
+    students.sort((a,b) => {
+
+      const classCompare =
+        getMsReportClassNumber(
+          a.class_level
+        ) -
+        getMsReportClassNumber(
+          b.class_level
+        );
+
+
+      if(classCompare !== 0){
+        return classCompare;
+      }
+
+
+      const roomCompare =
+        String(
+          a.room || ''
+        ).localeCompare(
+          String(
+            b.room || ''
+          ),
+          'th',
+          {
+            numeric:true
+          }
+        );
+
+
+      if(roomCompare !== 0){
+        return roomCompare;
+      }
+
+
+      return (
+        safeNumber(
+          a.student_no,
+          9999
+        ) -
+        safeNumber(
+          b.student_no,
+          9999
+        )
+      );
+
+    });
+
+
+    /* =====================================================
+       9. เริ่มสร้าง Student Tables
+       ===================================================== */
+
+    let nextStartY =
+      32;
+
+
+    students.forEach(
+      (
+        student,
+        studentIndex
+      ) => {
+
+
+        const studentRows =
+          [
+            ...student.rows
+          ]
+          .sort((a,b) =>
+            String(
+              a.subject_code || ''
+            ).localeCompare(
+              String(
+                b.subject_code || ''
+              ),
+              'th'
+            )
+          );
+
+
+        /*
+         * ต้องมีพื้นที่อย่างน้อยสำหรับ
+         * ชื่อนักเรียน + header ตาราง + 1-2 แถว
+         *
+         * ถ้าเหลือน้อยเกินไป
+         * ยกนักเรียนไปหน้าใหม่เลย
+         */
+        const minimumRequiredHeight =
+          31;
+
+
+        if(
+          nextStartY +
+          minimumRequiredHeight >
+          pageHeight -
+          bottomMargin
+        ){
+
+          doc.addPage();
+
+
+          nextStartY =
+            15;
+
+        }
+
+
+        /* =================================================
+           ชื่อนักเรียนเหนือตาราง
+           ================================================= */
+
+        doc.setFont(
+          'Sarabun',
+          'bold'
+        );
+
+
+        doc.setFontSize(
+          11
+        );
+
+
+        doc.setTextColor(
+          23,
+          50,
+          74
+        );
+
+
+        const studentNameText =
+          [
+            student.student_code
+              ? `เลขประจำตัว ${student.student_code}`
+              : '',
+
+            student.student_name
+          ]
+          .filter(Boolean)
+          .join('   ');
+
+
+        doc.text(
+          studentNameText,
+          marginLeft,
+          nextStartY
+        );
+
+
+        /* =================================================
+           Student meta
+           ================================================= */
+
+        doc.setFont(
+          'Sarabun',
+          'normal'
+        );
+
+
+        doc.setFontSize(
+          9
+        );
+
+
+        doc.setTextColor(
+          90,
+          105,
+          125
+        );
+
+
+        const metaParts =
+          [];
+
+
+        if(student.class_level){
+
+          metaParts.push(
+            student.room
+              ? `ชั้น ${student.class_level}/${student.room}`
+              : `ชั้น ${student.class_level}`
+          );
+
+        }
+
+
+        if(
+          student.student_no !== null &&
+          student.student_no !== undefined &&
+          student.student_no !== ''
+        ){
+
+          metaParts.push(
+            `เลขที่ ${student.student_no}`
+          );
+
+        }
+
+
+        metaParts.push(
+          `มส ${studentRows.length} รายวิชา`
+        );
+
+
+        doc.text(
+          metaParts.join('   •   '),
+          marginLeft,
+          nextStartY + 5
+        );
+
+
+        /* =================================================
+           Body
+           ================================================= */
+
+        const body =
+          studentRows.map(row => {
+
+
+            const teacherText =
+              [
+                row.teacher_code,
+                row.teacher_name
+              ]
+              .filter(Boolean)
+              .join(' ');
+
+
+            const attendance =
+              safeNumber(
+                row.attendance_percent,
+                null
+              );
+
+
+            return [
+
+              row.subject_code ||
+              '-',
+
+              row.subject_name ||
+              '-',
+
+              teacherText ||
+              '-',
+
+              attendance === null
+                ? '-'
+                : `${attendance.toFixed(2)}%`,
+
+              'มส (ไม่มีสิทธิ์สอบ)',
+
+              '',
+
+              ''
+
+            ];
+
+          });
+
+
+        /*
+         * หน้าที่ตารางของเด็กคนนี้เริ่ม
+         * ใช้สำหรับตรวจว่า AutoTable
+         * แตกไปหน้าต่อไปหรือไม่
+         */
+        const studentStartPage =
+          doc.internal.getCurrentPageInfo()
+            .pageNumber;
+
+
+        doc.autoTable({
+
+          startY:
+            nextStartY + 8,
+
+
+          margin:{
+
+            left:
+              marginLeft,
+
+            right:
+              marginRight,
+
+            top:
+              18,
+
+            bottom:
+              bottomMargin
+
+          },
+
+
+          head:[
+            [
+              'รหัสวิชา',
+              'ชื่อวิชา',
+              'ครูผู้สอน',
+              '% เวลาเรียน',
+              'สถานะ',
+              'แก้แล้ว',
+              'ลงชื่อครู'
+            ]
+          ],
+
+
+          body,
+
+
+          theme:
+            'grid',
+
+
+          styles:{
+
+            font:
+              'Sarabun',
+
+            fontStyle:
+              'normal',
+
+            fontSize:
+              8.5,
+
+            textColor:[
+              35,
+              50,
+              70
+            ],
+
+            lineColor:[
+              185,
+              195,
+              205
+            ],
+
+            lineWidth:
+              0.2,
+
+            cellPadding:{
+              top:2.5,
+              right:2.5,
+              bottom:2.5,
+              left:2.5
+            },
+
+            valign:
+              'middle',
+
+            overflow:
+              'linebreak'
+
+          },
+
+
+          headStyles:{
+
+            font:
+              'Sarabun',
+
+            fontStyle:
+              'bold',
+
+            fontSize:
+              8.7,
+
+            fillColor:[
+              240,
+              244,
+              248
+            ],
+
+            textColor:[
+              32,
+              50,
+              70
+            ],
+
+            lineColor:[
+              170,
+              185,
+              200
+            ],
+
+            lineWidth:
+              0.25,
+
+            halign:
+              'center'
+
+          },
+
+
+          columnStyles:{
+
+            0:{
+              cellWidth:25
+            },
+
+            1:{
+              cellWidth:53
+            },
+
+            2:{
+              cellWidth:55
+            },
+
+            3:{
+              cellWidth:27,
+              halign:'center'
+            },
+
+            4:{
+              cellWidth:35,
+              halign:'center'
+            },
+
+            5:{
+              cellWidth:22,
+              halign:'center'
+            },
+
+            6:{
+              cellWidth:55,
+              halign:'center'
+            }
+
+          },
+
+
+          /* =================================================
+             วาดช่องสี่เหลี่ยม "แก้แล้ว"
+             และเส้นลงชื่อครู
+             ================================================= */
+
+          didDrawCell(data){
+
+            if(
+              data.section !==
+              'body'
+            ){
+              return;
+            }
+
+
+            /* ---------------------------------------------
+               Column 5 = แก้แล้ว
+               --------------------------------------------- */
+
+            if(
+              data.column.index ===
+              5
+            ){
+
+              const size =
+                4.3;
+
+
+              const x =
+                data.cell.x +
+                (
+                  data.cell.width -
+                  size
+                ) / 2;
+
+
+              const y =
+                data.cell.y +
+                (
+                  data.cell.height -
+                  size
+                ) / 2;
+
+
+              doc.setDrawColor(
+                70,
+                80,
+                90
+              );
+
+
+              doc.setLineWidth(
+                0.3
+              );
+
+
+              doc.rect(
+                x,
+                y,
+                size,
+                size
+              );
+
+            }
+
+
+            /* ---------------------------------------------
+               Column 6 = ลงชื่อครูฝ่ายวิชาการ
+               --------------------------------------------- */
+
+            if(
+              data.column.index ===
+              6
+            ){
+
+              const x1 =
+                data.cell.x +
+                5;
+
+
+              const x2 =
+                data.cell.x +
+                data.cell.width -
+                5;
+
+
+              const y =
+                data.cell.y +
+                data.cell.height -
+                3;
+
+
+              doc.setDrawColor(
+                90,
+                100,
+                110
+              );
+
+
+              doc.setLineWidth(
+                0.2
+              );
+
+
+              doc.line(
+                x1,
+                y,
+                x2,
+                y
+              );
+
+            }
+
+          },
+
+
+          /* =================================================
+             ถ้าตารางเด็กคนหนึ่งยาวจนขึ้นหน้าใหม่
+             แสดงชื่อนักเรียนซ้ำด้านบน
+             ================================================= */
+
+          didDrawPage(){
+
+            const currentPage =
+              doc.internal.getCurrentPageInfo()
+                .pageNumber;
+
+
+            if(
+              currentPage ===
+              studentStartPage
+            ){
+              return;
+            }
+
+
+            doc.setFont(
+              'Sarabun',
+              'bold'
+            );
+
+
+            doc.setFontSize(
+              9
+            );
+
+
+            doc.setTextColor(
+              23,
+              50,
+              74
+            );
+
+
+            doc.text(
+              `${studentNameText} (ต่อ)`,
+              marginLeft,
+              11
+            );
+
+          }
+
+        });
+
+
+        /* =================================================
+           Student ถัดไป
+           ================================================= */
+
+        if(
+          doc.lastAutoTable &&
+          Number.isFinite(
+            doc.lastAutoTable.finalY
+          )
+        ){
+
+          nextStartY =
+            doc.lastAutoTable.finalY +
+            8;
+
+        }else{
+
+          nextStartY =
+            20;
+
+        }
+
+
+        /*
+         * เส้นแบ่งเบา ๆ ระหว่างนักเรียน
+         * ยกเว้นคนสุดท้าย
+         */
+        if(
+          studentIndex <
+          students.length - 1 &&
+          nextStartY <
+          pageHeight -
+          14
+        ){
+
+          doc.setDrawColor(
+            220,
+            226,
+            232
+          );
+
+
+          doc.setLineWidth(
+            0.15
+          );
+
+
+          doc.line(
+            marginLeft,
+            nextStartY - 3,
+            pageWidth -
+              marginRight,
+            nextStartY - 3
+          );
+
+        }
+
+      }
+    );
+
+
+    /* =====================================================
+       10. เลขหน้า
+       ===================================================== */
+
+    const totalPages =
+      doc.internal.getNumberOfPages();
+
+
+    for(
+      let pageNo = 1;
+      pageNo <= totalPages;
+      pageNo++
+    ){
+
+      doc.setPage(
+        pageNo
+      );
+
+
+      const width =
+        doc.internal.pageSize.getWidth();
+
+
+      const height =
+        doc.internal.pageSize.getHeight();
+
+
+      doc.setFont(
+        'Sarabun',
+        'normal'
+      );
+
+
+      doc.setFontSize(
+        8
+      );
+
+
+      doc.setTextColor(
+        110,
+        120,
+        135
+      );
+
+
+      doc.text(
+        `หน้า ${pageNo} / ${totalPages}`,
+        width - 10,
+        height - 6,
+        {
+          align:'right'
+        }
+      );
+
+    }
+
+
+    /* =====================================================
+       11. Save
+       ===================================================== */
+
+    doc.save(
+      filename
+    );
+
+
+    showToast(
+      'สร้าง PDF สำเร็จ',
+      `นักเรียน ${students.length} คน • มส ${rows.length} รายการ`,
+      'success'
+    );
+
+
+  }catch(err){
+
+    console.error(
+      'exportMsReportPdf error:',
+      err
+    );
+
+
+    showToast(
+      'สร้าง PDF ไม่สำเร็จ',
+      err.message ||
+      'เกิดข้อผิดพลาด',
+      'error'
+    );
 
   }
 
@@ -26119,7 +27495,8 @@ if(el('reportSubMsBtn')){
 
 }
 
-/* =========================================================
+
+ /* =========================================================
    Exam Eligibility / มส KPI
    ========================================================= */
 
@@ -26172,6 +27549,24 @@ document
     );
 
   });
+
+      /* =========================================================
+   Export PDF รายชื่อนักเรียน มส
+   ========================================================= */
+
+if(el('msReportExportPdfBtn')){
+
+  el('msReportExportPdfBtn')
+    .addEventListener(
+      'click',
+      async () => {
+
+        await exportMsReportPdf();
+
+      }
+    );
+
+}
 
 /* =========================================================
    Exam Eligibility / มส Filters
