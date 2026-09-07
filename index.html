@@ -11798,26 +11798,6 @@ const doc =
         }
 
 
-        /* =================================================
-           ชื่อนักเรียนเหนือตาราง
-           ================================================= */
-
-        doc.setFont(
-          'Sarabun',
-          'bold'
-        );
-
-
-        doc.setFontSize(
-          11
-        );
-
-
-        doc.setTextColor(
-          23,
-          50,
-          74
-        );
 
 
 
@@ -11995,7 +11975,7 @@ const teacherText =
         doc.autoTable({
 
           startY:
-            nextStartY + 8,
+            nextStartY + 2.2,
 
             showHead:
     studentIndex === 0
@@ -12349,9 +12329,9 @@ doc.text(
           )
         ){
 
-          nextStartY =
-            doc.lastAutoTable.finalY +
-            8;
+nextStartY =
+  doc.lastAutoTable.finalY +
+  4.5;
 
         }else{
 
