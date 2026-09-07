@@ -2897,6 +2897,14 @@ body.app-booting #appView{
     📈 ติดตามคะแนนกลางภาคเรียน
   </button>
 
+    <button
+    id="reportSubMsBtn"
+    class="teacher-sub-btn"
+    type="button"
+  >
+    🚫 ติดตามรายงาน มส
+  </button>
+
   <button
     id="reportSubSignerBtn"
     class="teacher-sub-btn"
@@ -3647,6 +3655,54 @@ body.app-booting #appView{
   </div>
 
 </section>
+</section>
+
+        <!-- =========================================================
+     Exam Eligibility / มส Tracking
+     ติดตามรายงานสิทธิ์สอบและ มส
+     ========================================================= -->
+<section id="reportSubMsPage" class="hidden">
+
+  <div class="report-summary-box">
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px;">
+      ติดตามรายงาน มส
+    </div>
+
+    <div class="small">
+      แสดงข้อมูลการรายงานสิทธิ์สอบของนักเรียนจาก
+      <strong>exam_eligibility_reports</strong>
+      โดยแบ่งสถานะเป็น
+      <strong style="color:#0f9d58;">มีสิทธิ์สอบ</strong>
+      และ
+      <strong style="color:#d92d20;">มส (ไม่มีสิทธิ์สอบ)</strong>
+    </div>
+  </div>
+
+
+  <div class="filter-empty-state">
+    <div class="filter-empty-card">
+
+      <div class="filter-empty-icon">
+        🚫
+      </div>
+
+      <div class="filter-empty-title">
+        ติดตามรายงาน มส
+      </div>
+
+      <div class="filter-empty-text">
+        ขั้นถัดไปจะเชื่อมข้อมูลจาก
+        exam_eligibility_reports
+        และแสดงนักเรียนแบบ Card รายบุคคล
+      </div>
+
+      <div class="filter-empty-hint">
+        มีสิทธิ์สอบ / มส (ไม่มีสิทธิ์สอบ)
+      </div>
+
+    </div>
+  </div>
+
 </section>
         
         <section id="reportSubSignerPage" class="hidden">
@@ -8680,52 +8736,114 @@ function getExpectedClassLevel(entryAcademicYear, entryLevel, selectedAcademicYe
   }
 
 function setReportSubPage(page){
+
   state.reportSubPage = page;
 
-  const isTracking = page === 'tracking';
-  const isMidterm = page === 'midterm';
-  const isSigner = page === 'signer';
 
-  // -----------------------------
+  const isTracking =
+    page === 'tracking';
+
+  const isMidterm =
+    page === 'midterm';
+
+  const isMs =
+    page === 'ms';
+
+  const isSigner =
+    page === 'signer';
+
+
+  // =========================================================
   // Pages
-  // -----------------------------
+  // =========================================================
 
   if(el('reportSubTrackingPage')){
+
     el('reportSubTrackingPage')
-      .classList.toggle('hidden', !isTracking);
+      .classList.toggle(
+        'hidden',
+        !isTracking
+      );
+
   }
+
 
   if(el('reportSubMidtermPage')){
+
     el('reportSubMidtermPage')
-      .classList.toggle('hidden', !isMidterm);
+      .classList.toggle(
+        'hidden',
+        !isMidterm
+      );
+
   }
+
+
+  if(el('reportSubMsPage')){
+
+    el('reportSubMsPage')
+      .classList.toggle(
+        'hidden',
+        !isMs
+      );
+
+  }
+
 
   if(el('reportSubSignerPage')){
+
     el('reportSubSignerPage')
-      .classList.toggle('hidden', !isSigner);
+      .classList.toggle(
+        'hidden',
+        !isSigner
+      );
+
   }
 
-  // -----------------------------
+
+  // =========================================================
   // Buttons
-  // -----------------------------
+  // =========================================================
 
   if(el('reportSubTrackingBtn')){
-    el('reportSubTrackingBtn').className = isTracking
-      ? 'teacher-sub-btn active'
-      : 'teacher-sub-btn';
+
+    el('reportSubTrackingBtn').className =
+      isTracking
+        ? 'teacher-sub-btn active'
+        : 'teacher-sub-btn';
+
   }
+
 
   if(el('reportSubMidtermBtn')){
-    el('reportSubMidtermBtn').className = isMidterm
-      ? 'teacher-sub-btn active'
-      : 'teacher-sub-btn';
+
+    el('reportSubMidtermBtn').className =
+      isMidterm
+        ? 'teacher-sub-btn active'
+        : 'teacher-sub-btn';
+
   }
 
-  if(el('reportSubSignerBtn')){
-    el('reportSubSignerBtn').className = isSigner
-      ? 'teacher-sub-btn active'
-      : 'teacher-sub-btn';
+
+  if(el('reportSubMsBtn')){
+
+    el('reportSubMsBtn').className =
+      isMs
+        ? 'teacher-sub-btn active'
+        : 'teacher-sub-btn';
+
   }
+
+
+  if(el('reportSubSignerBtn')){
+
+    el('reportSubSignerBtn').className =
+      isSigner
+        ? 'teacher-sub-btn active'
+        : 'teacher-sub-btn';
+
+  }
+
 }
 
     function getSignerFilterValues(){
@@ -23792,6 +23910,21 @@ if(el('reportSubMidtermBtn')){
 
 
         await loadMidtermReportingRows();
+
+      }
+    );
+
+}
+      if(el('reportSubMsBtn')){
+
+  el('reportSubMsBtn')
+    .addEventListener(
+      'click',
+      () => {
+
+        setReportSubPage(
+          'ms'
+        );
 
       }
     );
