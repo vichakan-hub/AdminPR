@@ -11248,6 +11248,51 @@ function getMsReportPdfRows(){
 }
 
 
+function getMsPdfTeacherShortName(fullName){
+
+  const text =
+    String(
+      fullName || ''
+    )
+    .replace(/\s+/g,' ')
+    .trim();
+
+
+  if(!text){
+    return '-';
+  }
+
+
+  const parts =
+    text.split(' ');
+
+
+  /*
+   * ตัดคำสุดท้าย ซึ่งเป็นนามสกุลออก
+   *
+   * นายสมชาย ใจดี
+   * -> นายสมชาย
+   *
+   * นางสาว อาทิตยา วิมลลักษณ์
+   * -> นางสาว อาทิตยา
+   */
+  if(parts.length >= 2){
+
+    return parts
+      .slice(
+        0,
+        -1
+      )
+      .join(' ');
+
+  }
+
+
+  return text;
+
+}
+
+
 /* =========================================================
    Export PDF
    ========================================================= */
@@ -11304,12 +11349,12 @@ async function exportMsReportPdf(){
      * เพราะมี 7 คอลัมน์
      * โดยเฉพาะช่องลงชื่อครู
      */
-    const doc =
-      new jsPDF({
-        orientation:'landscape',
-        unit:'mm',
-        format:'a4'
-      });
+const doc =
+  new jsPDF({
+    orientation:'portrait',
+    unit:'mm',
+    format:'a4'
+  });
 
 
     if(
@@ -11775,85 +11820,119 @@ async function exportMsReportPdf(){
         );
 
 
-        const studentNameText =
-          [
-            student.student_code
-              ? `เลขประจำตัว ${student.student_code}`
-              : '',
-
-            student.student_name
-          ]
-          .filter(Boolean)
-          .join('   ');
 
 
-        doc.text(
-          studentNameText,
-          marginLeft,
-          nextStartY
-        );
+/* =================================================
+   ข้อมูลนักเรียน 1 บรรทัด
+   ================================================= */
+
+const studentLineParts = [];
 
 
-        /* =================================================
-           Student meta
-           ================================================= */
+if(student.student_code){
 
-        doc.setFont(
-          'Sarabun',
-          'normal'
-        );
+  studentLineParts.push(
+    student.student_code
+  );
 
-
-        doc.setFontSize(
-          9
-        );
+}
 
 
-        doc.setTextColor(
-          90,
-          105,
-          125
-        );
+if(student.student_name){
+
+  studentLineParts.push(
+    student.student_name
+  );
+
+}
 
 
-        const metaParts =
-          [];
+let studentLine =
+  studentLineParts.join(' ');
 
 
-        if(student.class_level){
+if(student.class_level){
 
-          metaParts.push(
-            student.room
-              ? `ชั้น ${student.class_level}/${student.room}`
-              : `ชั้น ${student.class_level}`
-          );
+  studentLine +=
+    `   ชั้น ${student.class_level}${
+      student.room
+        ? `/${student.room}`
+        : ''
+    }`;
 
-        }
-
-
-        if(
-          student.student_no !== null &&
-          student.student_no !== undefined &&
-          student.student_no !== ''
-        ){
-
-          metaParts.push(
-            `เลขที่ ${student.student_no}`
-          );
-
-        }
+}
 
 
-        metaParts.push(
-          `มส ${studentRows.length} รายวิชา`
-        );
+if(
+  student.student_no !== null &&
+  student.student_no !== undefined &&
+  student.student_no !== ''
+){
+
+  studentLine +=
+    ` • เลขที่ ${student.student_no}`;
+
+}
 
 
-        doc.text(
-          metaParts.join('   •   '),
-          marginLeft,
-          nextStartY + 5
-        );
+studentLine +=
+  ` • มส ${studentRows.length} รายวิชา`;
+
+
+/*
+ * ปรับขนาดตัวอักษรอัตโนมัติ
+ * เพื่อพยายามให้อยู่บรรทัดเดียว
+ */
+doc.setFont(
+  'Sarabun',
+  'bold'
+);
+
+
+let studentFontSize =
+  10;
+
+
+const availableWidth =
+  pageWidth -
+  marginLeft -
+  marginRight;
+
+
+doc.setFontSize(
+  studentFontSize
+);
+
+
+while(
+  doc.getTextWidth(studentLine) >
+    availableWidth &&
+  studentFontSize > 7
+){
+
+  studentFontSize -=
+    0.25;
+
+
+  doc.setFontSize(
+    studentFontSize
+  );
+
+}
+
+
+doc.setTextColor(
+  23,
+  50,
+  74
+);
+
+
+doc.text(
+  studentLine,
+  marginLeft,
+  nextStartY
+);
 
 
         /* =================================================
@@ -11864,13 +11943,10 @@ async function exportMsReportPdf(){
           studentRows.map(row => {
 
 
-            const teacherText =
-              [
-                row.teacher_code,
-                row.teacher_name
-              ]
-              .filter(Boolean)
-              .join(' ');
+const teacherText =
+  getMsPdfTeacherShortName(
+    row.teacher_name
+  );
 
 
             const attendance =
@@ -11921,6 +11997,11 @@ async function exportMsReportPdf(){
           startY:
             nextStartY + 8,
 
+            showHead:
+    studentIndex === 0
+      ? 'firstPage'
+      : 'never',
+
 
           margin:{
 
@@ -11968,7 +12049,7 @@ async function exportMsReportPdf(){
               'normal',
 
             fontSize:
-              8.5,
+              7.5,
 
             textColor:[
               35,
@@ -11985,12 +12066,12 @@ async function exportMsReportPdf(){
             lineWidth:
               0.2,
 
-            cellPadding:{
-              top:2.5,
-              right:2.5,
-              bottom:2.5,
-              left:2.5
-            },
+cellPadding:{
+  top:1.15,
+  right:1.5,
+  bottom:1.15,
+  left:1.5
+},
 
             valign:
               'middle',
@@ -12010,7 +12091,7 @@ async function exportMsReportPdf(){
               'bold',
 
             fontSize:
-              8.7,
+              7.5,
 
             fillColor:[
               240,
@@ -12039,41 +12120,48 @@ async function exportMsReportPdf(){
           },
 
 
-          columnStyles:{
+columnStyles:{
 
-            0:{
-              cellWidth:25
-            },
+  /* รหัสวิชา */
+  0:{
+    cellWidth:21
+  },
 
-            1:{
-              cellWidth:53
-            },
+  /* ชื่อวิชา */
+  1:{
+    cellWidth:42
+  },
 
-            2:{
-              cellWidth:55
-            },
+  /* ครูผู้สอน */
+  2:{
+    cellWidth:31
+  },
 
-            3:{
-              cellWidth:27,
-              halign:'center'
-            },
+  /* % เวลาเรียน */
+  3:{
+    cellWidth:21,
+    halign:'center'
+  },
 
-            4:{
-              cellWidth:35,
-              halign:'center'
-            },
+  /* สถานะ */
+  4:{
+    cellWidth:30,
+    halign:'center'
+  },
 
-            5:{
-              cellWidth:22,
-              halign:'center'
-            },
+  /* แก้แล้ว */
+  5:{
+    cellWidth:15,
+    halign:'center'
+  },
 
-            6:{
-              cellWidth:55,
-              halign:'center'
-            }
+  /* ลงชื่อครู */
+  6:{
+    cellWidth:30,
+    halign:'center'
+  }
 
-          },
+},
 
 
           /* =================================================
@@ -12101,7 +12189,7 @@ async function exportMsReportPdf(){
             ){
 
               const size =
-                4.3;
+                3.6;
 
 
               const x =
@@ -12162,10 +12250,10 @@ async function exportMsReportPdf(){
                 5;
 
 
-              const y =
-                data.cell.y +
-                data.cell.height -
-                3;
+const y =
+  data.cell.y +
+  data.cell.height -
+  1.8;
 
 
               doc.setDrawColor(
@@ -12230,11 +12318,11 @@ async function exportMsReportPdf(){
             );
 
 
-            doc.text(
-              `${studentNameText} (ต่อ)`,
-              marginLeft,
-              11
-            );
+doc.text(
+  `${student.student_code || ''} ${student.student_name || ''} (ต่อ)`.trim(),
+  marginLeft,
+  11
+);
 
           }
 
