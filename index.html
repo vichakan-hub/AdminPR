@@ -11890,7 +11890,7 @@ doc.setFont(
 
 
 let studentFontSize =
-  10;
+  8.8;
 
 
 const availableWidth =
@@ -12040,84 +12040,93 @@ const teacherText =
             'grid',
 
 
-          styles:{
+styles:{
 
-            font:
-              'Sarabun',
+  font:
+    'Sarabun',
 
-            fontStyle:
-              'normal',
+  fontStyle:
+    'normal',
 
-            fontSize:
-              7.5,
+  fontSize:
+    7.2,
 
-            textColor:[
-              35,
-              50,
-              70
-            ],
+  textColor:[
+    35,
+    50,
+    70
+  ],
 
-            lineColor:[
-              185,
-              195,
-              205
-            ],
+  lineColor:[
+    185,
+    195,
+    205
+  ],
 
-            lineWidth:
-              0.2,
+  lineWidth:
+    0.2,
 
-cellPadding:{
-  top:1.15,
-  right:1.5,
-  bottom:1.15,
-  left:1.5
+  cellPadding:{
+    top:1.8,
+    right:1.5,
+    bottom:1.8,
+    left:1.5
+  },
+
+  minCellHeight:
+    7.2,
+
+  lineHeight:
+    1.35,
+
+  valign:
+    'middle',
+
+  overflow:
+    'linebreak'
+
 },
 
-            valign:
-              'middle',
 
-            overflow:
-              'linebreak'
+headStyles:{
 
-          },
+  font:
+    'Sarabun',
 
+  fontStyle:
+    'bold',
 
-          headStyles:{
+  fontSize:
+    7.3,
 
-            font:
-              'Sarabun',
+  fillColor:[
+    240,
+    244,
+    248
+  ],
 
-            fontStyle:
-              'bold',
+  textColor:[
+    32,
+    50,
+    70
+  ],
 
-            fontSize:
-              7.5,
+  lineColor:[
+    170,
+    185,
+    200
+  ],
 
-            fillColor:[
-              240,
-              244,
-              248
-            ],
+  lineWidth:
+    0.25,
 
-            textColor:[
-              32,
-              50,
-              70
-            ],
+  halign:
+    'center',
 
-            lineColor:[
-              170,
-              185,
-              200
-            ],
+  minCellHeight:
+    7.5
 
-            lineWidth:
-              0.25,
-
-            halign:
-              'center'
-
-          },
+},
 
 
 columnStyles:{
@@ -12134,7 +12143,7 @@ columnStyles:{
 
   /* ครูผู้สอน */
   2:{
-    cellWidth:31
+    cellWidth:34
   },
 
   /* % เวลาเรียน */
@@ -12157,7 +12166,7 @@ columnStyles:{
 
   /* ลงชื่อครู */
   6:{
-    cellWidth:30,
+    cellWidth:27,
     halign:'center'
   }
 
@@ -12352,42 +12361,7 @@ doc.text(
         }
 
 
-        /*
-         * เส้นแบ่งเบา ๆ ระหว่างนักเรียน
-         * ยกเว้นคนสุดท้าย
-         */
-        if(
-          studentIndex <
-          students.length - 1 &&
-          nextStartY <
-          pageHeight -
-          14
-        ){
 
-          doc.setDrawColor(
-            220,
-            226,
-            232
-          );
-
-
-          doc.setLineWidth(
-            0.15
-          );
-
-
-          doc.line(
-            marginLeft,
-            nextStartY - 3,
-            pageWidth -
-              marginRight,
-            nextStartY - 3
-          );
-
-        }
-
-      }
-    );
 
 
     /* =====================================================
