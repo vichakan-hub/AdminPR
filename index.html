@@ -2338,6 +2338,338 @@ body.app-booting #appView{
 
 }
 
+  /* =========================================================
+   Exam Eligibility / มส Tracking
+   ========================================================= */
+
+.ms-report-stat-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(190px,1fr));
+  gap:12px;
+  margin-bottom:16px;
+}
+
+
+.ms-report-stat-card{
+  border:1px solid #dbe7f3;
+  border-radius:22px;
+  background:linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #f8fbff 100%
+  );
+  padding:16px 18px;
+  box-shadow:0 6px 18px rgba(18,38,63,.05);
+}
+
+
+.ms-report-stat-card .k{
+  font-size:13px;
+  color:#6b7a90;
+  margin-bottom:6px;
+  font-weight:700;
+}
+
+
+.ms-report-stat-card .v{
+  font-size:30px;
+  font-weight:800;
+  color:#17324a;
+  line-height:1.05;
+}
+
+
+.ms-report-stat-card .s{
+  margin-top:8px;
+  font-size:12px;
+  color:#5f7289;
+  line-height:1.5;
+}
+
+
+.ms-report-stat-card.students .v{
+  color:#2563eb;
+}
+
+
+.ms-report-stat-card.total .v{
+  color:#7c3aed;
+}
+
+
+.ms-report-stat-card.eligible .v{
+  color:#0f9d58;
+}
+
+
+.ms-report-stat-card.ms .v{
+  color:#d92d20;
+}
+
+
+/* =========================================================
+   Filters
+   ========================================================= */
+
+.ms-report-toolbar{
+  display:grid;
+  grid-template-columns:
+    1fr
+    .9fr
+    .9fr
+    .8fr
+    1.5fr
+    1.5fr
+    1.2fr
+    1.7fr;
+  gap:10px 12px;
+  margin-bottom:14px;
+}
+
+
+/* =========================================================
+   Student Cards
+   ========================================================= */
+
+.ms-report-student-list{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+
+.ms-report-student-card{
+  background:#fff;
+  border:1px solid #dbe7f3;
+  border-radius:22px;
+  overflow:hidden;
+  box-shadow:0 8px 24px rgba(18,38,63,.06);
+}
+
+
+.ms-report-student-card-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  padding:16px 18px;
+  background:linear-gradient(
+    135deg,
+    rgba(37,99,235,.07),
+    rgba(59,130,246,.02)
+  );
+  border-bottom:1px solid #e8eef5;
+}
+
+
+.ms-report-student-main{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-width:0;
+}
+
+
+.ms-report-student-avatar{
+  width:50px;
+  height:50px;
+  border-radius:16px;
+  background:#dbeafe;
+  color:#2563eb;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:24px;
+  flex:0 0 auto;
+}
+
+
+.ms-report-student-name{
+  font-size:18px;
+  font-weight:800;
+  color:#17324a;
+  line-height:1.35;
+}
+
+
+.ms-report-student-meta{
+  margin-top:4px;
+  color:#6b7a90;
+  font-size:12px;
+  line-height:1.6;
+}
+
+
+.ms-report-student-summary{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+
+.ms-report-summary-pill{
+  display:inline-flex;
+  align-items:center;
+  min-height:32px;
+  padding:4px 11px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+
+.ms-report-summary-pill.eligible{
+  color:#0f9d58;
+  background:#e9f8ef;
+  border:1px solid #bfe6cb;
+}
+
+
+.ms-report-summary-pill.ms{
+  color:#d92d20;
+  background:#fff1f0;
+  border:1px solid #ffd2cf;
+}
+
+
+.ms-report-student-body{
+  padding:14px 16px 16px;
+}
+
+
+.ms-report-table-wrap{
+  overflow:auto;
+  border:1px solid #e4ebf3;
+  border-radius:16px;
+  background:#fff;
+}
+
+
+.ms-report-table{
+  width:100%;
+  min-width:850px;
+  table-layout:fixed;
+  border-collapse:collapse;
+}
+
+
+.ms-report-table th,
+.ms-report-table td{
+  padding:11px 13px;
+  vertical-align:middle;
+  border-bottom:1px solid #eef2f7;
+}
+
+
+.ms-report-table tbody tr:last-child td{
+  border-bottom:none;
+}
+
+
+.ms-report-table th:nth-child(1){
+  width:120px;
+}
+
+
+.ms-report-table th:nth-child(2){
+  width:230px;
+}
+
+
+.ms-report-table th:nth-child(3){
+  width:230px;
+}
+
+
+.ms-report-table th:nth-child(4){
+  width:130px;
+  text-align:center;
+}
+
+
+.ms-report-table th:nth-child(5){
+  width:180px;
+  text-align:center;
+}
+
+
+.ms-report-table td:nth-child(4),
+.ms-report-table td:nth-child(5){
+  text-align:center;
+}
+
+
+.ms-report-status{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:30px;
+  padding:5px 11px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.4;
+}
+
+
+.ms-report-status.eligible{
+  color:#0f9d58;
+  background:#e9f8ef;
+  border:1px solid #bfe6cb;
+}
+
+
+.ms-report-status.ms{
+  color:#d92d20;
+  background:#fff1f0;
+  border:1px solid #ffd2cf;
+}
+
+
+.ms-report-attendance-danger{
+  color:#d92d20;
+  font-weight:800;
+}
+
+
+.ms-report-attendance-ok{
+  color:#0f9d58;
+  font-weight:800;
+}
+
+
+@media (max-width:1180px){
+
+  .ms-report-stat-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .ms-report-toolbar{
+    grid-template-columns:1fr 1fr;
+  }
+
+}
+
+
+@media (max-width:720px){
+
+  .ms-report-stat-grid,
+  .ms-report-toolbar{
+    grid-template-columns:1fr;
+  }
+
+  .ms-report-student-card-header{
+    flex-direction:column;
+  }
+
+  .ms-report-student-summary{
+    justify-content:flex-start;
+  }
+
+}
+
 
 
 
@@ -3661,46 +3993,365 @@ body.app-booting #appView{
      Exam Eligibility / มส Tracking
      ติดตามรายงานสิทธิ์สอบและ มส
      ========================================================= -->
+<!-- =========================================================
+     Exam Eligibility / มส Tracking
+     ติดตามรายงานสิทธิ์สอบและ มส
+     ========================================================= -->
 <section id="reportSubMsPage" class="hidden">
 
+  <!-- =====================================================
+       SUMMARY
+       ===================================================== -->
   <div class="report-summary-box">
+
     <div style="font-size:18px;font-weight:700;margin-bottom:4px;">
-      ติดตามรายงาน มส
+      ภาพรวมการรายงานสิทธิ์สอบ
     </div>
 
     <div class="small">
-      แสดงข้อมูลการรายงานสิทธิ์สอบของนักเรียนจาก
+      แสดงข้อมูลจาก
       <strong>exam_eligibility_reports</strong>
-      โดยแบ่งสถานะเป็น
+      โดยจัดกลุ่มนักเรียนเป็นรายบุคคล และแสดงรายวิชาที่ครูรายงาน
+      พร้อมสถานะ
       <strong style="color:#0f9d58;">มีสิทธิ์สอบ</strong>
       และ
       <strong style="color:#d92d20;">มส (ไม่มีสิทธิ์สอบ)</strong>
     </div>
+
   </div>
 
 
-  <div class="filter-empty-state">
-    <div class="filter-empty-card">
+  <!-- =====================================================
+       KPI
+       ===================================================== -->
+  <div class="ms-report-stat-grid">
 
-      <div class="filter-empty-icon">
-        🚫
+    <div class="ms-report-stat-card students">
+      <div class="k">
+        นักเรียนที่มีรายงาน
       </div>
 
-      <div class="filter-empty-title">
-        ติดตามรายงาน มส
+      <div
+        id="msReportStudentCount"
+        class="v"
+      >
+        0
       </div>
 
-      <div class="filter-empty-text">
-        ขั้นถัดไปจะเชื่อมข้อมูลจาก
-        exam_eligibility_reports
-        และแสดงนักเรียนแบบ Card รายบุคคล
+      <div class="s">
+        จำนวนนักเรียนไม่ซ้ำที่พบในผลการค้นหา
+      </div>
+    </div>
+
+
+    <div class="ms-report-stat-card total">
+      <div class="k">
+        รายการรายงานทั้งหมด
       </div>
 
-      <div class="filter-empty-hint">
-        มีสิทธิ์สอบ / มส (ไม่มีสิทธิ์สอบ)
+      <div
+        id="msReportTotalCount"
+        class="v"
+      >
+        0
+      </div>
+
+      <div class="s">
+        จำนวนรายวิชาของนักเรียนทั้งหมดที่ครูรายงาน
+      </div>
+    </div>
+
+
+    <div class="ms-report-stat-card eligible">
+      <div class="k">
+        มีสิทธิ์สอบ
+      </div>
+
+      <div
+        id="msReportEligibleCount"
+        class="v"
+      >
+        0
+      </div>
+
+      <div class="s">
+        รายการที่มีสถานะมีสิทธิ์สอบ
+      </div>
+    </div>
+
+
+    <div class="ms-report-stat-card ms">
+      <div class="k">
+        มส (ไม่มีสิทธิ์สอบ)
+      </div>
+
+      <div
+        id="msReportMsCount"
+        class="v"
+      >
+        0
+      </div>
+
+      <div class="s">
+        รายการที่ครูรายงานว่าไม่มีสิทธิ์สอบ
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       FILTER
+       ===================================================== -->
+  <div class="ms-report-toolbar">
+
+    <div class="field">
+      <span class="label-in-form">
+        ปีการศึกษา
+      </span>
+
+      <input
+        id="msReportFilterYear"
+        class="std"
+        type="number"
+        min="2500"
+        value="2569"
+      >
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">
+        ภาคเรียน
+      </span>
+
+      <select
+        id="msReportFilterTerm"
+        class="std"
+      >
+        <option value="">ทั้งหมด</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">
+        ชั้น
+      </span>
+
+      <select
+        id="msReportFilterClass"
+        class="std"
+      >
+        <option value="">ทั้งหมด</option>
+        <option value="ม.1">ม.1</option>
+        <option value="ม.2">ม.2</option>
+        <option value="ม.3">ม.3</option>
+        <option value="ม.4">ม.4</option>
+        <option value="ม.5">ม.5</option>
+        <option value="ม.6">ม.6</option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">
+        ห้อง
+      </span>
+
+      <select
+        id="msReportFilterRoom"
+        class="std"
+      >
+        <option value="">ทั้งหมด</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">
+        รายวิชา
+      </span>
+
+      <select
+        id="msReportFilterSubject"
+        class="std"
+      >
+        <option value="">
+          ทั้งหมด
+        </option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">
+        ครูผู้สอน
+      </span>
+
+      <select
+        id="msReportFilterTeacher"
+        class="std"
+      >
+        <option value="">
+          ทั้งหมด
+        </option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">
+        สถานะ
+      </span>
+
+      <select
+        id="msReportFilterStatus"
+        class="std"
+      >
+        <option value="">
+          ทั้งหมด
+        </option>
+
+        <option value="eligible">
+          มีสิทธิ์สอบ
+        </option>
+
+        <option value="ms">
+          มส (ไม่มีสิทธิ์สอบ)
+        </option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">
+        ค้นหานักเรียน
+      </span>
+
+      <input
+        id="msReportFilterKeyword"
+        class="std"
+        type="text"
+        placeholder="รหัสนักเรียน / ชื่อ-สกุล"
+      >
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       ACTIVE FILTER / ACTION
+       ===================================================== -->
+  <div class="report-active-filter">
+
+    <div class="left">
+
+      <div class="report-active-pill">
+        นักเรียนที่แสดง:
+        <span
+          id="msReportVisibleStudentCount"
+          style="margin-left:6px;"
+        >
+          0
+        </span>
+      </div>
+
+
+      <div class="report-active-pill">
+        รายการที่แสดง:
+        <span
+          id="msReportVisibleRowCount"
+          style="margin-left:6px;"
+        >
+          0
+        </span>
       </div>
 
     </div>
+
+
+    <div
+      class="actions"
+      style="margin:0;"
+    >
+
+      <button
+        id="msReportClearFilterBtn"
+        class="btn-secondary"
+        type="button"
+      >
+        ล้างตัวกรอง
+      </button>
+
+      <button
+        id="msReportReloadBtn"
+        class="btn-secondary"
+        type="button"
+      >
+        โหลดใหม่
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       STATUS
+       ===================================================== -->
+  <div
+    id="msReportListStatus"
+    class="status info"
+  >
+    ยังไม่ได้โหลดข้อมูลรายงานสิทธิ์สอบ
+  </div>
+
+
+  <!-- =====================================================
+       STUDENT CARD LIST
+       ===================================================== -->
+  <div
+    id="msReportStudentList"
+    class="ms-report-student-list"
+  >
+
+    <div class="filter-empty-state">
+
+      <div class="filter-empty-card">
+
+        <div class="filter-empty-icon">
+          🚫
+        </div>
+
+        <div class="filter-empty-title">
+          ยังไม่ได้โหลดข้อมูล
+        </div>
+
+        <div class="filter-empty-text">
+          ระบบจะแสดงนักเรียนเป็น Card รายบุคคล
+          และแสดงรายการวิชาที่มีการรายงานสิทธิ์สอบ
+          ภายใน Card ของนักเรียนแต่ละคน
+        </div>
+
+        <div class="filter-empty-hint">
+          ข้อมูลจาก exam_eligibility_reports
+        </div>
+
+      </div>
+
+    </div>
+
   </div>
 
 </section>
