@@ -22045,7 +22045,7 @@ async function confirmStudentRenumber(){
 
     /*
      * =====================================================
-     * 2) ตรวจ Admin Session Token
+     * 2) ตรวจ Admin Session
      * =====================================================
      */
 
@@ -22064,37 +22064,321 @@ async function confirmStudentRenumber(){
     }
 
 
+    const confirmBtn =
+      el('studentRenumberConfirmBtn');
+
+
+    if(confirmBtn){
+
+      confirmBtn.disabled = true;
+
+    }
+
+
     /*
      * =====================================================
-     * 3) สร้าง Payload
+     * 3) Helper สำหรับเรียก RPC
+     * =====================================================
+     */
+
+    async function sendRenumberPayload(payload){
+
+      if(
+        !Array.isArray(payload) ||
+        !payload.length
+      ){
+
+        throw new Error(
+          'ไม่พบรายการที่ต้องการเรียงเลขที่'
+        );
+
+      }
+
+
+      const {
+        data,
+        error
+      } = await supabaseClient.rpc(
+        'admin_renumber_students_session',
+        {
+
+          p_token:
+            token,
+
+          p_updates:
+            payload
+
+        }
+      );
+
+
+      if(error){
+
+        throw error;
+
+      }
+
+
+      const result =
+        Array.isArray(data)
+          ? data[0]
+          : data;
+
+
+      if(
+        !result ||
+        result.ok !== true
+      ){
+
+        throw new Error(
+          result?.message ||
+          'บันทึกเลขที่ใหม่ไม่สำเร็จ'
+        );
+
+      }
+
+
+      return result;
+
+    }
+
+
+    /*
+     * =====================================================
+     * 4) กรณีเรียงทั้งโรงเรียน
      *
-     * นักเรียนที่เรียนอยู่:
-     *   ใช้เลขใหม่จาก plan.updates
+     * ไม่ส่ง 1,400+ คนพร้อมกัน
+     * แต่แบ่งส่งทีละ ชั้น/ห้อง
+     * =====================================================
+     */
+
+    if(plan.scope === 'school'){
+
+      /*
+       * -----------------------------------------------
+       * รวม active + ลาออก
+       * -----------------------------------------------
+       */
+
+      const allItems = [
+
+        ...(plan.updates || []).map(
+          item => ({
+            ...item,
+            new_no:
+              Number(item.new_no)
+          })
+        ),
+
+        ...(plan.resignedUpdates || []).map(
+          item => ({
+            ...item,
+            new_no: 0
+          })
+        )
+
+      ];
+
+
+      /*
+       * -----------------------------------------------
+       * แยกเป็นรายห้อง
+       * -----------------------------------------------
+       */
+
+      const roomMap =
+        new Map();
+
+
+      allItems.forEach(item => {
+
+        const classLevel =
+          String(
+            item.classLevel || ''
+          ).trim();
+
+        const room =
+          String(
+            item.room || ''
+          ).trim();
+
+
+        if(
+          !classLevel ||
+          !room
+        ){
+
+          return;
+
+        }
+
+
+        const key =
+          `${classLevel}__${room}`;
+
+
+        if(
+          !roomMap.has(key)
+        ){
+
+          roomMap.set(
+            key,
+            {
+              classLevel,
+              room,
+              items: []
+            }
+          );
+
+        }
+
+
+        roomMap
+          .get(key)
+          .items
+          .push(item);
+
+      });
+
+
+      const roomGroups =
+        Array.from(
+          roomMap.values()
+        );
+
+
+      if(!roomGroups.length){
+
+        throw new Error(
+          'ไม่พบข้อมูลห้องสำหรับเรียงเลขที่'
+        );
+
+      }
+
+
+      /*
+       * -----------------------------------------------
+       * ส่งทีละห้อง
+       * -----------------------------------------------
+       */
+
+      let completedRooms = 0;
+
+      let completedStudents = 0;
+
+
+      for(
+        const group
+        of roomGroups
+      ){
+
+        const payload =
+          group.items.map(
+            item => ({
+
+              id:
+                String(
+                  item.id || ''
+                ).trim(),
+
+              new_no:
+                Number(
+                  item.new_no
+                )
+
+            })
+          );
+
+
+        setStatus(
+          'studentRenumberStatus',
+
+          `กำลังเรียง ${group.classLevel} ห้อง ${group.room}`
+          + ` (${completedRooms + 1}/${roomGroups.length})`
+          + ` จำนวน ${payload.length} คน...`,
+
+          'info'
+        );
+
+
+        await sendRenumberPayload(
+          payload
+        );
+
+
+        completedRooms += 1;
+
+        completedStudents +=
+          payload.length;
+
+      }
+
+
+      /*
+       * -----------------------------------------------
+       * สำเร็จทั้งโรงเรียน
+       * -----------------------------------------------
+       */
+
+      closeStudentRenumberModal();
+
+      clearSelectedStudents();
+
+      await loadStudents();
+
+
+      showToast(
+        'เรียงเลขที่สำเร็จ',
+
+        `เรียงเลขที่ใหม่ทั้งโรงเรียนเรียบร้อยแล้ว `
+        + `${completedRooms} ห้อง `
+        + `${completedStudents} คน`,
+
+        'success'
+      );
+
+
+      return;
+
+    }
+
+
+    /*
+     * =====================================================
+     * 5) กรณีเรียงห้องเดียว
      *
-     * นักเรียนลาออก:
-     *   บังคับเลขที่ = 0
+     * ใช้ระบบเดิม
      * =====================================================
      */
 
     const payload = [
 
-      ...plan.updates.map(
+      ...(plan.updates || []).map(
         item => ({
+
           id:
-            String(item.id || '').trim(),
+            String(
+              item.id || ''
+            ).trim(),
 
           new_no:
-            Number(item.new_no)
+            Number(
+              item.new_no
+            )
+
         })
       ),
 
       ...(plan.resignedUpdates || []).map(
         item => ({
-          id:
-            String(item.id || '').trim(),
 
-          new_no:
-            0
+          id:
+            String(
+              item.id || ''
+            ).trim(),
+
+          new_no: 0
+
         })
       )
 
@@ -22110,76 +22394,32 @@ async function confirmStudentRenumber(){
     }
 
 
-    /*
-     * =====================================================
-     * 4) แสดงสถานะ
-     * =====================================================
-     */
-
     setStatus(
       'studentRenumberStatus',
+
       `กำลังบันทึกเลขที่ใหม่ ${payload.length} รายการ...`,
+
       'info'
     );
 
 
-    /*
-     * =====================================================
-     * 5) Secure Bulk RPC
-     *
-     * Browser ไม่ UPDATE students โดยตรงอีกต่อไป
-     * Database ทำทั้งหมดใน Transaction เดียว
-     * =====================================================
-     */
-
-    const {
-      data,
-      error
-    } = await supabaseClient.rpc(
-      'admin_renumber_students_session',
-      {
-
-        p_token:
-          token,
-
-        p_updates:
-          payload
-
-      }
+    await sendRenumberPayload(
+      payload
     );
 
 
-    if(error){
-
-      throw error;
-
-    }
-
-
-    const result =
-      Array.isArray(data)
-        ? data[0]
-        : data;
-
-
-    if(
-      !result ||
-      result.ok !== true
-    ){
-
-      throw new Error(
-        result?.message ||
-        'บันทึกเลขที่ใหม่ไม่สำเร็จ'
-      );
-
-    }
-
-
     /*
      * =====================================================
-     * 6) สำเร็จ
+     * 6) สำเร็จห้องเดียว
      * =====================================================
      */
+
+    const successClass =
+      plan.classLevel;
+
+    const successRoom =
+      plan.room;
+
 
     closeStudentRenumberModal();
 
@@ -22188,35 +22428,48 @@ async function confirmStudentRenumber(){
     await loadStudents();
 
 
-const successMessage =
-  plan.scope === 'school'
-    ? `เรียงเลขที่ใหม่ทั้งโรงเรียน ปีการศึกษา ${plan.year} จำนวน ${plan.groups.length} ห้อง เรียบร้อยแล้ว`
-    : `เรียงเลขที่ใหม่ ${plan.classLevel} ห้อง ${plan.room} เรียบร้อยแล้ว`;
+    showToast(
+      'เรียงเลขที่สำเร็จ',
 
+      `เรียงเลขที่ใหม่ ${successClass} ห้อง ${successRoom} เรียบร้อยแล้ว`,
 
-showToast(
-  'เรียงเลขที่สำเร็จ',
-  successMessage,
-  'success'
-);
+      'success'
+    );
 
 
   }catch(err){
 
     setStatus(
       'studentRenumberStatus',
+
       err?.message ||
       'บันทึกเลขที่ใหม่ไม่สำเร็จ',
+
       'error'
     );
 
 
     showToast(
       'บันทึกไม่สำเร็จ',
+
       err?.message ||
       'เกิดข้อผิดพลาด',
+
       'error'
     );
+
+
+  }finally{
+
+    const confirmBtn =
+      el('studentRenumberConfirmBtn');
+
+
+    if(confirmBtn){
+
+      confirmBtn.disabled = false;
+
+    }
 
   }
 
