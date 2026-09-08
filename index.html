@@ -5832,12 +5832,32 @@ body.app-booting #appView{
               <div id="studentSelectedCountBox" class="student-bulk-count">เลือกแล้ว 0 รายการ</div>
             </div>
 <div class="actions" style="margin:0;">
-  <button id="studentRenumberRoomBtn" class="btn-warning" type="button">
+
+  <button
+    id="studentRenumberRoomBtn"
+    class="btn-warning"
+    type="button"
+  >
     เรียงเลขที่ใหม่ในห้อง
   </button>
-  <button id="studentDeleteSelectedBtn" class="btn-danger" type="button" disabled>
+
+  <button
+    id="studentRenumberSchoolBtn"
+    class="btn-warning"
+    type="button"
+  >
+    🏫 เรียงเลขที่ใหม่ทั้งโรงเรียน
+  </button>
+
+  <button
+    id="studentDeleteSelectedBtn"
+    class="btn-danger"
+    type="button"
+    disabled
+  >
     ลบรายชื่อที่เลือก
   </button>
+
 </div>
           </div>
 
@@ -21447,6 +21467,470 @@ function buildStudentRenumberPlan(){
   };
 }
 
+    function buildStudentRenumberSchoolPlan(){
+
+  const year = getStudentCurrentAcademicYear();
+
+  /*
+   * =====================================================
+   * 1) คำนวณชั้นปัจจุบันของนักเรียนทุกคน
+   * =====================================================
+   */
+
+  const rows = (state.students || [])
+    .map(row => ({
+      ...row,
+
+      current_class_level:
+        getExpectedClassLevel(
+          row.entry_academic_year,
+          row.entry_level,
+          year
+        )
+    }))
+    .filter(row =>
+      [
+        'ม.1',
+        'ม.2',
+        'ม.3',
+        'ม.4',
+        'ม.5',
+        'ม.6'
+      ].includes(row.current_class_level)
+    )
+    .filter(row =>
+      String(
+        row.current_room || ''
+      ).trim() !== ''
+    );
+
+
+  if(!rows.length){
+
+    throw new Error(
+      `ไม่พบนักเรียนสำหรับปีการศึกษา ${year}`
+    );
+
+  }
+
+
+  /*
+   * =====================================================
+   * 2) แยกนักเรียนตาม ชั้น + ห้อง
+   * =====================================================
+   */
+
+  const groupMap = new Map();
+
+
+  rows.forEach(row => {
+
+    const classLevel =
+      String(
+        row.current_class_level || ''
+      ).trim();
+
+    const room =
+      String(
+        row.current_room || ''
+      ).trim();
+
+    const key =
+      `${classLevel}__${room}`;
+
+
+    if(!groupMap.has(key)){
+
+      groupMap.set(
+        key,
+        {
+          classLevel,
+          room,
+          rows: []
+        }
+      );
+
+    }
+
+
+    groupMap.get(key).rows.push(row);
+
+  });
+
+
+  /*
+   * =====================================================
+   * 3) เรียงกลุ่ม ม.1 → ม.6 และห้อง 1 → 8
+   * =====================================================
+   */
+
+  const getClassOrder = classLevel => {
+
+    const match =
+      String(classLevel || '')
+        .match(/\d+/);
+
+    return match
+      ? Number(match[0])
+      : 999;
+
+  };
+
+
+  const groups =
+    Array.from(
+      groupMap.values()
+    )
+    .sort((a, b) => {
+
+      const classDiff =
+        getClassOrder(a.classLevel) -
+        getClassOrder(b.classLevel);
+
+
+      if(classDiff !== 0){
+        return classDiff;
+      }
+
+
+      const roomA =
+        Number(a.room);
+
+      const roomB =
+        Number(b.room);
+
+
+      if(
+        Number.isFinite(roomA) &&
+        Number.isFinite(roomB) &&
+        roomA !== roomB
+      ){
+        return roomA - roomB;
+      }
+
+
+      return String(a.room)
+        .localeCompare(
+          String(b.room),
+          'th'
+        );
+
+    });
+
+
+  /*
+   * =====================================================
+   * 4) สร้างเลขที่ใหม่แยกทีละห้อง
+   * =====================================================
+   */
+
+  const updates = [];
+
+  const resignedUpdates = [];
+
+  const summaryGroups = [];
+
+
+  groups.forEach(group => {
+
+    const activeRows =
+      group.rows
+        .filter(
+          row =>
+            getStudentStatusText(row) !==
+            'ลาออก'
+        )
+        .sort((a, b) => {
+
+          const genderDiff =
+            getStudentGenderOrder(a) -
+            getStudentGenderOrder(b);
+
+
+          if(genderDiff !== 0){
+            return genderDiff;
+          }
+
+
+          return compareStudentSidForRenumber(
+            a,
+            b
+          );
+
+        });
+
+
+    const resignedRows =
+      group.rows
+        .filter(
+          row =>
+            getStudentStatusText(row) ===
+            'ลาออก'
+        )
+        .sort(
+          compareStudentSidForRenumber
+        );
+
+
+    activeRows.forEach(
+      (row, index) => {
+
+        updates.push({
+
+          id:
+            row.id,
+
+          sid:
+            row.sid,
+
+          raw_full_name:
+            row.raw_full_name,
+
+          classLevel:
+            group.classLevel,
+
+          room:
+            group.room,
+
+          old_no:
+            Number(
+              row.current_no || 0
+            ),
+
+          new_no:
+            index + 1,
+
+          gender_order:
+            getStudentGenderOrder(row)
+
+        });
+
+      }
+    );
+
+
+    resignedRows.forEach(row => {
+
+      resignedUpdates.push({
+
+        id:
+          row.id,
+
+        sid:
+          row.sid,
+
+        raw_full_name:
+          row.raw_full_name,
+
+        classLevel:
+          group.classLevel,
+
+        room:
+          group.room,
+
+        old_no:
+          Number(
+            row.current_no || 0
+          ),
+
+        new_no:
+          0
+
+      });
+
+    });
+
+
+    summaryGroups.push({
+
+      classLevel:
+        group.classLevel,
+
+      room:
+        group.room,
+
+      activeCount:
+        activeRows.length,
+
+      resignedCount:
+        resignedRows.length
+
+    });
+
+  });
+
+
+  if(!updates.length){
+
+    throw new Error(
+      'ไม่พบนักเรียนสถานะเรียนอยู่สำหรับเรียงเลขที่'
+    );
+
+  }
+
+
+  return {
+
+    scope:
+      'school',
+
+    year,
+
+    groups:
+      summaryGroups,
+
+    updates,
+
+    resignedUpdates
+
+  };
+
+}
+    function openStudentRenumberSchoolModal(){
+
+  try{
+
+    const plan =
+      buildStudentRenumberSchoolPlan();
+
+
+    state.pendingRenumberPlan =
+      plan;
+
+
+    const totalStudents =
+      plan.updates.length;
+
+    const totalResigned =
+      plan.resignedUpdates.length;
+
+
+    if(
+      el('studentRenumberSummary')
+    ){
+
+      el(
+        'studentRenumberSummary'
+      ).textContent =
+        `ปีการศึกษา ${plan.year}`
+        + ` | ${plan.groups.length} ห้อง`
+        + ` | เรียนอยู่ ${totalStudents} คน`
+        + ` | ลาออก ${totalResigned} คน`;
+
+    }
+
+
+    /*
+     * Preview แบบสรุปรายห้อง
+     * เพื่อไม่ต้องแสดงนักเรียนมากกว่า 1,000 คน
+     */
+
+    const previewRows =
+      plan.groups.map(group => `
+
+        <tr>
+
+          <td>
+            ${escapeHtml(
+              group.classLevel
+            )}
+          </td>
+
+          <td>
+            ห้อง
+            ${escapeHtml(
+              group.room
+            )}
+          </td>
+
+          <td>
+            ${group.activeCount}
+          </td>
+
+          <td>
+            ${group.resignedCount}
+          </td>
+
+        </tr>
+
+      `).join('');
+
+
+    if(
+      el(
+        'studentRenumberPreviewBox'
+      )
+    ){
+
+      el(
+        'studentRenumberPreviewBox'
+      ).innerHTML = `
+
+        <div
+          style="
+            font-weight:700;
+            margin-bottom:10px;
+          "
+        >
+          ระบบจะเริ่มเลขที่ 1 ใหม่ทุกห้อง
+        </div>
+
+        <table
+          style="
+            min-width:0;
+            width:100%;
+          "
+        >
+
+          <thead>
+
+            <tr>
+              <th>ชั้น</th>
+              <th>ห้อง</th>
+              <th>เรียนอยู่</th>
+              <th>ลาออก</th>
+            </tr>
+
+          </thead>
+
+          <tbody>
+            ${previewRows}
+          </tbody>
+
+        </table>
+
+      `;
+
+    }
+
+
+    setStatus(
+      'studentRenumberStatus',
+      'กรุณาตรวจสอบจำนวนแต่ละห้องก่อนยืนยัน',
+      'warning'
+    );
+
+
+    el(
+      'studentRenumberModal'
+    )?.classList.add(
+      'show'
+    );
+
+
+  }catch(err){
+
+    showToast(
+      'ยังเรียงเลขที่ไม่ได้',
+      err.message ||
+      'กรุณาตรวจสอบข้อมูลนักเรียน',
+      'warning'
+    );
+
+  }
+
+}
+
 function openStudentRenumberModal(){
   try{
     const plan = buildStudentRenumberPlan();
@@ -21704,11 +22188,17 @@ async function confirmStudentRenumber(){
     await loadStudents();
 
 
-    showToast(
-      'เรียงเลขที่สำเร็จ',
-      `เรียงเลขที่ใหม่ ${plan.classLevel} ห้อง ${plan.room} เรียบร้อยแล้ว`,
-      'success'
-    );
+const successMessage =
+  plan.scope === 'school'
+    ? `เรียงเลขที่ใหม่ทั้งโรงเรียน ปีการศึกษา ${plan.year} จำนวน ${plan.groups.length} ห้อง เรียบร้อยแล้ว`
+    : `เรียงเลขที่ใหม่ ${plan.classLevel} ห้อง ${plan.room} เรียบร้อยแล้ว`;
+
+
+showToast(
+  'เรียงเลขที่สำเร็จ',
+  successMessage,
+  'success'
+);
 
 
   }catch(err){
@@ -28784,9 +29274,29 @@ el('cancelEditBtn').addEventListener('click', () => {
     el('studentResignCancelBtn').addEventListener('click', closeStudentResignModal);
     el('studentResignConfirmBtn').addEventListener('click', confirmStudentResign);
 
-    el('studentRenumberRoomBtn').addEventListener('click', openStudentRenumberModal);
-el('studentRenumberCancelBtn').addEventListener('click', closeStudentRenumberModal);
-el('studentRenumberConfirmBtn').addEventListener('click', confirmStudentRenumber);
+el('studentRenumberRoomBtn')
+  .addEventListener(
+    'click',
+    openStudentRenumberModal
+  );
+
+el('studentRenumberSchoolBtn')
+  .addEventListener(
+    'click',
+    openStudentRenumberSchoolModal
+  );
+
+el('studentRenumberCancelBtn')
+  .addEventListener(
+    'click',
+    closeStudentRenumberModal
+  );
+
+el('studentRenumberConfirmBtn')
+  .addEventListener(
+    'click',
+    confirmStudentRenumber
+  );
 
     el('studentSelectAllBtn').addEventListener('click', () => {
       const ids = getFilteredStudents().map(r => r.id);
