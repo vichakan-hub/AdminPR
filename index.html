@@ -21189,26 +21189,105 @@ function closeStudentResignModal(){
 }
 
 async function resignStudentById(studentId){
-  const id = String(studentId || '').trim();
+
+  const id =
+    String(
+      studentId || ''
+    ).trim();
+
 
   if(!id){
-    throw new Error('ไม่พบรหัสรายการนักเรียนที่ต้องการบันทึกลาออก');
+
+    throw new Error(
+      'ไม่พบรหัสรายการนักเรียนที่ต้องการบันทึกลาออก'
+    );
+
   }
 
-  const { error } = await supabaseClient
-    .from('students')
-    .update({
-      student_status: 'ลาออก',
-      is_active: false,
-      current_no: 0,
-      resigned_date: getTodayIsoDateLocal(),
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', id);
 
-  if(error) throw error;
+  /*
+   * =====================================================
+   * 1) ตรวจ Admin Session Token
+   * =====================================================
+   */
 
-  return true;
+  const token =
+    String(
+      state.adminSessionToken || ''
+    ).trim();
+
+
+  if(!token){
+
+    throw new Error(
+      'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+    );
+
+  }
+
+
+  /*
+   * =====================================================
+   * 2) บันทึกลาออกผ่าน Secure Session RPC
+   *
+   * Browser ส่งเพียง:
+   * - Admin Session Token
+   * - Student ID
+   *
+   * Database เป็นผู้กำหนด:
+   * - student_status = ลาออก
+   * - is_active = false
+   * - current_no = 0
+   * - resigned_date
+   * - updated_at
+   * =====================================================
+   */
+
+  const {
+    data,
+    error
+  } = await supabaseClient.rpc(
+    'admin_resign_student_session',
+    {
+
+      p_token:
+        token,
+
+      p_student_id:
+        id
+
+    }
+  );
+
+
+  if(error){
+
+    throw error;
+
+  }
+
+
+  const result =
+    Array.isArray(data)
+      ? data[0]
+      : data;
+
+
+  if(
+    !result ||
+    result.ok !== true
+  ){
+
+    throw new Error(
+      result?.message ||
+      'บันทึกสถานะลาออกไม่สำเร็จ'
+    );
+
+  }
+
+
+  return result;
+
 }
 
 async function confirmStudentResign(){
