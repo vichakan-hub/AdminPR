@@ -10781,6 +10781,100 @@ return `
 
 
 /* =========================================================
+   Exam Eligibility
+   โหลดสถานะนักเรียนจาก students
+   ใช้สำหรับตัดนักเรียนที่ลาออกออกจากหน้าติดตาม มส
+   ========================================================= */
+
+async function loadMsReportStudentStatusMap(){
+
+  const pageSize =
+    1000;
+
+
+  let from =
+    0;
+
+
+  const studentMap =
+    new Map();
+
+
+  while(true){
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from('students')
+        .select(`
+          sid,
+          student_status,
+          resigned_date
+        `)
+        .order(
+          'sid',
+          {
+            ascending:true
+          }
+        )
+        .range(
+          from,
+          from + pageSize - 1
+        );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    const rows =
+      data || [];
+
+
+    rows.forEach(student => {
+
+      const sid =
+        normalizeStudentSid(
+          student.sid || ''
+        );
+
+
+      if(!sid){
+        return;
+      }
+
+
+      studentMap.set(
+        sid,
+        student
+      );
+
+    });
+
+
+    if(
+      rows.length <
+      pageSize
+    ){
+      break;
+    }
+
+
+    from +=
+      pageSize;
+
+  }
+
+
+  return studentMap;
+
+}
+
+
+/* =========================================================
    Load exam_eligibility_reports
    ========================================================= */
 
@@ -10959,7 +11053,111 @@ async function loadMsReportingRows(){
     }
 
 
-    state.msReportRowsRaw =
+    /* =====================================================
+   ตรวจสถานะนักเรียนจาก students
+   student_code ↔ sid
+   ===================================================== */
+
+const studentStatusMap =
+  await loadMsReportStudentStatusMap();
+
+
+const resignedStudentCodes =
+  new Set();
+
+
+let resignedReportRowCount =
+  0;
+
+
+/*
+ * เก็บเฉพาะนักเรียนที่ไม่ได้ลาออก
+ *
+ * ถ้ารหัสนักเรียนไม่พบใน students
+ * จะยังคงแสดงไว้ เพื่อไม่ให้ข้อมูลหายโดยไม่ทราบสาเหตุ
+ */
+allRows =
+  allRows.filter(row => {
+
+    const sid =
+      normalizeStudentSid(
+        row.student_code || ''
+      );
+
+
+    if(!sid){
+
+      /*
+       * ข้อมูลรายงานไม่มี student_code
+       * ยังไม่ตัดทิ้ง
+       */
+      return true;
+
+    }
+
+
+    const student =
+      studentStatusMap.get(
+        sid
+      );
+
+
+    /*
+     * ไม่มีข้อมูลใน students
+     * ยังให้แสดง
+     */
+    if(!student){
+      return true;
+    }
+
+
+    const studentStatus =
+      String(
+        student.student_status || ''
+      ).trim();
+
+
+    const isResigned =
+      studentStatus ===
+      'ลาออก';
+
+
+    if(isResigned){
+
+      resignedStudentCodes.add(
+        sid
+      );
+
+
+      resignedReportRowCount +=
+        1;
+
+
+      return false;
+
+    }
+
+
+    return true;
+
+  });
+
+
+console.info(
+  '[MS Report] ซ่อนนักเรียนลาออก:',
+  resignedStudentCodes.size,
+  'คน /',
+  resignedReportRowCount,
+  'รายการ'
+);
+
+
+/*
+ * หลังตัดนักเรียนลาออกแล้ว
+ * จึงค่อยส่งเข้า state
+ */
+state.msReportRowsRaw =
+  allRows;
       allRows;
 
 
@@ -10975,6 +11173,25 @@ async function loadMsReportingRows(){
        ===================================================== */
 
     applyMsReportFiltersAndRender();
+
+    if(
+  resignedStudentCodes.size > 0 &&
+  allRows.length > 0
+){
+
+  setStatus(
+    'msReportListStatus',
+
+    `โหลดข้อมูลเรียบร้อย • ซ่อนนักเรียนที่ลาออกแล้ว ${
+      resignedStudentCodes.size
+    } คน (${
+      resignedReportRowCount
+    } รายการ)`,
+
+    'success'
+  );
+
+}
 
 
     if(!allRows.length){
