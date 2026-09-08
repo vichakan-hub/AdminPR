@@ -21527,46 +21527,182 @@ function closeStudentRenumberModal(){
   setStatus('studentRenumberStatus', '', 'info');
 }
 
-async function updateStudentCurrentNo(studentId, currentNo){
-  const { error } = await supabaseClient
-    .from('students')
-    .update({
-      current_no: currentNo,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', studentId);
 
-  if(error) throw error;
-}
 
 async function confirmStudentRenumber(){
-  try{
-    const plan = state.pendingRenumberPlan;
 
-    if(!plan || !Array.isArray(plan.updates)){
-      setStatus('studentRenumberStatus', 'ไม่พบข้อมูลสำหรับเรียงเลขที่ใหม่', 'error');
+  try{
+
+    /*
+     * =====================================================
+     * 1) ตรวจแผนเรียงเลขที่
+     * =====================================================
+     */
+
+    const plan =
+      state.pendingRenumberPlan;
+
+
+    if(
+      !plan ||
+      !Array.isArray(plan.updates)
+    ){
+
+      setStatus(
+        'studentRenumberStatus',
+        'ไม่พบข้อมูลสำหรับเรียงเลขที่ใหม่',
+        'error'
+      );
+
       return;
+
     }
+
+
+    /*
+     * =====================================================
+     * 2) ตรวจ Admin Session Token
+     * =====================================================
+     */
+
+    const token =
+      String(
+        state.adminSessionToken || ''
+      ).trim();
+
+
+    if(!token){
+
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+
+    }
+
+
+    /*
+     * =====================================================
+     * 3) สร้าง Payload
+     *
+     * นักเรียนที่เรียนอยู่:
+     *   ใช้เลขใหม่จาก plan.updates
+     *
+     * นักเรียนลาออก:
+     *   บังคับเลขที่ = 0
+     * =====================================================
+     */
+
+    const payload = [
+
+      ...plan.updates.map(
+        item => ({
+          id:
+            String(item.id || '').trim(),
+
+          new_no:
+            Number(item.new_no)
+        })
+      ),
+
+      ...(plan.resignedUpdates || []).map(
+        item => ({
+          id:
+            String(item.id || '').trim(),
+
+          new_no:
+            0
+        })
+      )
+
+    ];
+
+
+    if(!payload.length){
+
+      throw new Error(
+        'ไม่พบรายการที่ต้องการเรียงเลขที่'
+      );
+
+    }
+
+
+    /*
+     * =====================================================
+     * 4) แสดงสถานะ
+     * =====================================================
+     */
 
     setStatus(
       'studentRenumberStatus',
-      `กำลังบันทึกเลขที่ใหม่ ${plan.updates.length} รายการ...`,
+      `กำลังบันทึกเลขที่ใหม่ ${payload.length} รายการ...`,
       'info'
     );
 
-    for(const item of plan.updates){
-      await updateStudentCurrentNo(item.id, item.new_no);
+
+    /*
+     * =====================================================
+     * 5) Secure Bulk RPC
+     *
+     * Browser ไม่ UPDATE students โดยตรงอีกต่อไป
+     * Database ทำทั้งหมดใน Transaction เดียว
+     * =====================================================
+     */
+
+    const {
+      data,
+      error
+    } = await supabaseClient.rpc(
+      'admin_renumber_students_session',
+      {
+
+        p_token:
+          token,
+
+        p_updates:
+          payload
+
+      }
+    );
+
+
+    if(error){
+
+      throw error;
+
     }
 
-    for(const item of plan.resignedUpdates || []){
-      if(Number(item.old_no || 0) !== 0){
-        await updateStudentCurrentNo(item.id, 0);
-      }
+
+    const result =
+      Array.isArray(data)
+        ? data[0]
+        : data;
+
+
+    if(
+      !result ||
+      result.ok !== true
+    ){
+
+      throw new Error(
+        result?.message ||
+        'บันทึกเลขที่ใหม่ไม่สำเร็จ'
+      );
+
     }
+
+
+    /*
+     * =====================================================
+     * 6) สำเร็จ
+     * =====================================================
+     */
 
     closeStudentRenumberModal();
+
     clearSelectedStudents();
+
     await loadStudents();
+
 
     showToast(
       'เรียงเลขที่สำเร็จ',
@@ -21574,10 +21710,26 @@ async function confirmStudentRenumber(){
       'success'
     );
 
+
   }catch(err){
-    setStatus('studentRenumberStatus', err.message || 'บันทึกเลขที่ใหม่ไม่สำเร็จ', 'error');
-    showToast('บันทึกไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+
+    setStatus(
+      'studentRenumberStatus',
+      err?.message ||
+      'บันทึกเลขที่ใหม่ไม่สำเร็จ',
+      'error'
+    );
+
+
+    showToast(
+      'บันทึกไม่สำเร็จ',
+      err?.message ||
+      'เกิดข้อผิดพลาด',
+      'error'
+    );
+
   }
+
 }
 
   function openDeleteStudentsModal(studentIds){
