@@ -22063,6 +22063,123 @@ async function confirmStudentRenumber(){
 
     }
 
+    /*
+ * =====================================================
+ * เรียงเลขที่ใหม่ทั้งโรงเรียน
+ * ใช้ RPC ฝั่ง Database โดยตรง
+ * =====================================================
+ */
+
+if(plan.scope === 'school'){
+
+  const academicYear =
+    Number(
+      plan.year ||
+      getStudentCurrentAcademicYear()
+    );
+
+
+  if(
+    !Number.isFinite(academicYear) ||
+    academicYear < 2500
+  ){
+
+    throw new Error(
+      'ปีการศึกษาไม่ถูกต้อง'
+    );
+
+  }
+
+
+  const confirmBtn =
+    el('studentRenumberConfirmBtn');
+
+
+  if(confirmBtn){
+    confirmBtn.disabled = true;
+  }
+
+
+  setStatus(
+    'studentRenumberStatus',
+    `กำลังเรียงเลขที่ใหม่ทั้งโรงเรียน ปีการศึกษา ${academicYear}...`,
+    'info'
+  );
+
+
+  /*
+   * เรียก RPC ตัวใหม่
+   */
+
+  const {
+    data,
+    error
+  } = await supabaseClient.rpc(
+    'admin_renumber_all_students_session',
+    {
+      p_token:
+        token,
+
+      p_academic_year:
+        academicYear
+    }
+  );
+
+
+  if(error){
+    throw error;
+  }
+
+
+  const result =
+    Array.isArray(data)
+      ? data[0]
+      : data;
+
+
+  if(
+    !result ||
+    result.ok !== true
+  ){
+
+    throw new Error(
+      result?.message ||
+      'เรียงเลขที่ใหม่ทั้งโรงเรียนไม่สำเร็จ'
+    );
+
+  }
+
+
+  /*
+   * โหลดข้อมูลใหม่จาก students
+   */
+
+  closeStudentRenumberModal();
+
+  clearSelectedStudents();
+
+  await loadStudents();
+
+
+  /*
+   * แจ้งผล
+   */
+
+  showToast(
+    'เรียงเลขที่สำเร็จ',
+
+    `ปีการศึกษา ${academicYear}`
+    + ` | ${Number(result.room_count || 0)} ห้อง`
+    + ` | นักเรียน ${Number(result.student_count || 0)} คน`
+    + ` | ลาออก ${Number(result.resigned_count || 0)} คน`,
+
+    'success'
+  );
+
+
+  return;
+}
+
 
     const confirmBtn =
       el('studentRenumberConfirmBtn');
