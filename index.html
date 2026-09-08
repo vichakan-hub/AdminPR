@@ -11247,6 +11247,289 @@ function getMsReportPdfRows(){
 
 }
 
+/* =========================================================
+   Thai PDF Text Renderer
+   ให้ Browser Canvas จัดวางสระ/วรรณยุกต์ภาษาไทย
+   ========================================================= */
+
+function createThaiPdfTextImage(
+  text,
+  options = {}
+){
+
+  const value =
+    String(
+      text ?? ''
+    );
+
+
+  const scale =
+    4;
+
+
+  const fontPx =
+    Number(
+      options.fontPx || 24
+    );
+
+
+  const weight =
+    String(
+      options.weight || '400'
+    );
+
+
+  const color =
+    options.color ||
+    '#233246';
+
+
+  const paddingX =
+    8;
+
+
+  const paddingY =
+    6;
+
+
+  const canvas =
+    document.createElement(
+      'canvas'
+    );
+
+
+  let ctx =
+    canvas.getContext(
+      '2d'
+    );
+
+
+  ctx.font =
+    `${weight} ${fontPx * scale}px "Sarabun", sans-serif`;
+
+
+  const metrics =
+    ctx.measureText(
+      value
+    );
+
+
+  canvas.width =
+    Math.ceil(
+      metrics.width +
+      (
+        paddingX *
+        scale *
+        2
+      )
+    );
+
+
+  canvas.height =
+    Math.ceil(
+      (
+        fontPx *
+        1.75 *
+        scale
+      ) +
+      (
+        paddingY *
+        scale *
+        2
+      )
+    );
+
+
+  ctx =
+    canvas.getContext(
+      '2d'
+    );
+
+
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+
+  ctx.font =
+    `${weight} ${fontPx * scale}px "Sarabun", sans-serif`;
+
+
+  ctx.textBaseline =
+    'middle';
+
+
+  ctx.fillStyle =
+    color;
+
+
+  ctx.fillText(
+    value,
+    paddingX * scale,
+    canvas.height / 2
+  );
+
+
+  return {
+
+    dataUrl:
+      canvas.toDataURL(
+        'image/png'
+      ),
+
+    width:
+      canvas.width,
+
+    height:
+      canvas.height
+
+  };
+
+}
+
+
+/* =========================================================
+   วางข้อความภาษาไทยลง PDF
+   ========================================================= */
+
+function drawThaiPdfText(
+  doc,
+  text,
+  options = {}
+){
+
+  const value =
+    String(
+      text ?? ''
+    );
+
+
+  if(!value){
+    return;
+  }
+
+
+  const image =
+    createThaiPdfTextImage(
+      value,
+      {
+        fontPx:
+          options.fontPx || 24,
+
+        weight:
+          options.weight || '400',
+
+        color:
+          options.color || '#233246'
+      }
+    );
+
+
+  let height =
+    Number(
+      options.height || 4
+    );
+
+
+  let width =
+    height *
+    (
+      image.width /
+      image.height
+    );
+
+
+  const maxWidth =
+    Number(
+      options.maxWidth ||
+      width
+    );
+
+
+  /*
+   * ถ้าข้อความยาวกว่าพื้นที่
+   * ย่อให้พอดีโดยรักษาอัตราส่วน
+   */
+  if(
+    width >
+    maxWidth
+  ){
+
+    const ratio =
+      maxWidth /
+      width;
+
+
+    width =
+      maxWidth;
+
+
+    height *=
+      ratio;
+
+  }
+
+
+  const x =
+    Number(
+      options.x || 0
+    );
+
+
+  const y =
+    Number(
+      options.y || 0
+    );
+
+
+  let drawX =
+    x;
+
+
+  if(
+    options.align ===
+    'center'
+  ){
+
+    drawX =
+      x +
+      (
+        maxWidth -
+        width
+      ) / 2;
+
+  }
+
+
+  if(
+    options.align ===
+    'right'
+  ){
+
+    drawX =
+      x +
+      maxWidth -
+      width;
+
+  }
+
+
+  doc.addImage(
+    image.dataUrl,
+    'PNG',
+    drawX,
+    y,
+    width,
+    height,
+    undefined,
+    'FAST'
+  );
+
+}
+
 
 function getMsPdfTeacherShortName(fullName){
 
@@ -11384,6 +11667,29 @@ const doc =
     await prepareMidtermPdfThaiFont(
       doc
     );
+
+    /*
+ * สำคัญ
+ * รอ Browser โหลด Sarabun ก่อนใช้ Canvas
+ */
+if(
+  document.fonts &&
+  document.fonts.load
+){
+
+  await Promise.all([
+
+    document.fonts.load(
+      '400 24px Sarabun'
+    ),
+
+    document.fonts.load(
+      '700 24px Sarabun'
+    )
+
+  ]);
+
+}
 
 
     /* =====================================================
@@ -11908,10 +12214,36 @@ doc.setTextColor(
 );
 
 
-doc.text(
+drawThaiPdfText(
+  doc,
   studentLine,
-  marginLeft,
-  nextStartY
+  {
+    x:
+      marginLeft,
+
+    y:
+      nextStartY - 3.4,
+
+    maxWidth:
+      pageWidth -
+      marginLeft -
+      marginRight,
+
+    height:
+      4.2,
+
+    fontPx:
+      26,
+
+    weight:
+      '700',
+
+    color:
+      '#17324a',
+
+    align:
+      'left'
+  }
 );
 
 
@@ -12152,20 +12484,272 @@ columnStyles:{
 
 },
 
+  /* =================================================
+   ซ่อนข้อความไทยที่ AutoTable จะวาดเอง
+   แล้วเก็บไว้ให้ Canvas วาดภายหลัง
+   ================================================= */
 
-          /* =================================================
-             วาดช่องสี่เหลี่ยม "แก้แล้ว"
-             และเส้นลงชื่อครู
-             ================================================= */
+didParseCell(data){
 
-          didDrawCell(data){
+  const rawText =
+    Array.isArray(
+      data.cell.text
+    )
+      ? data.cell.text.join(' ')
+      : String(
+          data.cell.raw ?? ''
+        );
 
-            if(
-              data.section !==
-              'body'
-            ){
-              return;
-            }
+
+  /*
+   * ตรวจว่ามีอักขระไทย
+   */
+  const hasThai =
+    /[\u0E00-\u0E7F]/.test(
+      rawText
+    );
+
+
+  if(!hasThai){
+    return;
+  }
+
+
+  /*
+   * หัวตารางทุกช่องที่เป็นไทย
+   * และ body คอลัมน์ 0-4
+   */
+  if(
+    data.section === 'head' ||
+    (
+      data.section === 'body' &&
+      data.column.index <= 4
+    )
+  ){
+
+    data.cell._thaiCanvasText =
+      rawText;
+
+
+    /*
+     * ไม่ให้ jsPDF วาดข้อความเดิม
+     */
+    data.cell.text =
+      [''];
+
+  }
+
+},
+
+
+didDrawCell(data){
+
+  /* =====================================================
+     1. วาดข้อความไทยด้วย Browser Canvas
+     ===================================================== */
+
+  if(
+    data.cell._thaiCanvasText
+  ){
+
+    const text =
+      String(
+        data.cell._thaiCanvasText
+      );
+
+
+    const isHead =
+      data.section ===
+      'head';
+
+
+    const isCenter =
+
+      isHead ||
+
+      data.column.index === 3 ||
+
+      data.column.index === 4;
+
+
+    const cellPadding =
+      1.4;
+
+
+    const availableWidth =
+      Math.max(
+        1,
+        data.cell.width -
+        (
+          cellPadding *
+          2
+        )
+      );
+
+
+    const textHeight =
+      isHead
+        ? 3.8
+        : 3.6;
+
+
+    drawThaiPdfText(
+      doc,
+      text,
+      {
+
+        x:
+          data.cell.x +
+          cellPadding,
+
+        y:
+          data.cell.y +
+          (
+            data.cell.height -
+            textHeight
+          ) / 2,
+
+        maxWidth:
+          availableWidth,
+
+        height:
+          textHeight,
+
+        fontPx:
+          isHead
+            ? 24
+            : 23,
+
+        weight:
+          isHead
+            ? '700'
+            : '400',
+
+        color:
+          '#233246',
+
+        align:
+          isCenter
+            ? 'center'
+            : 'left'
+
+      }
+    );
+
+  }
+
+
+  /* =====================================================
+     ต่อจากนี้เฉพาะ body
+     ===================================================== */
+
+  if(
+    data.section !==
+    'body'
+  ){
+    return;
+  }
+
+
+  /* =====================================================
+     Column 5 = แก้แล้ว
+     ===================================================== */
+
+  if(
+    data.column.index ===
+    5
+  ){
+
+    const size =
+      3.6;
+
+
+    const x =
+      data.cell.x +
+      (
+        data.cell.width -
+        size
+      ) / 2;
+
+
+    const y =
+      data.cell.y +
+      (
+        data.cell.height -
+        size
+      ) / 2;
+
+
+    doc.setDrawColor(
+      70,
+      80,
+      90
+    );
+
+
+    doc.setLineWidth(
+      0.3
+    );
+
+
+    doc.rect(
+      x,
+      y,
+      size,
+      size
+    );
+
+  }
+
+
+  /* =====================================================
+     Column 6 = ลงชื่อครู
+     ===================================================== */
+
+  if(
+    data.column.index ===
+    6
+  ){
+
+    const x1 =
+      data.cell.x +
+      5;
+
+
+    const x2 =
+      data.cell.x +
+      data.cell.width -
+      5;
+
+
+    const y =
+      data.cell.y +
+      data.cell.height -
+      1.8;
+
+
+    doc.setDrawColor(
+      90,
+      100,
+      110
+    );
+
+
+    doc.setLineWidth(
+      0.2
+    );
+
+
+    doc.line(
+      x1,
+      y,
+      x2,
+      y
+    );
+
+  }
+
+},
 
 
             /* ---------------------------------------------
@@ -12307,10 +12891,33 @@ const y =
             );
 
 
-doc.text(
+drawThaiPdfText(
+  doc,
   `${student.student_code || ''} ${student.student_name || ''} (ต่อ)`.trim(),
-  marginLeft,
-  11
+  {
+    x:
+      marginLeft,
+
+    y:
+      7,
+
+    maxWidth:
+      pageWidth -
+      marginLeft -
+      marginRight,
+
+    height:
+      4,
+
+    fontPx:
+      24,
+
+    weight:
+      '700',
+
+    color:
+      '#17324a'
+  }
 );
 
           }
