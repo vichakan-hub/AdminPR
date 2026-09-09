@@ -16120,31 +16120,184 @@ function getTransferTerm(){
 }
 
 function getTransferClassLevel(){
-  if(!state.transferStudent) return null;
-  const year = getTransferAcademicYear();
-  return getExpectedClassLevel(
-    state.transferStudent.entry_academic_year,
-    state.transferStudent.entry_level,
-    year
+
+  if(!state.transferStudent){
+    return null;
+  }
+
+
+  const year =
+    getTransferAcademicYear();
+
+
+  const studentInfo =
+    getStudentMasterInfo(
+      state.transferStudent.sid,
+      year
+    );
+
+
+  return (
+    studentInfo?.class_level ||
+    null
   );
+
 }
 
 function updateTransferStudentComputedFields(){
-  const classLevel = getTransferClassLevel();
-  const room = state.transferStudent?.current_room || '';
 
-  if(el('transferClassLevelBox')){
-    el('transferClassLevelBox').textContent = classLevel || '-';
+  if(!state.transferStudent){
+    return;
   }
 
-  if(el('transferRoomInput') && !el('transferRoomInput').value.trim()){
-    el('transferRoomInput').value = room || '';
+
+  const year =
+    getTransferAcademicYear();
+
+
+  const studentInfo =
+    getStudentMasterInfo(
+      state.transferStudent.sid,
+      year
+    );
+
+
+  if(!studentInfo){
+    return;
   }
 
-  if(state.transferStudent && el('transferStudentMetaBox')){
-    el('transferStudentMetaBox').textContent =
-      `ปีเข้า ${state.transferStudent.entry_academic_year || '-'} | แรกเข้า ${state.transferStudent.entry_level || '-'} | ชั้นที่คำนวณได้ ${classLevel || '-'} | ห้อง ${el('transferRoomInput')?.value || '-'}`;
+
+  const classLevel =
+    studentInfo.class_level ||
+    '-';
+
+
+  const room =
+    String(
+      studentInfo.room || ''
+    ).trim();
+
+
+  const studentNo =
+    studentInfo.student_no ??
+    '-';
+
+
+  const studentStatus =
+    String(
+      studentInfo.student_status ||
+      'ไม่ระบุ'
+    ).trim();
+
+
+  /* ===============================
+     ชั้น
+     =============================== */
+
+  if(
+    el('transferClassLevelBox')
+  ){
+
+    el(
+      'transferClassLevelBox'
+    ).textContent =
+      classLevel;
+
   }
+
+
+  /* ===============================
+     ห้อง
+     ใช้ current_room ล่าสุดเป็นค่าเริ่มต้น
+     แต่ยังอนุญาตให้ Admin แก้เองได้
+     =============================== */
+
+  if(
+    el('transferRoomInput') &&
+    !el('transferRoomInput')
+      .value
+      .trim()
+  ){
+
+    el(
+      'transferRoomInput'
+    ).value =
+      room;
+
+  }
+
+
+  /* ===============================
+     ข้อมูลนักเรียน
+     =============================== */
+
+  if(
+    el('transferStudentMetaBox')
+  ){
+
+    const statusClass =
+      studentStatus === 'ลาออก'
+        ? 'red'
+        : 'green';
+
+
+    el(
+      'transferStudentMetaBox'
+    ).innerHTML = `
+
+      ปีเข้า ${
+        escapeHtml(
+          String(
+            state.transferStudent
+              .entry_academic_year ||
+            '-'
+          )
+        )
+      }
+
+      • แรกเข้า ${
+        escapeHtml(
+          String(
+            state.transferStudent
+              .entry_level ||
+            '-'
+          )
+        )
+      }
+
+      • ชั้น ${
+        escapeHtml(
+          String(classLevel)
+        )
+      }
+
+      • ห้อง ${
+        escapeHtml(
+          String(
+            room || '-'
+          )
+        )
+      }
+
+      • เลขที่ ${
+        escapeHtml(
+          String(studentNo)
+        )
+      }
+
+      •
+      <span class="badge ${statusClass}">
+        ${
+          escapeHtml(
+            studentStatus
+          )
+        }
+      </span>
+
+    `;
+
+  }
+
 }
 
 function findTransferTeacherById(teacherId){
@@ -16323,7 +16476,16 @@ async function findTransferStudent(){
     return;
   }
 
-  const student = (state.students || []).find(s => normalizeStudentSid(s.sid) === sid);
+  /*
+ * โหลด Student Master ล่าสุดก่อนค้น
+ */
+await refreshStudentMaster();
+
+
+const student =
+  getStudentMasterBySid(
+    sid
+  );
 
   if(!student){
     state.transferStudent = null;
@@ -16350,13 +16512,42 @@ async function findTransferStudent(){
 
   state.transferStudent = student;
 
-  if(el('transferStudentInfoBox')){
-    el('transferStudentInfoBox').textContent = `${student.sid || '-'} | ${student.raw_full_name || '-'}`;
-  }
+const studentInfo =
+  getStudentMasterInfo(
+    sid,
+    getTransferAcademicYear()
+  );
 
-  if(el('transferRoomInput')){
-    el('transferRoomInput').value = student.current_room || '';
-  }
+
+if(
+  el('transferStudentInfoBox')
+){
+
+  el(
+    'transferStudentInfoBox'
+  ).textContent =
+    `${
+      studentInfo?.sid ||
+      sid
+    } | ${
+      studentInfo?.student_name ||
+      student.raw_full_name ||
+      '-'
+    }`;
+
+}
+
+if(
+  el('transferRoomInput')
+){
+
+  el(
+    'transferRoomInput'
+  ).value =
+    studentInfo?.room ||
+    '';
+
+}
 
   if(el('transferPasteBox')){
     el('transferPasteBox').value = '';
@@ -16386,11 +16577,22 @@ async function findTransferStudent(){
       'success'
     );
 
-    showToast(
-      'พบนักเรียน',
-      `${student.sid || ''} ${student.raw_full_name || ''}`,
-      'success'
-    );
+showToast(
+  'พบนักเรียน',
+
+  `${
+    studentInfo?.sid ||
+    student.sid ||
+    ''
+  } ${
+    studentInfo?.student_name ||
+    student.raw_full_name ||
+    ''
+  }`,
+
+  'success'
+);
+    
   }catch(err){
     state.transferRows = [];
     state.transferValidatedRows = [];
