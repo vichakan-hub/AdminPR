@@ -10307,33 +10307,42 @@ function renderMsReportStudentCards(rows){
 
     if(!studentMap.has(key)){
 
-      studentMap.set(
-        key,
-        {
-          student_code:
-            studentCode,
+studentMap.set(
+  key,
+  {
+    student_code:
+      studentCode,
 
-          student_name:
-            normalizeName(
-              row.student_name || ''
-            ),
+    student_name:
+      normalizeName(
+        row.student_name || ''
+      ),
 
-          class_level:
-            String(
-              row.class_level || ''
-            ).trim(),
+    class_level:
+      String(
+        row.class_level || ''
+      ).trim(),
 
-          room:
-            String(
-              row.room || ''
-            ).trim(),
+    room:
+      String(
+        row.room || ''
+      ).trim(),
 
-          student_no:
-            row.student_no,
+    student_no:
+      row.student_no,
 
-          rows: []
-        }
-      );
+    student_status:
+      String(
+        row.student_status || ''
+      ).trim(),
+
+    student_master_found:
+      row.student_master_found ===
+      true,
+
+    rows: []
+  }
+);
 
     }
 
@@ -10727,7 +10736,15 @@ return `
                       : ''
                   }
 
-                  • ${studentRows.length} รายการ
+                ${
+  student.student_master_found
+    ? ` • สถานะ ${escapeHtml(
+        student.student_status || 'ไม่ระบุ'
+      )}`
+    : ' • ⚠️ ไม่พบข้อมูลใน students'
+}
+
+• ${studentRows.length} รายการ
 
                 </div>
 
@@ -10792,103 +10809,8 @@ return `
 }
 
 
-/* =========================================================
-   Exam Eligibility
-   โหลดสถานะนักเรียนจาก students
-   ใช้สำหรับตัดนักเรียนที่ลาออกออกจากหน้าติดตาม มส
-   ========================================================= */
-
-async function loadMsReportStudentStatusMap(){
-
-  const pageSize =
-    1000;
 
 
-  let from =
-    0;
-
-
-  const studentMap =
-    new Map();
-
-
-  while(true){
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .from('students')
-        .select(`
-          sid,
-          student_status,
-          resigned_date
-        `)
-        .order(
-          'sid',
-          {
-            ascending:true
-          }
-        )
-        .range(
-          from,
-          from + pageSize - 1
-        );
-
-
-    if(error){
-      throw error;
-    }
-
-
-    const rows =
-      data || [];
-
-
-    rows.forEach(student => {
-
-      const sid =
-        normalizeStudentSid(
-          student.sid || ''
-        );
-
-
-      if(!sid){
-        return;
-      }
-
-
-      studentMap.set(
-        sid,
-        student
-      );
-
-    });
-
-
-    if(
-      rows.length <
-      pageSize
-    ){
-      break;
-    }
-
-
-    from +=
-      pageSize;
-
-  }
-
-
-  return studentMap;
-
-}
-
-
-/* =========================================================
-   Load exam_eligibility_reports
-   ========================================================= */
 
 async function loadMsReportingRows(){
 
@@ -10905,7 +10827,7 @@ async function loadMsReportingRows(){
 
     setStatus(
       'msReportListStatus',
-      'กำลังโหลดข้อมูลรายงานสิทธิ์สอบ...',
+      'กำลังโหลดข้อมูลรายงานสิทธิ์สอบและตรวจสอบข้อมูลนักเรียนล่าสุด...',
       'info'
     );
 
@@ -10934,8 +10856,7 @@ async function loadMsReportingRows(){
 
 
     /* =====================================================
-       Pagination
-       Supabase ปกติจำกัดข้อมูลต่อรอบ
+       1. โหลด exam_eligibility_reports
        ===================================================== */
 
     const pageSize =
@@ -10946,7 +10867,7 @@ async function loadMsReportingRows(){
       0;
 
 
-    let allRows =
+    let reportRows =
       [];
 
 
@@ -11042,17 +10963,17 @@ async function loadMsReportingRows(){
       }
 
 
-      const pageRows =
+      const batch =
         data || [];
 
 
-      allRows.push(
-        ...pageRows
+      reportRows.push(
+        ...batch
       );
 
 
       if(
-        pageRows.length <
+        batch.length <
         pageSize
       ){
         break;
@@ -11066,156 +10987,242 @@ async function loadMsReportingRows(){
 
 
     /* =====================================================
-   ตรวจสถานะนักเรียนจาก students
-   student_code ↔ sid
-   ===================================================== */
+       2. โหลด Student Master ล่าสุด
+       ===================================================== */
 
-const studentStatusMap =
-  await loadMsReportStudentStatusMap();
-
-
-const resignedStudentCodes =
-  new Set();
-
-
-let resignedReportRowCount =
-  0;
-
-
-/*
- * เก็บเฉพาะนักเรียนที่ไม่ได้ลาออก
- *
- * ถ้ารหัสนักเรียนไม่พบใน students
- * จะยังคงแสดงไว้ เพื่อไม่ให้ข้อมูลหายโดยไม่ทราบสาเหตุ
- */
-allRows =
-  allRows.filter(row => {
-
-    const sid =
-      normalizeStudentSid(
-        row.student_code || ''
-      );
-
-
-    if(!sid){
-
-      /*
-       * ข้อมูลรายงานไม่มี student_code
-       * ยังไม่ตัดทิ้ง
-       */
-      return true;
-
-    }
-
-
-    const student =
-      studentStatusMap.get(
-        sid
-      );
-
-
-    /*
-     * ไม่มีข้อมูลใน students
-     * ยังให้แสดง
-     */
-    if(!student){
-      return true;
-    }
-
-
-    const studentStatus =
-      String(
-        student.student_status || ''
-      ).trim();
-
-
-    const isResigned =
-      studentStatus ===
-      'ลาออก';
-
-
-    if(isResigned){
-
-      resignedStudentCodes.add(
-        sid
-      );
-
-
-      resignedReportRowCount +=
-        1;
-
-
-      return false;
-
-    }
-
-
-    return true;
-
-  });
-
-
-console.info(
-  '[MS Report] ซ่อนนักเรียนลาออก:',
-  resignedStudentCodes.size,
-  'คน /',
-  resignedReportRowCount,
-  'รายการ'
-);
-
-
-/*
- * หลังตัดนักเรียนลาออกแล้ว
- * จึงค่อยส่งเข้า state
- */
-state.msReportRowsRaw =
-  allRows;
-      allRows;
+    await refreshStudentMaster();
 
 
     /* =====================================================
-       เติมรายวิชา / ครูลง dropdown
+       3. เอาข้อมูลนักเรียนล่าสุดจาก students
+          มาครอบข้อมูลใน exam_eligibility_reports
+
+       student_code ↔ students.sid
+       ===================================================== */
+
+    const enrichedRows =
+      enrichRowsWithStudentMaster(
+        reportRows,
+        {
+          codeField:
+            'student_code'
+        }
+      );
+
+
+    /* =====================================================
+       4. ตรวจนักเรียนที่ไม่พบใน Student Master
+       ===================================================== */
+
+    const missingStudentCodes =
+      new Set();
+
+
+    enrichedRows.forEach(row => {
+
+      if(
+        row.student_master_found ===
+        false
+      ){
+
+        const code =
+          normalizeStudentSid(
+            row.student_code || ''
+          );
+
+
+        if(code){
+
+          missingStudentCodes.add(
+            code
+          );
+
+        }
+
+      }
+
+    });
+
+
+    if(
+      missingStudentCodes.size >
+      0
+    ){
+
+      console.warn(
+        '[MS Report] ไม่พบรหัสนักเรียนใน students:',
+        Array.from(
+          missingStudentCodes
+        )
+      );
+
+    }
+
+
+    /* =====================================================
+       5. ซ่อนนักเรียนที่ลาออก
+       ===================================================== */
+
+    const resignedStudentCodes =
+      new Set();
+
+
+    let resignedReportRowCount =
+      0;
+
+
+    const visibleRows =
+      enrichedRows.filter(row => {
+
+        /*
+         * ถ้าหาใน Student Master ไม่เจอ
+         * ยังให้แสดง เพื่อไม่ทำข้อมูลหาย
+         */
+        if(
+          row.student_master_found ===
+          false
+        ){
+          return true;
+        }
+
+
+        const studentStatus =
+          String(
+            row.student_status || ''
+          ).trim();
+
+
+        if(
+          studentStatus ===
+          'ลาออก'
+        ){
+
+          const sid =
+            normalizeStudentSid(
+              row.student_code || ''
+            );
+
+
+          if(sid){
+
+            resignedStudentCodes.add(
+              sid
+            );
+
+          }
+
+
+          resignedReportRowCount +=
+            1;
+
+
+          return false;
+
+        }
+
+
+        return true;
+
+      });
+
+
+    console.info(
+      '[MS Report] Student Master:',
+      {
+        reportRows:
+          reportRows.length,
+
+        visibleRows:
+          visibleRows.length,
+
+        resignedStudents:
+          resignedStudentCodes.size,
+
+        resignedRows:
+          resignedReportRowCount,
+
+        missingStudents:
+          missingStudentCodes.size
+      }
+    );
+
+
+    /* =====================================================
+       6. เก็บข้อมูลที่ผ่าน Student Master แล้ว
+       ===================================================== */
+
+    state.msReportRowsRaw =
+      visibleRows;
+
+
+    /* =====================================================
+       7. เติม dropdown
        ===================================================== */
 
     populateMsReportDynamicFilters();
 
 
     /* =====================================================
-       Apply filters + render
+       8. Filter + Render
        ===================================================== */
 
     applyMsReportFiltersAndRender();
 
+
+    /* =====================================================
+       9. Status
+       ===================================================== */
+
     if(
-  resignedStudentCodes.size > 0 &&
-  allRows.length > 0
-){
-
-  setStatus(
-    'msReportListStatus',
-
-    `โหลดข้อมูลเรียบร้อย • ซ่อนนักเรียนที่ลาออกแล้ว ${
-      resignedStudentCodes.size
-    } คน (${
-      resignedReportRowCount
-    } รายการ)`,
-
-    'success'
-  );
-
-}
-
-
-    if(!allRows.length){
+      !reportRows.length
+    ){
 
       setStatus(
         'msReportListStatus',
+
         `ไม่พบข้อมูลรายงานสิทธิ์สอบ ปีการศึกษา ${year}${
           term
             ? ` ภาคเรียน ${term}`
             : ''
         }`,
+
         'warning'
+      );
+
+      return;
+
+    }
+
+
+    if(
+      !visibleRows.length &&
+      resignedStudentCodes.size > 0
+    ){
+
+      setStatus(
+        'msReportListStatus',
+
+        `พบข้อมูลรายงาน ${reportRows.length} รายการ แต่เป็นนักเรียนที่ลาออกแล้วทั้งหมด ${resignedStudentCodes.size} คน`,
+
+        'warning'
+      );
+
+      return;
+
+    }
+
+
+    if(
+      resignedStudentCodes.size >
+      0
+    ){
+
+      setStatus(
+        'msReportListStatus',
+
+        `โหลดข้อมูลเรียบร้อย • ใช้ข้อมูลนักเรียนล่าสุดจาก students • ซ่อนนักเรียนลาออก ${resignedStudentCodes.size} คน (${resignedReportRowCount} รายการ)`,
+
+        'success'
       );
 
     }
