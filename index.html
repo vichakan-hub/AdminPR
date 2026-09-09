@@ -28256,9 +28256,50 @@ function hasReportTransferEquivalencyWarning(){
     tbody.innerHTML = filteredRows.map(r => `
       <tr class="${r.validation_severity === 'error' ? 'row-severity-error' : (r.validation_severity === 'warn' ? 'row-severity-warn' : '')}">
         <td class="mono col-student-code text-center">${escapeHtml(r.student_code || '')}</td>
-        <td class="col-name">${escapeHtml(r.student_name || '')}</td>
-        <td class="col-room text-center">${escapeHtml(r.room || '')}</td>
-        <td class="col-no text-center">${r.student_no ?? ''}</td>
+<td class="col-name">
+
+  <div>
+    ${escapeHtml(
+      r.student_name || ''
+    )}
+  </div>
+
+  <div
+    class="small"
+    style="margin-top:4px;"
+  >
+
+    ${
+      escapeHtml(
+        r.class_level || '-'
+      )
+    }
+
+    •
+
+    ${
+      r.student_status ===
+      'ลาออก'
+        ? `
+          <span class="badge red">
+            ลาออก
+          </span>
+        `
+        : `
+          <span class="badge green">
+            ${
+              escapeHtml(
+                r.student_status ||
+                'เรียนอยู่'
+              )
+            }
+          </span>
+        `
+    }
+
+  </div>
+
+</td>
         <td class="col-unit text-center">${r.study_unit_score ?? ''}</td>
         <td class="col-mid text-center">${r.midterm_score ?? ''}</td>
         <td class="col-final text-center">${r.final_score ?? ''}</td>
@@ -28412,36 +28453,244 @@ function extractRowsFromSheet(ws, subjectType){
   };
 }
 
-  async function mapStudentsForReportPreview(rows){
-    if(!rows.length) return rows;
+async function mapStudentsForReportPreview(
+  rows,
+  options = {}
+){
 
-    const codes = [...new Set(rows.map(r => String(r.student_code || '').trim()).filter(Boolean))];
-    if(!codes.length) return rows;
-
-    const { data, error } = await supabaseClient
-      .from('students')
-      .select('id, sid, raw_full_name, current_room, current_no')
-      .in('sid', codes);
-
-    if(error) throw error;
-
-    const sidMap = new Map((data || []).map(s => [String(s.sid).trim(), s]));
-
-    return rows.map(row => {
-      const matched = sidMap.get(String(row.student_code || '').trim());
-      const next = { ...row };
-
-      if(!matched){
-        next.student_id = null;
-        next.student_map_error = 'ไม่พบรหัสนักเรียนนี้ในตาราง students';
-        next.validation_severity = 'error';
-        next.validation_ok = false;
-      }else{
-        next.student_id = matched.id;
-      }
-      return next;
-    });
+  if(!(rows || []).length){
+    return rows || [];
   }
+
+
+  /*
+   * โหลด Student Master ล่าสุด
+   */
+  if(
+    options.refresh !== false
+  ){
+    await refreshStudentMaster();
+  }
+
+
+  const academicYear =
+    state.reportSelectedTeachingGroup
+      ?.academic_year ||
+    getCurrentThaiAcademicYear();
+
+
+  const selectedClass =
+    String(
+      state.reportSelectedTeachingGroup
+        ?.class_level ||
+      ''
+    ).trim();
+
+
+  return (rows || []).map(row => {
+
+    const sid =
+      normalizeStudentSid(
+        row.student_code || ''
+      );
+
+
+    const student =
+      getStudentMasterInfo(
+        sid,
+        academicYear
+      );
+
+
+    /*
+     * เก็บค่าต้นฉบับจากไฟล์ไว้
+     */
+    const next = {
+
+      ...row,
+
+      file_student_name:
+        row.file_student_name ??
+        row.student_name,
+
+      file_room:
+        row.file_room ??
+        row.room,
+
+      file_student_no:
+        row.file_student_no ??
+        row.student_no
+
+    };
+
+
+    /* ===============================
+       ไม่พบใน students
+       =============================== */
+
+    if(!student){
+
+      next.student_id =
+        null;
+
+      next.student_master_found =
+        false;
+
+      next.student_map_error =
+        'ไม่พบรหัสนักเรียนนี้ในตาราง students';
+
+      next.validation_severity =
+        'error';
+
+      next.validation_ok =
+        false;
+
+
+      return next;
+
+    }
+
+
+    /* ===============================
+       ใช้ข้อมูลล่าสุดจาก Student Master
+       =============================== */
+
+    next.student_id =
+      student.id;
+
+    next.student_name =
+      student.student_name;
+
+    next.class_level =
+      student.class_level;
+
+    next.room =
+      student.room;
+
+    next.student_no =
+      student.student_no;
+
+    next.student_status =
+      student.student_status;
+
+    next.resigned_date =
+      student.resigned_date;
+
+    next.student_master_found =
+      true;
+
+
+    /* ===============================
+       ตรวจชั้น
+       =============================== */
+
+    if(
+      selectedClass &&
+      student.class_level &&
+      String(student.class_level) !==
+      selectedClass
+    ){
+
+      const errors =
+        Array.isArray(
+          next.validation_errors
+        )
+          ? [
+              ...next.validation_errors
+            ]
+          : [];
+
+
+      const message =
+        `ชั้นนักเรียนปัจจุบัน ${student.class_level} ไม่ตรงกับรายการสอน ${selectedClass}`;
+
+
+      if(
+        !errors.includes(message)
+      ){
+        errors.push(
+          message
+        );
+      }
+
+
+      next.validation_errors =
+        errors;
+
+      next.validation_severity =
+        'error';
+
+      next.validation_ok =
+        false;
+
+      next.validation_text =
+        errors.join(', ');
+
+    }
+
+
+    /* ===============================
+       นักเรียนลาออก
+       ให้เตือน แต่ไม่บล็อกการบันทึก
+       =============================== */
+
+    if(
+      String(
+        student.student_status || ''
+      ).trim() === 'ลาออก'
+    ){
+
+      const warnings =
+        Array.isArray(
+          next.validation_warnings
+        )
+          ? [
+              ...next.validation_warnings
+            ]
+          : [];
+
+
+      const message =
+        'นักเรียนมีสถานะลาออก';
+
+
+      if(
+        !warnings.includes(message)
+      ){
+        warnings.push(
+          message
+        );
+      }
+
+
+      next.validation_warnings =
+        warnings;
+
+
+      if(
+        next.validation_severity !==
+        'error'
+      ){
+
+        next.validation_severity =
+          'warn';
+
+        next.validation_ok =
+          true;
+
+        next.validation_text =
+          warnings.join(', ');
+
+      }
+
+    }
+
+
+    return next;
+
+  });
+
+}
     function buildRoomMapForReportSelectedGroup(){
     const roomMap = {};
     (state.reportSelectedTeachingGroup?.offerings || []).forEach(off => {
@@ -28551,10 +28800,29 @@ async function handleReportFileChange(evt){
     const ws = workbook.Sheets[firstSheetName];
     const parsedSheet = extractRowsFromSheet(ws, state.reportSelectedTeachingGroup.subject_type || '');
 
-let previewRows = parsedSheet.rows || [];
-previewRows = await mapStudentsForReportPreview(previewRows);
-previewRows = checkReportRoomCoverage(previewRows);
-previewRows = applyReportTransferEquivalencyWarning(previewRows);
+let previewRows =
+  parsedSheet.rows || [];
+
+
+previewRows =
+  await mapStudentsForReportPreview(
+    previewRows,
+    {
+      refresh:true
+    }
+  );
+
+
+previewRows =
+  checkReportRoomCoverage(
+    previewRows
+  );
+
+
+previewRows =
+  applyReportTransferEquivalencyWarning(
+    previewRows
+  );
 
 state.reportTransferConfirmAccepted = false;
 
@@ -28612,6 +28880,47 @@ state.reportTransferConfirmAccepted = false;
 async function saveReportImportConfirmed(){
   if(!state.reportSelectedTeachingGroup) throw new Error('ยังไม่ได้เลือกรายการสอน');
   if(!(state.reportPreviewRows || []).length) throw new Error('ยังไม่มีข้อมูลสำหรับบันทึก');
+  /* =====================================================
+   ตรวจ Student Master ล่าสุดอีกครั้งก่อนบันทึกจริง
+   ===================================================== */
+
+let latestRows =
+  await mapStudentsForReportPreview(
+    state.reportPreviewRows,
+    {
+      refresh:true
+    }
+  );
+
+
+latestRows =
+  checkReportRoomCoverage(
+    latestRows
+  );
+
+
+latestRows =
+  applyReportTransferEquivalencyWarning(
+    latestRows
+  );
+
+
+state.reportPreviewRows =
+  latestRows;
+
+
+/*
+ * render ใหม่ เผื่อชื่อ/ห้อง/เลขที่/สถานะเปลี่ยน
+ */
+renderReportPreview(
+  latestRows
+);
+
+
+summarizeReportPreview(
+  latestRows
+);
+  
 
   const roomValidation = validateReportPreviewRooms(
     state.reportSelectedTeachingGroup,
