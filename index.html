@@ -15428,6 +15428,13 @@ function renderGradeYearCopyPreview(data){
     ? data.source_rows
     : [];
 
+  const studentMaster =
+  getStudentMasterInfo(
+    data?.student_code || '',
+    data?.target_academic_year ||
+      getCurrentThaiAcademicYear()
+  );                            
+
   if(el('gradeYearCopySourceTotal')){
     el('gradeYearCopySourceTotal').textContent =
       Number(data?.source_total || 0).toLocaleString('th-TH');
@@ -15451,23 +15458,141 @@ function renderGradeYearCopyPreview(data){
         .toLocaleString('th-TH');
   }
 
-  if(el('gradeYearCopyStudentInfo')){
-    el('gradeYearCopyStudentInfo').innerHTML = `
-      <div style="font-size:18px;font-weight:800;">
-        ${escapeHtml(data?.student_code || '-')}
-        |
-        ${escapeHtml(data?.student_name || '-')}
-      </div>
+if(
+  el('gradeYearCopyStudentInfo')
+){
 
-      <div class="small" style="margin-top:6px;">
-        ${escapeHtml(data?.source_class_level || '-')}
-        ปี ${escapeHtml(String(data?.source_academic_year || '-'))}
-        →
-        ${escapeHtml(data?.target_class_level || '-')}
-        ปี ${escapeHtml(String(data?.target_academic_year || '-'))}
-      </div>
-    `;
-  }
+  const studentName =
+    studentMaster?.student_name ||
+    data?.student_name ||
+    '-';
+
+
+  const room =
+    studentMaster?.room ||
+    '-';
+
+
+  const studentNo =
+    studentMaster?.student_no ??
+    '-';
+
+
+  const status =
+    String(
+      studentMaster?.student_status ||
+      'ไม่ระบุ'
+    ).trim();
+
+
+  const statusClass =
+    status === 'ลาออก'
+      ? 'red'
+      : 'green';
+
+
+  el(
+    'gradeYearCopyStudentInfo'
+  ).innerHTML = `
+
+    <div style="font-size:18px;font-weight:800;">
+
+      ${escapeHtml(
+        data?.student_code || '-'
+      )}
+
+      |
+
+      ${escapeHtml(
+        studentName
+      )}
+
+    </div>
+
+
+    <div
+      class="small"
+      style="margin-top:6px;"
+    >
+
+      ${escapeHtml(
+        data?.source_class_level || '-'
+      )}
+
+      ปี
+      ${escapeHtml(
+        String(
+          data?.source_academic_year ||
+          '-'
+        )
+      )}
+
+      →
+
+      ${escapeHtml(
+        data?.target_class_level || '-'
+      )}
+
+      ปี
+      ${escapeHtml(
+        String(
+          data?.target_academic_year ||
+          '-'
+        )
+      )}
+
+    </div>
+
+
+    ${
+      studentMaster
+        ? `
+          <div
+            class="small"
+            style="margin-top:6px;"
+          >
+
+            ข้อมูลล่าสุดจาก students:
+
+            ${escapeHtml(
+              studentMaster.class_level ||
+              '-'
+            )}
+
+            / ห้อง
+            ${escapeHtml(
+              String(room)
+            )}
+
+            / เลขที่
+            ${escapeHtml(
+              String(studentNo)
+            )}
+
+            •
+
+            <span class="badge ${statusClass}">
+              ${escapeHtml(status)}
+            </span>
+
+          </div>
+        `
+        : `
+          <div
+            class="small"
+            style="
+              margin-top:6px;
+              color:#b26a00;
+            "
+          >
+            ⚠️ ไม่พบข้อมูลนักเรียนใน students
+          </div>
+        `
+    }
+
+  `;
+
+}
 
   if(el('gradeYearCopyPreviewList')){
     if(!sourceRows.length){
@@ -15526,6 +15651,11 @@ async function previewGradeYearCopy(){
     const values = getGradeYearCopyFormValues();
 
     validateGradeYearCopyForm(values);
+
+    /*
+ * โหลดข้อมูลนักเรียนล่าสุดก่อน Preview
+ */
+await refreshStudentMaster();
 
     state.gradeYearCopyBusy = true;
     state.gradeYearCopyPreview = null;
@@ -19207,7 +19337,9 @@ function updateRepeatTargetStatusUi(){
 }
 
 async function applyRepeatGradeRecordStatus(){
-  const student = state.repeatStudent;
+
+  let student =
+  state.repeatStudent;
 
   const selectedIds = [
     ...new Set(
@@ -19356,6 +19488,36 @@ async function applyRepeatGradeRecordStatus(){
 
     return;
   }
+
+  /* =====================================================
+   ตรวจข้อมูลนักเรียนล่าสุดอีกครั้งก่อนบันทึกจริง
+   ===================================================== */
+
+await refreshStudentMaster();
+
+
+const latestStudent =
+  getStudentMasterBySid(
+    student.sid
+  );
+
+
+if(latestStudent){
+
+  student =
+    latestStudent;
+
+
+  state.repeatStudent =
+    latestStudent;
+
+
+  renderRepeatStudentMasterInfo(
+    latestStudent.sid,
+    getCurrentThaiAcademicYear()
+  );
+
+}
 
   const targetLabel =
     targetStatus === 'excluded_repeat_grade'
@@ -21275,8 +21437,7 @@ state.studentMasterLoadedAt =
   new Date();
 
 
-state.studentMasterLoadedAt =
-  new Date();
+
 
 
 state.selectedStudentIds = (state.selectedStudentIds || []).filter(id => rows.some(row => String(row.id) === String(id)));
