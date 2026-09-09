@@ -7092,8 +7092,20 @@ const ADMIN_EXPIRES_SESSION_KEY =
     subjects: [],
     teachers: [],
     teacherAdvisers: [],
-    students: [],
-    academicYears: [],
+students: [],
+
+/*
+ * Student Master กลาง
+ * key = sid
+ */
+studentMasterMap: new Map(),
+
+/*
+ * เวลาที่โหลดข้อมูล students ล่าสุด
+ */
+studentMasterLoadedAt: null,
+
+academicYears: [],
      emptysecRows: [],
      emptysecEditingId: null,
      emptysecImportRows: [],
@@ -20345,6 +20357,300 @@ populateReportTeacherFilter();
     refreshTeacherStats();
   }
 
+    /* =========================================================
+   Student Master
+   students = แหล่งข้อมูลนักเรียนหลักของ AdminPR
+   ========================================================= */
+
+/*
+ * สร้าง Map จาก state.students
+ *
+ * key:
+ *   students.sid
+ *
+ * value:
+ *   ข้อมูลนักเรียนล่าสุดจากตาราง students
+ */
+function rebuildStudentMasterMap(rows = state.students){
+
+  const map =
+    new Map();
+
+
+  (rows || []).forEach(student => {
+
+    const sid =
+      normalizeStudentSid(
+        student.sid || ''
+      );
+
+
+    if(!sid){
+      return;
+    }
+
+
+    map.set(
+      sid,
+      student
+    );
+
+  });
+
+
+  state.studentMasterMap =
+    map;
+
+
+  return map;
+
+}
+
+
+/*
+ * ค้นหานักเรียนจาก Student Master
+ */
+function getStudentMasterBySid(sid){
+
+  const studentSid =
+    normalizeStudentSid(
+      sid || ''
+    );
+
+
+  if(!studentSid){
+    return null;
+  }
+
+
+  return (
+    state.studentMasterMap?.get(
+      studentSid
+    ) ||
+    null
+  );
+
+}
+
+
+/*
+ * คืนข้อมูลนักเรียนในรูปแบบมาตรฐาน
+ * สำหรับให้ทุกเมนูใช้เหมือนกัน
+ */
+function getStudentMasterInfo(
+  sid,
+  academicYear = null
+){
+
+  const student =
+    getStudentMasterBySid(
+      sid
+    );
+
+
+  if(!student){
+    return null;
+  }
+
+
+  /*
+   * ถ้ามีปีการศึกษา
+   * ให้คำนวณชั้นตามปีนั้น
+   *
+   * ถ้าไม่ส่งปีมา
+   * ใช้ปีการศึกษาปัจจุบัน
+   */
+  const year =
+    safeNumber(
+      academicYear,
+      getCurrentThaiAcademicYear()
+    );
+
+
+  const classLevel =
+    getStudentClassAtYear(
+      student,
+      year
+    );
+
+
+  return {
+
+    /*
+     * Primary key
+     */
+    id:
+      student.id || null,
+
+    sid:
+      normalizeStudentSid(
+        student.sid || ''
+      ),
+
+
+    /*
+     * 1. ชื่อ-สกุล
+     */
+    student_name:
+      String(
+        student.raw_full_name || ''
+      ).trim(),
+
+
+    /*
+     * 2. ชั้น / ห้อง
+     */
+    class_level:
+      classLevel || null,
+
+    room:
+      String(
+        student.current_room ?? ''
+      ).trim(),
+
+
+    /*
+     * 3. เลขที่
+     */
+    student_no:
+      student.current_no ?? null,
+
+
+    /*
+     * 4. สถานะนักเรียน
+     */
+    student_status:
+      String(
+        student.student_status || ''
+      ).trim(),
+
+
+    resigned_date:
+      student.resigned_date || null,
+
+
+    /*
+     * สถานะบัญชี
+     * แยกจากสถานะ เรียนอยู่/ลาออก
+     */
+    is_active:
+      student.is_active !== false,
+
+
+    /*
+     * เก็บข้อมูลต้นฉบับไว้ด้วย
+     */
+    source:
+      student
+
+  };
+
+}
+
+    /* =========================================================
+   Enrich row ด้วย Student Master
+   ========================================================= */
+
+function enrichRowWithStudentMaster(
+  row,
+  options = {}
+){
+
+  if(!row){
+    return row;
+  }
+
+
+  const codeField =
+    options.codeField ||
+    'student_code';
+
+
+  const academicYear =
+    options.academicYear ??
+    row.academic_year ??
+    getCurrentThaiAcademicYear();
+
+
+  const sid =
+    normalizeStudentSid(
+      row[codeField] || ''
+    );
+
+
+  const student =
+    getStudentMasterInfo(
+      sid,
+      academicYear
+    );
+
+
+  /*
+   * หาใน students ไม่เจอ
+   * ให้ข้อมูลเดิมอยู่ครบ
+   */
+  if(!student){
+    return {
+      ...row,
+
+      student_master_found:
+        false
+    };
+  }
+
+
+  return {
+
+    ...row,
+
+
+    /*
+     * ข้อมูลจาก students มีลำดับความสำคัญสูงสุด
+     */
+    student_name:
+      student.student_name,
+
+    class_level:
+      student.class_level,
+
+    room:
+      student.room,
+
+    student_no:
+      student.student_no,
+
+    student_status:
+      student.student_status,
+
+    resigned_date:
+      student.resigned_date,
+
+    student_master_found:
+      true
+
+  };
+
+}
+
+
+/*
+ * ใช้กับหลายแถวพร้อมกัน
+ */
+function enrichRowsWithStudentMaster(
+  rows,
+  options = {}
+){
+
+  return (rows || []).map(
+    row =>
+      enrichRowWithStudentMaster(
+        row,
+        options
+      )
+  );
+
+}
+
 async function fetchStudentsPage(from, to){
   const { data, error } = await supabaseClient
     .from('students')
@@ -20354,6 +20660,81 @@ async function fetchStudentsPage(from, to){
 
   if(error) throw error;
   return data || [];
+}
+
+    /* =========================================================
+   Refresh Student Master
+   โหลด students ล่าสุดจาก Supabase
+   โดยไม่ render หน้า "จัดการนักเรียน"
+   ========================================================= */
+
+async function refreshStudentMaster(){
+
+  const pageSize =
+    1000;
+
+
+  let from =
+    0;
+
+
+  let rows =
+    [];
+
+
+  while(true){
+
+    const batch =
+      await fetchStudentsPage(
+        from,
+        from + pageSize - 1
+      );
+
+
+    rows.push(
+      ...batch
+    );
+
+
+    if(
+      batch.length <
+      pageSize
+    ){
+      break;
+    }
+
+
+    from +=
+      pageSize;
+
+  }
+
+
+  /*
+   * state.students เองก็ให้เป็นข้อมูลล่าสุด
+   */
+  state.students =
+    rows;
+
+
+  rebuildStudentMasterMap(
+    rows
+  );
+
+
+  state.studentMasterLoadedAt =
+    new Date();
+
+
+  console.info(
+    '[Student Master] โหลดข้อมูลล่าสุดแล้ว:',
+    rows.length,
+    'คน'
+  );
+
+
+  return state.studentMasterMap;
+
 }
 
   async function loadStudents(){
@@ -20368,8 +20749,20 @@ async function fetchStudentsPage(from, to){
       from += pageSize;
     }
 
-    state.students = rows;
-    state.selectedStudentIds = (state.selectedStudentIds || []).filter(id => rows.some(row => String(row.id) === String(id)));
+/*
+ * อัปเดต Student Master ทุกครั้ง
+ * ที่โหลด students ใหม่
+ */
+rebuildStudentMasterMap(
+  rows
+);
+
+
+state.studentMasterLoadedAt =
+  new Date();
+
+
+state.selectedStudentIds = (state.selectedStudentIds || []).filter(id => rows.some(row => String(row.id) === String(id)));
 
     populateStudentAcademicYearFilter();
     populateStudentImportEntryYearOptions();
