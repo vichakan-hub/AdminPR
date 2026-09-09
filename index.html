@@ -18155,6 +18155,151 @@ function clearRepeatStudentState(options = {}){
   );
 }
 
+function renderRepeatStudentMasterInfo(
+  sid,
+  academicYear = null
+){
+
+  const year =
+    safeNumber(
+      academicYear,
+      getCurrentThaiAcademicYear()
+    );
+
+
+  const studentInfo =
+    getStudentMasterInfo(
+      sid,
+      year
+    );
+
+
+  if(!studentInfo){
+    return false;
+  }
+
+
+  const rawStudent =
+    studentInfo.source;
+
+
+  state.repeatStudent =
+    rawStudent;
+
+
+  const studentStatus =
+    String(
+      studentInfo.student_status ||
+      'ไม่ระบุ'
+    ).trim();
+
+
+  const accountStatus =
+    studentInfo.is_active === false
+      ? 'ปิดใช้งาน'
+      : 'ใช้งาน';
+
+
+  /* ===============================
+     ชื่อ-สกุล
+     =============================== */
+
+  if(
+    el('repeatStudentInfoBox')
+  ){
+
+    el(
+      'repeatStudentInfoBox'
+    ).textContent =
+      `${
+        studentInfo.sid || '-'
+      } | ${
+        studentInfo.student_name || '-'
+      }`;
+
+  }
+
+
+  /* ===============================
+     ข้อมูลปัจจุบัน
+     =============================== */
+
+  if(
+    el('repeatStudentMetaBox')
+  ){
+
+    const statusClass =
+      studentStatus === 'ลาออก'
+        ? 'red'
+        : 'green';
+
+
+    el(
+      'repeatStudentMetaBox'
+    ).innerHTML = `
+
+      ปีแรกเข้า
+      ${escapeHtml(
+        String(
+          rawStudent?.entry_academic_year ||
+          '-'
+        )
+      )}
+
+      • ระดับแรกเข้า
+      ${escapeHtml(
+        String(
+          rawStudent?.entry_level ||
+          '-'
+        )
+      )}
+
+      • ชั้น
+      ${escapeHtml(
+        String(
+          studentInfo.class_level ||
+          '-'
+        )
+      )}
+
+      • ห้อง
+      ${escapeHtml(
+        String(
+          studentInfo.room ||
+          '-'
+        )
+      )}
+
+      • เลขที่
+      ${escapeHtml(
+        String(
+          studentInfo.student_no ??
+          '-'
+        )
+      )}
+
+      •
+
+      <span class="badge ${statusClass}">
+        ${escapeHtml(
+          studentStatus
+        )}
+      </span>
+
+      • บัญชี
+      ${escapeHtml(
+        accountStatus
+      )}
+
+    `;
+
+  }
+
+
+  return true;
+
+}
+
 async function findRepeatStudent(){
   const sid = normalizeStudentSid(
     el('repeatStudentCodeInput')?.value || ''
@@ -18221,61 +18366,19 @@ async function findRepeatStudent(){
       'info'
     );
 
-    /*
-      ขั้นที่ 1:
-      ค้นหาจาก state.students ก่อน
-      เพราะระบบโหลดตาราง students ไว้อยู่แล้ว
-    */
-    let student = (state.students || []).find(row => {
-      return normalizeStudentSid(row.sid) === sid;
-    });
+/*
+ * =====================================================
+ * โหลด Student Master ล่าสุด
+ * =====================================================
+ */
 
-    /*
-      ขั้นที่ 2:
-      ถ้ายังไม่พบใน state ให้ค้นหาจาก Supabase โดยตรง
-      เผื่อเพิ่งเพิ่มนักเรียนใหม่และ state ยังไม่ได้โหลดใหม่
-    */
-    if(!student){
-      const { data, error } = await supabaseClient
-        .from('students')
-        .select(`
-          id,
-          sid,
-          raw_full_name,
-          current_room,
-          current_no,
-          entry_academic_year,
-          entry_level,
-          student_status,
-          resigned_date,
-          is_active,
-          last_login_at,
-          created_at,
-          updated_at
-        `)
-        .eq('sid', sid)
-        .maybeSingle();
+await refreshStudentMaster();
 
-      if(error){
-        throw error;
-      }
 
-      student = data || null;
-
-      /*
-        ถ้าพบจาก Supabase ให้เติมเข้า state.students
-        เพื่อให้การค้นหาครั้งถัดไปเร็วขึ้น
-      */
-      if(student){
-        const alreadyExists = (state.students || []).some(row => {
-          return String(row.id) === String(student.id);
-        });
-
-        if(!alreadyExists){
-          state.students.push(student);
-        }
-      }
-    }
+const student =
+  getStudentMasterBySid(
+    sid
+  );
 
     if(!student){
       state.repeatStudent = null;
@@ -18315,31 +18418,14 @@ async function findRepeatStudent(){
       return;
     }
 
-    state.repeatStudent = student;
+const currentAcademicYear =
+  getCurrentThaiAcademicYear();
 
-    const studentStatus =
-      student.student_status ||
-      (student.is_active ? 'เรียนอยู่' : 'ไม่ใช้งาน');
 
-    const accountStatus =
-      student.is_active === false
-        ? 'ปิดใช้งาน'
-        : 'ใช้งาน';
-
-    if(el('repeatStudentInfoBox')){
-      el('repeatStudentInfoBox').textContent =
-        `${student.sid || '-'} | ${student.raw_full_name || '-'}`;
-    }
-
-    if(el('repeatStudentMetaBox')){
-      el('repeatStudentMetaBox').textContent =
-        `ปีแรกเข้า ${student.entry_academic_year || '-'}`
-        + ` | ระดับแรกเข้า ${student.entry_level || '-'}`
-        + ` | ห้องปัจจุบัน ${student.current_room || '-'}`
-        + ` | เลขที่ ${student.current_no || '-'}`
-        + ` | สถานะ ${studentStatus}`
-        + ` | บัญชี ${accountStatus}`;
-    }
+renderRepeatStudentMasterInfo(
+  sid,
+  currentAcademicYear
+);
 
     if(el('repeatLoadResultsBtn')){
       el('repeatLoadResultsBtn').disabled = false;
@@ -18357,11 +18443,26 @@ async function findRepeatStudent(){
       'info'
     );
 
-    showToast(
-      'พบนักเรียน',
-      `${student.sid || ''} ${student.raw_full_name || ''}`,
-      'success'
-    );
+const studentInfo =
+  getStudentMasterInfo(
+    sid,
+    getCurrentThaiAcademicYear()
+  );
+
+
+showToast(
+  'พบนักเรียน',
+
+  `${
+    studentInfo?.sid ||
+    sid
+  } ${
+    studentInfo?.student_name ||
+    ''
+  }`,
+
+  'success'
+);
 
   }catch(err){
     console.error('findRepeatStudent error:', err);
@@ -18712,7 +18813,9 @@ function renderRepeatGradeResults(){
 }
 
 async function loadRepeatGradeResults(){
-  const student = state.repeatStudent;
+
+  let student =
+    state.repeatStudent;
 
   const loadBtn = el('repeatLoadResultsBtn');
 
@@ -18731,6 +18834,35 @@ async function loadRepeatGradeResults(){
 
     return;
   }
+
+  /*
+ * ตรวจข้อมูลนักเรียนล่าสุดอีกครั้ง
+ * ก่อนโหลดผลการเรียนเดิม
+ */
+await refreshStudentMaster();
+
+
+const latestStudent =
+  getStudentMasterBySid(
+    student.sid
+  );
+
+
+if(latestStudent){
+
+  student =
+    latestStudent;
+
+  state.repeatStudent =
+    latestStudent;
+
+
+  renderRepeatStudentMasterInfo(
+    latestStudent.sid,
+    getCurrentThaiAcademicYear()
+  );
+
+}
 
   const sourceYear = safeNumber(
     el('repeatSourceYearInput')?.value,
