@@ -13640,25 +13640,24 @@ function clearGradeManageFilters(){
    ========================================================= */
 
 function getGradeManageCurrentStudent(row){
-  const studentId = String(
-    row?.student_id || ''
-  ).trim();
 
-  const studentCode = normalizeStudentSid(
-    row?.student_code || ''
+  if(!row){
+    return null;
+  }
+
+  const studentCode =
+    normalizeStudentSid(
+      row.student_code || ''
+    );
+
+  if(!studentCode){
+    return null;
+  }
+
+  return getStudentMasterInfo(
+    studentCode,
+    row.academic_year || null
   );
-
-  return (state.students || []).find(student => {
-    const sameId =
-      studentId &&
-      String(student.id || '').trim() === studentId;
-
-    const sameCode =
-      studentCode &&
-      normalizeStudentSid(student.sid) === studentCode;
-
-    return sameId || sameCode;
-  }) || null;
 }
 
 function getGradeManageSortNumber(value){
@@ -13847,6 +13846,11 @@ async function loadGradeManageRows(){
       return;
     }
 
+    /*
+ * โหลดข้อมูลนักเรียนล่าสุดจาก students
+ */
+await refreshStudentMaster();
+
     setStatus('gradeManageStatus', 'กำลังโหลดข้อมูลผลการเรียน...', 'info');
 
 const token =
@@ -13963,16 +13967,7 @@ while(true){
 
 
 
-    const activeStudentCodes = new Set(
-  (state.students || [])
-    .filter(s => s.is_active !== false)
-    .map(s => normalizeStudentSid(s.sid))
-    .filter(Boolean)
-);
 
-rows = rows.filter(row =>
-  activeStudentCodes.has(normalizeStudentSid(row.student_code))
-);
 
 // ป้องกันรายการที่ไม่ใช้งานหลุดมาแสดง แม้ข้อมูลจากฐานจะผิดปกติ
 rows = rows.filter(row =>
@@ -13985,14 +13980,68 @@ if(filters.learningArea){
 
 
 
-    rows = rows
-      .map(row => ({
-        ...row,
-        grade_code: normalizeGradeValue(row.grade_code),
-        retest_grade_code: normalizeGradeValue(row.retest_grade_code),
-        learning_area: getGradeManageRowLearningArea(row)
-      }))
-      .sort(compareGradeManageRows);
+/*
+ * =====================================================
+ * เก็บข้อมูลเดิมจาก grade_results ไว้เป็น historical
+ * แล้วค่อยใช้ Student Master ครอบค่าที่ใช้แสดงผล
+ * =====================================================
+ */
+
+rows = rows.map(row => ({
+
+  ...row,
+
+  /*
+   * เก็บข้อมูลเดิมจาก grade_results
+   * เพื่อไม่ให้สูญเสีย context ประวัติ
+   */
+  history_student_name:
+    row.student_name,
+
+  history_class_level:
+    row.class_level,
+
+  history_room:
+    row.room,
+
+  history_student_no:
+    row.student_no,
+
+  grade_code:
+    normalizeGradeValue(
+      row.grade_code
+    ),
+
+  retest_grade_code:
+    normalizeGradeValue(
+      row.retest_grade_code
+    ),
+
+  learning_area:
+    getGradeManageRowLearningArea(
+      row
+    )
+
+}));
+
+
+/*
+ * ครอบข้อมูลนักเรียนล่าสุดจาก students
+ */
+rows =
+  enrichRowsWithStudentMaster(
+    rows,
+    {
+      codeField:
+        'student_code'
+    }
+  );
+
+
+rows =
+  rows.sort(
+    compareGradeManageRows
+  );
 
     state.gradeManageRows = rows;
     state.gradeManageEditingId = null;
@@ -14085,12 +14134,14 @@ const rows = [
     getGradeManageCurrentStudent(b);
 
   // 1. เรียงตามห้องปัจจุบัน
-  const roomA = getGradeManageSortNumber(
-    studentA?.current_room
+const roomA =
+  getGradeManageSortNumber(
+    studentA?.room
   );
 
-  const roomB = getGradeManageSortNumber(
-    studentB?.current_room
+const roomB =
+  getGradeManageSortNumber(
+    studentB?.room
   );
 
   if(roomA !== roomB){
@@ -14098,12 +14149,14 @@ const rows = [
   }
 
   // 2. เรียงตามเลขที่ปัจจุบัน
-  const noA = getGradeManageSortNumber(
-    studentA?.current_no
+const noA =
+  getGradeManageSortNumber(
+    studentA?.student_no
   );
 
-  const noB = getGradeManageSortNumber(
-    studentB?.current_no
+const noB =
+  getGradeManageSortNumber(
+    studentB?.student_no
   );
 
   if(noA !== noB){
@@ -14147,14 +14200,52 @@ tbody.innerHTML = rows.map(row => {
   const isEditing =
     String(state.gradeManageEditingId || '') === String(row.id);
 
-  const teacher = getGradeManageTeacherText(row);
+const teacher =
+  getGradeManageTeacherText(
+    row
+  );
 
-  // ดึงข้อมูลปัจจุบันจากตาราง students
-  const currentStudent = getGradeManageCurrentStudent(row);
 
-  // แสดงเฉพาะเลขที่ปัจจุบัน ไม่ใช้ student_no จาก grade_results
-  const currentStudentNo =
-    currentStudent?.current_no ?? '-';
+const student =
+  getGradeManageCurrentStudent(
+    row
+  );
+
+
+const studentName =
+  student?.student_name ||
+  row.student_name ||
+  '-';
+
+
+const studentClass =
+  student?.class_level ||
+  row.class_level ||
+  '-';
+
+
+const studentRoom =
+  student?.room ||
+  row.room ||
+  '-';
+
+
+const studentNo =
+  student?.student_no ??
+  row.student_no ??
+  '-';
+
+
+const studentStatus =
+  String(
+    student?.student_status ||
+    row.student_status ||
+    ''
+  ).trim();
+
+
+const studentFound =
+  !!student;
 
     const gradeCell = isEditing
       ? `<select class="grade-manage-edit-select" data-grade-manage-edit-grade="${escapeHtml(row.id)}">
@@ -14188,17 +14279,73 @@ const retestCell = isEditing
 
     return `
       <tr class="${isEditing ? 'grade-manage-row-editing' : ''}">
-        <td>
-          <div class="mono">${escapeHtml(row.student_code || '-')}</div>
-          <div class="grade-manage-meta">
-  เลขที่ ${escapeHtml(String(currentStudentNo))}
-</div>
-        </td>
+       <td>
 
-        <td class="grade-manage-student-cell">
-          <div>${escapeHtml(row.student_name || '-')}</div>
-          <div class="grade-manage-meta">${escapeHtml(row.class_level || '-')} / ${escapeHtml(String(row.room || '-'))}</div>
-        </td>
+  <div class="mono">
+    ${escapeHtml(
+      row.student_code || '-'
+    )}
+  </div>
+
+  <div class="grade-manage-meta">
+    เลขที่
+    ${escapeHtml(
+      String(studentNo)
+    )}
+  </div>
+
+</td>
+
+
+<td class="grade-manage-student-cell">
+
+  <div>
+    ${escapeHtml(
+      studentName
+    )}
+  </div>
+
+  <div class="grade-manage-meta">
+    ${escapeHtml(
+      studentClass
+    )}
+    /
+    ${escapeHtml(
+      String(studentRoom)
+    )}
+  </div>
+
+  ${
+    studentFound
+      ? (
+          studentStatus === 'ลาออก'
+            ? `
+              <div style="margin-top:5px;">
+                <span class="badge red">
+                  ลาออก
+                </span>
+              </div>
+            `
+            : `
+              <div style="margin-top:5px;">
+                <span class="badge green">
+                  ${escapeHtml(
+                    studentStatus || 'เรียนอยู่'
+                  )}
+                </span>
+              </div>
+            `
+        )
+      : `
+        <div style="margin-top:5px;">
+          <span class="badge orange">
+            ⚠️ ไม่พบใน students
+          </span>
+        </div>
+      `
+  }
+
+</td>
 
         <td class="grade-manage-subject-cell">
           <div class="mono">${escapeHtml(row.subject_code || '-')}</div>
