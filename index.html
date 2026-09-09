@@ -21230,20 +21230,49 @@ async function refreshStudentMaster(){
     let from = 0;
     let rows = [];
 
-    while(true){
-      const batch = await fetchStudentsPage(from, from + pageSize - 1);
-      rows = rows.concat(batch);
-      if(batch.length < pageSize) break;
-      from += pageSize;
-    }
+while(true){
+
+  const batch =
+    await fetchStudentsPage(
+      from,
+      from + pageSize - 1
+    );
+
+  rows =
+    rows.concat(
+      batch
+    );
+
+  if(
+    batch.length <
+    pageSize
+  ){
+    break;
+  }
+
+  from +=
+    pageSize;
+
+}
+
 
 /*
- * อัปเดต Student Master ทุกครั้ง
- * ที่โหลด students ใหม่
+ * เก็บ students ล่าสุดไว้ใน state
+ */
+state.students =
+  rows;
+
+
+/*
+ * อัปเดต Student Master
  */
 rebuildStudentMasterMap(
   rows
 );
+
+
+state.studentMasterLoadedAt =
+  new Date();
 
 
 state.studentMasterLoadedAt =
@@ -28300,6 +28329,22 @@ function hasReportTransferEquivalencyWarning(){
   </div>
 
 </td>
+<td class="col-room text-center">
+  ${escapeHtml(
+    String(
+      r.room || ''
+    )
+  )}
+</td>
+
+
+<td class="col-no text-center">
+  ${escapeHtml(
+    String(
+      r.student_no ?? ''
+    )
+  )}
+</td>
         <td class="col-unit text-center">${r.study_unit_score ?? ''}</td>
         <td class="col-mid text-center">${r.midterm_score ?? ''}</td>
         <td class="col-final text-center">${r.final_score ?? ''}</td>
@@ -28502,26 +28547,113 @@ async function mapStudentsForReportPreview(
       );
 
 
-    /*
-     * เก็บค่าต้นฉบับจากไฟล์ไว้
-     */
-    const next = {
+/*
+ * ล้างเฉพาะ validation ที่ Student Master
+ * สร้างขึ้นจากการตรวจรอบก่อน
+ *
+ * validation ของคะแนน/เกรดยังคงอยู่
+ */
+const baseErrors =
+  (
+    Array.isArray(
+      row.validation_errors
+    )
+      ? row.validation_errors
+      : []
+  ).filter(message => {
 
-      ...row,
+    const text =
+      String(
+        message || ''
+      );
 
-      file_student_name:
-        row.file_student_name ??
-        row.student_name,
+    return !text.startsWith(
+      'ชั้นนักเรียนปัจจุบัน '
+    );
 
-      file_room:
-        row.file_room ??
-        row.room,
+  });
 
-      file_student_no:
-        row.file_student_no ??
-        row.student_no
 
-    };
+const baseWarnings =
+  (
+    Array.isArray(
+      row.validation_warnings
+    )
+      ? row.validation_warnings
+      : []
+  ).filter(message => {
+
+    return (
+      String(
+        message || ''
+      ) !==
+      'นักเรียนมีสถานะลาออก'
+    );
+
+  });
+
+
+const baseSeverity =
+  baseErrors.length
+    ? 'error'
+    : (
+        baseWarnings.length
+          ? 'warn'
+          : 'success'
+      );
+
+
+const next = {
+
+  ...row,
+
+  /*
+   * เก็บค่าต้นฉบับจาก Excel
+   */
+  file_student_name:
+    row.file_student_name ??
+    row.student_name,
+
+  file_room:
+    row.file_room ??
+    row.room,
+
+  file_student_no:
+    row.file_student_no ??
+    row.student_no,
+
+
+  /*
+   * Reset validation
+   * ที่เกี่ยวกับ Student Master / ห้อง
+   * เพื่อคำนวณใหม่ทุกครั้ง
+   */
+  student_map_error:
+    '',
+
+  validation_errors:
+    baseErrors,
+
+  validation_warnings:
+    baseWarnings,
+
+  validation_severity:
+    baseSeverity,
+
+  validation_ok:
+    baseSeverity !==
+    'error',
+
+  validation_text:
+    baseErrors.length
+      ? baseErrors.join(', ')
+      : (
+          baseWarnings.length
+            ? baseWarnings.join(', ')
+            : 'ถูกต้อง'
+        )
+
+};
 
 
     /* ===============================
