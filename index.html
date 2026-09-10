@@ -12461,10 +12461,16 @@ drawThaiPdfText(
           studentRows.map(row => {
 
 
-const teacherText =
+const teacherShortName =
   getMsPdfTeacherShortName(
     row.teacher_name
   );
+
+const teacherText =
+  teacherShortName &&
+  teacherShortName !== '-'
+    ? `ครู ${teacherShortName}`
+    : '-';
 
 
             const attendance =
