@@ -12110,9 +12110,45 @@ drawThaiPdfText(
 );
 
 
-    /* =====================================================
-       Subtitle
-       ===================================================== */
+
+
+/* =====================================================
+   Subtitle
+   ===================================================== */
+
+const subtitleParts = [
+  `ปีการศึกษา ${year || '-'}`,
+
+  term
+    ? `ภาคเรียนที่ ${term}`
+    : 'ทุกภาคเรียน',
+
+  classLevel
+    ? `ชั้น ${classLevel}`
+    : 'ทุกระดับชั้น',
+
+  room
+    ? `ห้อง ${room}`
+    : 'ทุกห้อง'
+];
+
+
+if(subjectCode){
+
+  subtitleParts.push(
+    `รายวิชา ${subjectCode}`
+  );
+
+}
+
+
+if(teacherCode){
+
+  subtitleParts.push(
+    `ครู ${teacherCode}`
+  );
+
+}
 
    drawThaiPdfText(
   doc,
