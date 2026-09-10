@@ -12061,51 +12061,53 @@ if(
       12;
 
 
-    /* =====================================================
-       7. Report Header
-       ===================================================== */
+/* =====================================================
+   7. Report Header
+   ใช้ Canvas + Sarabun เพื่อจัดสระ/วรรณยุกต์ไทย
+   ===================================================== */
 
-    doc.setFont(
-      'Sarabun',
-      'bold'
-    );
+drawThaiPdfText(
+  doc,
+  'โรงเรียนท่าใหม่ “พูลสวัสดิ์ราษฎร์นุกูล”',
+  {
+    x: marginLeft,
+    y: 7,
+    maxWidth:
+      pageWidth -
+      marginLeft -
+      marginRight,
 
+    height: 6.8,
 
-    doc.setFontSize(
-      16
-    );
+    fontPx: 34,
+    weight: '700',
+    color: '#17324a',
 
-
-    doc.setTextColor(
-      23,
-      50,
-      74
-    );
-
-
-    doc.text(
-      'โรงเรียนท่าใหม่ “พูลสวัสดิ์ราษฎร์นุกูล”',
-      pageWidth / 2,
-      12,
-      {
-        align:'center'
-      }
-    );
+    align: 'center'
+  }
+);
 
 
-    doc.setFontSize(
-      15
-    );
+drawThaiPdfText(
+  doc,
+  'แบบติดตามการแก้ผลการเรียน มส (ไม่มีสิทธิ์สอบ)',
+  {
+    x: marginLeft,
+    y: 14.5,
+    maxWidth:
+      pageWidth -
+      marginLeft -
+      marginRight,
 
+    height: 6.3,
 
-    doc.text(
-      'แบบติดตามการแก้ผลการเรียน มส (ไม่มีสิทธิ์สอบ)',
-      pageWidth / 2,
-      19,
-      {
-        align:'center'
-      }
-    );
+    fontPx: 32,
+    weight: '700',
+    color: '#17324a',
+
+    align: 'center'
+  }
+);
 
 
     /* =====================================================
@@ -12149,33 +12151,27 @@ if(
     }
 
 
-    doc.setFont(
-      'Sarabun',
-      'normal'
-    );
+   drawThaiPdfText(
+  doc,
+  subtitleParts.join('   '),
+  {
+    x: marginLeft,
+    y: 22.5,
 
+    maxWidth:
+      pageWidth -
+      marginLeft -
+      marginRight,
 
-    doc.setFontSize(
-      9
-    );
+    height: 4.3,
 
+    fontPx: 24,
+    weight: '400',
+    color: '#556478',
 
-    doc.setTextColor(
-      85,
-      100,
-      120
-    );
-
-
-    doc.text(
-      subtitleParts.join('   '),
-      pageWidth / 2,
-      25,
-      {
-        align:'center'
-      }
-    );
-
+    align: 'center'
+  }
+);
 
     /* =====================================================
        8. Group นักเรียน
