@@ -4370,6 +4370,15 @@ body.app-booting #appView{
       style="margin:0;"
     >
 
+        <!-- เปิด / ปิดรับรายงาน มส -->
+  <button
+    id="msReportToggleLockBtn"
+    class="btn-warning"
+    type="button"
+  >
+    🔒 ปิดรับรายงาน มส
+  </button>
+
        <button
     id="msReportExportPdfBtn"
     class="btn-danger"
@@ -7189,6 +7198,10 @@ msReportRowsRaw: [],
 msReportRows: [],
 msReportLoading: false,
 
+// สถานะเปิด / ปิดรับรายงาน มส
+msReportSubmissionSetting: null,
+msReportSettingLoading: false,
+
 reportSubPage: 'tracking',
 reportSignerRows: [],
 
@@ -9621,6 +9634,439 @@ function setReportSubPage(page){
       isSigner
         ? 'teacher-sub-btn active'
         : 'teacher-sub-btn';
+
+  }
+
+}
+
+    /* =========================================================
+   Exam Eligibility / มส Submission Setting
+   เปิด / ปิดรับรายงาน มส จาก AdminPR
+   ========================================================= */
+
+const MS_REPORT_SETTING_KEY =
+  'teacher_exam_eligibility_settings';
+
+
+function normalizeMsReportSetting(raw){
+
+  let value = raw;
+
+  if(typeof value === 'string'){
+
+    try{
+      value = JSON.parse(value);
+    }catch(error){
+      value = {};
+    }
+
+  }
+
+
+  if(
+    !value ||
+    typeof value !== 'object' ||
+    Array.isArray(value)
+  ){
+    value = {};
+  }
+
+
+  return {
+
+    // เก็บ property เดิมทั้งหมดไว้
+    ...value,
+
+    academic_year:
+      safeNumber(
+        value.academic_year,
+        null
+      ),
+
+    term:
+      safeNumber(
+        value.term,
+        null
+      ),
+
+    lock:
+      value.lock === true
+
+  };
+
+}
+
+
+/* =========================================================
+   แสดงสถานะบนปุ่ม
+   ========================================================= */
+
+function renderMsReportSubmissionSetting(){
+
+  const button =
+    el('msReportToggleLockBtn');
+
+  if(!button){
+    return;
+  }
+
+
+  const setting =
+    state.msReportSubmissionSetting;
+
+
+  if(!setting){
+
+    button.disabled = true;
+
+    button.className =
+      'btn-secondary';
+
+    button.textContent =
+      '⚠️ ไม่พบการตั้งค่ารายงาน มส';
+
+    button.title =
+      'ไม่พบ teacher_exam_eligibility_settings';
+
+    return;
+
+  }
+
+
+  const year =
+    setting.academic_year || '-';
+
+  const term =
+    setting.term || '-';
+
+
+  /*
+   * lock = true
+   * หมายถึงตอนนี้ปิดรับอยู่
+   * ปุ่มจึงเสนอ action "เปิดรับ"
+   */
+  if(setting.lock){
+
+    button.disabled = false;
+
+    button.className =
+      'btn-success';
+
+    button.textContent =
+      '🔓 เปิดรับรายงาน มส';
+
+    button.title =
+      `ขณะนี้ปิดรับรายงาน มส ภาคเรียน ${term}/${year}`;
+
+  }else{
+
+    button.disabled = false;
+
+    button.className =
+      'btn-warning';
+
+    button.textContent =
+      '🔒 ปิดรับรายงาน มส';
+
+    button.title =
+      `ขณะนี้เปิดรับรายงาน มส ภาคเรียน ${term}/${year}`;
+
+  }
+
+}
+
+
+/* =========================================================
+   โหลดสถานะจาก app_settings
+   ========================================================= */
+
+async function loadMsReportSubmissionSetting(){
+
+  const button =
+    el('msReportToggleLockBtn');
+
+
+  try{
+
+    state.msReportSettingLoading =
+      true;
+
+
+    if(button){
+
+      button.disabled = true;
+
+      button.textContent =
+        'กำลังตรวจสอบสถานะ...';
+
+    }
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from('app_settings')
+        .select('key, value')
+        .eq(
+          'key',
+          MS_REPORT_SETTING_KEY
+        )
+        .maybeSingle();
+
+
+    if(error){
+      throw error;
+    }
+
+
+    if(!data){
+
+      state.msReportSubmissionSetting =
+        null;
+
+      renderMsReportSubmissionSetting();
+
+      console.warn(
+        '[MS Setting] ไม่พบ',
+        MS_REPORT_SETTING_KEY
+      );
+
+      return null;
+
+    }
+
+
+    state.msReportSubmissionSetting =
+      normalizeMsReportSetting(
+        data.value
+      );
+
+
+    renderMsReportSubmissionSetting();
+
+
+    console.info(
+      '[MS Setting]',
+      state.msReportSubmissionSetting
+    );
+
+
+    return state.msReportSubmissionSetting;
+
+
+  }catch(error){
+
+    console.error(
+      'loadMsReportSubmissionSetting error:',
+      error
+    );
+
+
+    state.msReportSubmissionSetting =
+      null;
+
+
+    renderMsReportSubmissionSetting();
+
+
+    showToast(
+      'โหลดสถานะไม่สำเร็จ',
+      error.message ||
+        'ไม่สามารถโหลดสถานะเปิด/ปิดรับรายงาน มส ได้',
+      'error'
+    );
+
+
+    return null;
+
+
+  }finally{
+
+    state.msReportSettingLoading =
+      false;
+
+  }
+
+}
+
+
+/* =========================================================
+   สลับเปิด / ปิดรับรายงาน มส
+   ========================================================= */
+
+async function toggleMsReportSubmissionLock(){
+
+  if(state.msReportSettingLoading){
+    return;
+  }
+
+
+  /*
+   * โหลดสถานะล่าสุดจากฐานข้อมูลก่อนทุกครั้ง
+   * ป้องกัน Admin หลายเครื่องเปิดพร้อมกัน
+   */
+  const current =
+    await loadMsReportSubmissionSetting();
+
+
+  if(!current){
+    return;
+  }
+
+
+  const year =
+    current.academic_year;
+
+  const term =
+    current.term;
+
+
+  if(
+    !year ||
+    !term
+  ){
+
+    showToast(
+      'ยังเปลี่ยนสถานะไม่ได้',
+      'teacher_exam_eligibility_settings ไม่มีปีการศึกษาหรือภาคเรียน',
+      'error'
+    );
+
+    return;
+
+  }
+
+
+  const nextLock =
+    !current.lock;
+
+
+  const confirmMessage =
+    nextLock
+      ? `ต้องการปิดรับรายงาน มส ภาคเรียน ${term}/${year} ใช่หรือไม่?\n\nเมื่อปิดแล้ว ครูจะไม่สามารถรายงานหรือแก้ไขรายงาน มส ได้`
+      : `ต้องการเปิดรับรายงาน มส ภาคเรียน ${term}/${year} อีกครั้งใช่หรือไม่?`;
+
+
+  if(
+    !window.confirm(
+      confirmMessage
+    )
+  ){
+    return;
+  }
+
+
+  const button =
+    el('msReportToggleLockBtn');
+
+
+  try{
+
+    state.msReportSettingLoading =
+      true;
+
+
+    if(button){
+
+      button.disabled = true;
+
+      button.textContent =
+        nextLock
+          ? 'กำลังปิดรับ...'
+          : 'กำลังเปิดรับ...';
+
+    }
+
+
+    /*
+     * ใช้ ...current
+     * เพื่อไม่ทำ year_options / term_options
+     * หรือ property อื่นหาย
+     */
+    const nextValue = {
+
+      ...current,
+
+      lock:
+        nextLock
+
+    };
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from('app_settings')
+        .update({
+          value: nextValue
+        })
+        .eq(
+          'key',
+          MS_REPORT_SETTING_KEY
+        )
+        .select('key, value')
+        .single();
+
+
+    if(error){
+      throw error;
+    }
+
+
+    state.msReportSubmissionSetting =
+      normalizeMsReportSetting(
+        data.value
+      );
+
+
+    renderMsReportSubmissionSetting();
+
+
+    showToast(
+
+      nextLock
+        ? 'ปิดรับรายงาน มส แล้ว'
+        : 'เปิดรับรายงาน มส แล้ว',
+
+      `ภาคเรียน ${term}/${year}`,
+
+      'success'
+
+    );
+
+
+  }catch(error){
+
+    console.error(
+      'toggleMsReportSubmissionLock error:',
+      error
+    );
+
+
+    showToast(
+      'เปลี่ยนสถานะไม่สำเร็จ',
+      error.message ||
+        'ไม่สามารถบันทึกสถานะลง app_settings ได้',
+      'error'
+    );
+
+
+    /*
+     * โหลดค่าจริงกลับมาอีกครั้ง
+     */
+    await loadMsReportSubmissionSetting();
+
+
+  }finally{
+
+    state.msReportSettingLoading =
+      false;
+
+    renderMsReportSubmissionSetting();
 
   }
 
@@ -30802,7 +31248,7 @@ if(el('reportSubMsBtn')){
 
         }
 
-
+        await loadMsReportSubmissionSetting();
         await loadMsReportingRows();
 
       }
@@ -30864,6 +31310,27 @@ document
     );
 
   });
+
+
+  /* =========================================================
+   เปิด / ปิดรับรายงาน มส
+   ========================================================= */
+
+if(el('msReportToggleLockBtn')){
+
+  el('msReportToggleLockBtn')
+    .addEventListener(
+      'click',
+      async () => {
+
+        await toggleMsReportSubmissionLock();
+
+      }
+    );
+
+}
+
+      
 
       /* =========================================================
    Export PDF รายชื่อนักเรียน มส
