@@ -6502,6 +6502,84 @@ body.app-booting #appView{
     </div>
   </div>
 
+  <!-- =========================================================
+     แก้สถานะ มส
+     ========================================================= -->
+<div
+  id="msResolveModal"
+  class="modal-backdrop"
+>
+  <div class="modal">
+
+    <h3>
+      ✅ ยืนยันการแก้ มส
+    </h3>
+
+    <p>
+      ตรวจสอบข้อมูลก่อนเปลี่ยนสถานะจาก
+      <strong style="color:#d92d20;">มส</strong>
+      เป็น
+      <strong style="color:#0f9d58;">มีสิทธิ์สอบ</strong>
+    </p>
+
+
+    <div
+      id="msResolveDetail"
+      class="readonly-box"
+      style="
+        display:block;
+        line-height:1.8;
+        margin-bottom:14px;
+      "
+    >
+      -
+    </div>
+
+
+    <div class="field">
+
+      <span class="label-in-form">
+        หมายเหตุ
+      </span>
+
+      <textarea
+        id="msResolveNoteInput"
+        class="std"
+        placeholder="เช่น นักเรียนนำเอกสารรับรองการแก้ มส มายื่นแล้ว"
+      ></textarea>
+
+    </div>
+
+
+    <div class="actions">
+
+      <button
+        id="msResolveConfirmBtn"
+        class="btn-success"
+        type="button"
+      >
+        ✅ ยืนยันเป็นมีสิทธิ์สอบ
+      </button>
+
+      <button
+        id="msResolveCancelBtn"
+        class="btn-secondary"
+        type="button"
+      >
+        ยกเลิก
+      </button>
+
+    </div>
+
+
+    <div
+      id="msResolveStatus"
+      class="status info"
+    ></div>
+
+  </div>
+</div>
+
   <div id="studentDeleteModal" class="modal-backdrop">
     <div class="modal">
       <h3>ยืนยันการลบรายชื่อนักเรียน</h3>
@@ -7197,6 +7275,11 @@ repeatLoadingStudent: false,
 msReportRowsRaw: [],
 msReportRows: [],
 msReportLoading: false,
+
+// รายการ มส ที่ Admin กำลังอนุมัติแก้ไข
+msResolveTarget: null,
+msResolveSaving: false,
+
 
 // สถานะเปิด / ปิดรับรายงาน มส
 msReportSubmissionSetting: null,
@@ -10730,6 +10813,502 @@ function applyMsReportFiltersAndRender(){
 
 }
 
+/* =========================================================
+   เปิด Modal แก้ มส
+   ========================================================= */
+
+function openMsResolveModal(
+  reportId
+){
+
+  const id =
+    Number(
+      reportId
+    );
+
+
+  if(
+    !Number.isFinite(id) ||
+    id <= 0
+  ){
+
+    showToast(
+      'ไม่พบรายการ',
+      'รหัสรายการ มส ไม่ถูกต้อง',
+      'error'
+    );
+
+    return;
+
+  }
+
+
+  /*
+   * ค้นจากข้อมูลต้นฉบับก่อน
+   * ถ้าไม่พบค่อยค้นจากข้อมูลหลัง filter
+   */
+  const row =
+    (
+      state.msReportRowsRaw ||
+      []
+    ).find(item =>
+      Number(
+        item.id
+      ) === id
+    ) ||
+    (
+      state.msReportRows ||
+      []
+    ).find(item =>
+      Number(
+        item.id
+      ) === id
+    );
+
+
+  if(!row){
+
+    showToast(
+      'ไม่พบรายการ',
+      'ไม่พบข้อมูลรายงาน มส ที่ต้องการแก้ไข',
+      'error'
+    );
+
+    return;
+
+  }
+
+
+  /*
+   * ต้องยังเป็น มส เท่านั้น
+   */
+  if(
+    String(
+      row.exam_status || ''
+    ).trim() !== 'ms'
+  ){
+
+    showToast(
+      'แก้ไขไม่ได้',
+      'รายการนี้ไม่ได้มีสถานะ มส แล้ว',
+      'warning'
+    );
+
+    return;
+
+  }
+
+
+  state.msResolveTarget =
+    row;
+
+
+  if(
+    el('msResolveDetail')
+  ){
+
+    const teacherText =
+      [
+        row.teacher_code,
+        row.teacher_name
+      ]
+      .filter(Boolean)
+      .join(' | ');
+
+
+    const attendance =
+      safeNumber(
+        row.attendance_percent,
+        null
+      );
+
+
+    el('msResolveDetail').innerHTML =
+      `
+        <strong>
+          ${escapeHtml(
+            row.student_code || '-'
+          )}
+          ${escapeHtml(
+            row.student_name || '-'
+          )}
+        </strong>
+
+        <br>
+
+        ชั้น
+        ${escapeHtml(
+          row.class_level || '-'
+        )}
+        /
+        ${escapeHtml(
+          String(
+            row.room || '-'
+          )
+        )}
+
+        ${
+          row.student_no !== null &&
+          row.student_no !== undefined &&
+          row.student_no !== ''
+            ? `
+              • เลขที่
+              ${escapeHtml(
+                String(
+                  row.student_no
+                )
+              )}
+            `
+            : ''
+        }
+
+        <br>
+
+        รายวิชา:
+        <strong>
+          ${escapeHtml(
+            row.subject_code || '-'
+          )}
+          ${escapeHtml(
+            row.subject_name || '-'
+          )}
+        </strong>
+
+        <br>
+
+        ครูผู้สอน:
+        ${escapeHtml(
+          teacherText || '-'
+        )}
+
+        <br>
+
+        เวลาเรียน:
+        ${
+          attendance === null
+            ? '-'
+            : `${escapeHtml(
+                attendance.toFixed(2)
+              )}%`
+        }
+      `;
+
+  }
+
+
+  if(
+    el('msResolveNoteInput')
+  ){
+
+    el('msResolveNoteInput').value =
+      '';
+
+  }
+
+
+  setStatus(
+    'msResolveStatus',
+    'โปรดตรวจสอบข้อมูลและเอกสารก่อนยืนยัน',
+    'warning'
+  );
+
+
+  if(
+    el('msResolveModal')
+  ){
+
+    el('msResolveModal')
+      .classList
+      .add('show');
+
+  }
+
+}
+
+
+/* =========================================================
+   ปิด Modal แก้ มส
+   ========================================================= */
+
+function closeMsResolveModal(){
+
+  state.msResolveTarget =
+    null;
+
+
+  if(
+    el('msResolveNoteInput')
+  ){
+
+    el('msResolveNoteInput').value =
+      '';
+
+  }
+
+
+  if(
+    el('msResolveModal')
+  ){
+
+    el('msResolveModal')
+      .classList
+      .remove('show');
+
+  }
+
+
+  setStatus(
+    'msResolveStatus',
+    '',
+    'info'
+  );
+
+}
+
+/* =========================================================
+   Admin อนุมัติแก้ มส
+   ========================================================= */
+
+async function confirmMsResolve(){
+
+  if(
+    state.msResolveSaving
+  ){
+    return;
+  }
+
+
+  const target =
+    state.msResolveTarget;
+
+
+  if(
+    !target ||
+    !target.id
+  ){
+
+    showToast(
+      'ไม่พบรายการ',
+      'กรุณาเลือกรายการ มส ใหม่อีกครั้ง',
+      'error'
+    );
+
+    return;
+
+  }
+
+
+  const token =
+    String(
+      state.adminSessionToken || ''
+    ).trim();
+
+
+  if(!token){
+
+    showToast(
+      'Session หมดอายุ',
+      'กรุณาเข้าสู่ระบบใหม่',
+      'error'
+    );
+
+    return;
+
+  }
+
+
+  const note =
+    String(
+      el('msResolveNoteInput')
+        ?.value ||
+      ''
+    ).trim();
+
+
+  const button =
+    el('msResolveConfirmBtn');
+
+
+  try{
+
+    state.msResolveSaving =
+      true;
+
+
+    if(button){
+
+      button.disabled =
+        true;
+
+      button.textContent =
+        'กำลังบันทึก...';
+
+    }
+
+
+    setStatus(
+      'msResolveStatus',
+      'กำลังเปลี่ยนสถานะเป็นมีสิทธิ์สอบ...',
+      'info'
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+        'admin_resolve_exam_eligibility_ms_session',
+        {
+
+          p_token:
+            token,
+
+          p_report_id:
+            Number(
+              target.id
+            ),
+
+          p_note:
+            note || null
+
+        }
+      );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    const result =
+      Array.isArray(data)
+        ? data[0]
+        : data;
+
+
+    if(
+      !result ||
+      result.ok !== true
+    ){
+
+      throw new Error(
+        'ฐานข้อมูลไม่ยืนยันการแก้สถานะ มส'
+      );
+
+    }
+
+
+    console.info(
+      '[MS Resolve RPC]',
+      result
+    );
+
+
+    /*
+     * จำข้อมูลก่อนปิด Modal
+     */
+    const studentText =
+      [
+        target.student_code,
+        target.student_name
+      ]
+      .filter(Boolean)
+      .join(' ');
+
+
+    const subjectText =
+      [
+        target.subject_code,
+        target.subject_name
+      ]
+      .filter(Boolean)
+      .join(' ');
+
+
+closeMsResolveModal();
+
+
+/*
+ * RPC สำเร็จแล้ว
+ * แจ้งผลสำเร็จก่อน เพื่อไม่ให้การ reload
+ * ทำให้ผู้ใช้เข้าใจผิดว่าบันทึกไม่สำเร็จ
+ */
+showToast(
+  'แก้ มส เรียบร้อยแล้ว',
+  `${studentText} • ${subjectText}`,
+  'success'
+);
+
+
+/*
+ * โหลดข้อมูลล่าสุด
+ * ถ้าโหลดซ้ำไม่สำเร็จ ไม่ถือว่าการแก้ มส ล้มเหลว
+ */
+try{
+
+  await loadMsReportingRows();
+
+}catch(reloadError){
+
+  console.error(
+    'reload MS report after resolve ERROR',
+    reloadError
+  );
+
+  showToast(
+    'บันทึกสำเร็จแล้ว',
+    'แต่โหลดข้อมูลล่าสุดไม่สำเร็จ กรุณากดโหลดใหม่',
+    'warning'
+  );
+
+}
+
+
+  }catch(error){
+
+    console.error(
+      'confirmMsResolve ERROR',
+      error
+    );
+
+
+    setStatus(
+      'msResolveStatus',
+      error?.message ||
+        'ไม่สามารถแก้สถานะ มส ได้',
+      'error'
+    );
+
+
+    showToast(
+      'แก้ มส ไม่สำเร็จ',
+      error?.message ||
+        'เกิดข้อผิดพลาดในการบันทึก',
+      'error'
+    );
+
+
+  }finally{
+
+    state.msResolveSaving =
+      false;
+
+
+    if(button){
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        '✅ ยืนยันเป็นมีสิทธิ์สอบ';
+
+    }
+
+  }
+
+}
+
 
 /* =========================================================
    Render Student Cards
@@ -11084,6 +11663,25 @@ studentMap.set(
                 </span>
               `;
 
+          const resolveActionHtml =
+  status === 'ms'
+    ? `
+      <button
+        type="button"
+        class="btn-success btn-small ms-resolve-btn"
+        data-report-id="${escapeHtml(
+          String(row.id || '')
+        )}"
+      >
+        ✅ แก้ มส
+      </button>
+    `
+    : `
+      <span class="small">
+        -
+      </span>
+    `;
+
 
           const teacherText =
             [
@@ -11131,11 +11729,15 @@ return `
               </td>
 
 
-              <td>
-                ${statusHtml}
-              </td>
+<td>
+  ${statusHtml}
+</td>
 
-            </tr>
+<td>
+  ${resolveActionHtml}
+</td>
+
+</tr>
           `;
 
         }).join('');
@@ -11252,13 +11854,14 @@ return `
               <table class="ms-report-table">
 
                 <thead>
-                  <tr>
-                    <th>รหัสวิชา</th>
-                    <th>ชื่อวิชา</th>
-                    <th>ครูผู้สอน</th>
-                    <th>% เวลาเรียน</th>
-                    <th>สถานะ</th>
-                  </tr>
+<tr>
+  <th>รหัสวิชา</th>
+  <th>ชื่อวิชา</th>
+  <th>ครูผู้สอน</th>
+  <th>% เวลาเรียน</th>
+  <th>สถานะ</th>
+  <th>จัดการ</th>
+</tr>
                 </thead>
 
                 <tbody>
@@ -11355,28 +11958,32 @@ async function loadMsReportingRows(){
           .from(
             'exam_eligibility_reports'
           )
-          .select(`
-            academic_year,
-            term,
-            subject_offering_id,
-            subject_id,
-            teacher_id,
-            teacher_code,
-            teacher_name,
-            subject_code,
-            subject_name,
-            class_level,
-            room,
-            student_id,
-            student_code,
-            student_no,
-            student_name,
-            attendance_score,
-            attendance_max,
-            attendance_percent,
-            exam_status,
-            updated_at
-          `)
+         .select(`
+  id,
+  academic_year,
+  term,
+  subject_offering_id,
+  subject_id,
+  teacher_id,
+  teacher_code,
+  teacher_name,
+  subject_code,
+  subject_name,
+  class_level,
+  room,
+  student_id,
+  student_code,
+  student_no,
+  student_name,
+  attendance_score,
+  attendance_max,
+  attendance_percent,
+  exam_status,
+  ms_resolved_at,
+  ms_resolved_by,
+  ms_resolution_note,
+  updated_at
+`)
           .eq(
             'academic_year',
             year
@@ -31375,6 +31982,82 @@ if(el('msReportExportPdfBtn')){
       async () => {
 
         await exportMsReportPdf();
+
+      }
+    );
+
+}
+
+/* =========================================================
+   ปุ่มแก้ มส ใน Student Card
+   ใช้ Event Delegation เพราะปุ่มถูก render แบบ dynamic
+   ========================================================= */
+
+if(
+  el('msReportStudentList')
+){
+
+  el('msReportStudentList')
+    .addEventListener(
+      'click',
+      event => {
+
+        const button =
+          event.target.closest(
+            '.ms-resolve-btn'
+          );
+
+
+        if(!button){
+          return;
+        }
+
+
+        const reportId =
+          button.dataset.reportId;
+
+
+        openMsResolveModal(
+          reportId
+        );
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   Modal แก้ มส
+   ========================================================= */
+
+if(
+  el('msResolveCancelBtn')
+){
+
+  el('msResolveCancelBtn')
+    .addEventListener(
+      'click',
+      () => {
+
+        closeMsResolveModal();
+
+      }
+    );
+
+}
+
+
+if(
+  el('msResolveConfirmBtn')
+){
+
+  el('msResolveConfirmBtn')
+    .addEventListener(
+      'click',
+      async () => {
+
+        await confirmMsResolve();
 
       }
     );
