@@ -11947,7 +11947,7 @@ const resolveActionHtml =
         </span>
       `;
 
-        const historyActionHtml =
+       const historyActionHtml =
   row.admin_status_changed_at
     ? `
       <span
@@ -11968,6 +11968,7 @@ const resolveActionHtml =
           white-space:nowrap;
         "
       >
+
         ✏️ แก้โดย
         ${
           row.admin_status_changed_by
@@ -11976,10 +11977,46 @@ const resolveActionHtml =
               )}`
             : ' Admin'
         }
+
+        ${
+          previousStatusText
+            ? `
+              <span style="color:#98a2b3;margin:0 5px;">
+                •
+              </span>
+
+              <span>
+                ${escapeHtml(
+                  previousStatusText
+                )}
+                →
+                ${escapeHtml(
+                  currentStatusText
+                )}
+              </span>
+            `
+            : ''
+        }
+
+        ${
+          adminChangedAtText
+            ? `
+              <span style="color:#98a2b3;margin:0 5px;">
+                •
+              </span>
+
+              <span>
+                ${escapeHtml(
+                  adminChangedAtText
+                )}
+              </span>
+            `
+            : ''
+        }
+
       </span>
     `
     : '';
-
           const teacherText =
             [
               row.teacher_code,
