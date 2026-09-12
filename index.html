@@ -6511,16 +6511,13 @@ body.app-booting #appView{
 >
   <div class="modal">
 
-    <h3>
-      ✅ ยืนยันการแก้ มส
-    </h3>
+<h3 id="msResolveTitle">
+  แก้ไขสถานะสิทธิ์สอบ
+</h3>
 
-    <p>
-      ตรวจสอบข้อมูลก่อนเปลี่ยนสถานะจาก
-      <strong style="color:#d92d20;">มส</strong>
-      เป็น
-      <strong style="color:#0f9d58;">มีสิทธิ์สอบ</strong>
-    </p>
+<p id="msResolveIntro">
+  ตรวจสอบข้อมูลก่อนยืนยันการเปลี่ยนสถานะ
+</p>
 
 
     <div
@@ -6553,13 +6550,13 @@ body.app-booting #appView{
 
     <div class="actions">
 
-      <button
-        id="msResolveConfirmBtn"
-        class="btn-success"
-        type="button"
-      >
-        ✅ ยืนยันเป็นมีสิทธิ์สอบ
-      </button>
+<button
+  id="msResolveConfirmBtn"
+  class="btn-success"
+  type="button"
+>
+  ยืนยันการเปลี่ยนสถานะ
+</button>
 
       <button
         id="msResolveCancelBtn"
@@ -10818,13 +10815,20 @@ function applyMsReportFiltersAndRender(){
    ========================================================= */
 
 function openMsResolveModal(
-  reportId
+  reportId,
+  targetStatus
 ){
 
   const id =
     Number(
       reportId
     );
+
+
+  const nextStatus =
+    String(
+      targetStatus || ''
+    ).trim();
 
 
   if(
@@ -10834,7 +10838,7 @@ function openMsResolveModal(
 
     showToast(
       'ไม่พบรายการ',
-      'รหัสรายการ มส ไม่ถูกต้อง',
+      'รหัสรายการสิทธิ์สอบไม่ถูกต้อง',
       'error'
     );
 
@@ -10843,10 +10847,24 @@ function openMsResolveModal(
   }
 
 
-  /*
-   * ค้นจากข้อมูลต้นฉบับก่อน
-   * ถ้าไม่พบค่อยค้นจากข้อมูลหลัง filter
-   */
+  if(
+    ![
+      'eligible',
+      'ms'
+    ].includes(nextStatus)
+  ){
+
+    showToast(
+      'สถานะไม่ถูกต้อง',
+      'ไม่พบสถานะปลายทางที่ต้องการ',
+      'error'
+    );
+
+    return;
+
+  }
+
+
   const row =
     (
       state.msReportRowsRaw ||
@@ -10870,7 +10888,7 @@ function openMsResolveModal(
 
     showToast(
       'ไม่พบรายการ',
-      'ไม่พบข้อมูลรายงาน มส ที่ต้องการแก้ไข',
+      'ไม่พบข้อมูลสิทธิ์สอบที่ต้องการแก้ไข',
       'error'
     );
 
@@ -10879,18 +10897,38 @@ function openMsResolveModal(
   }
 
 
-  /*
-   * ต้องยังเป็น มส เท่านั้น
-   */
-  if(
+  const currentStatus =
     String(
       row.exam_status || ''
-    ).trim() !== 'ms'
+    ).trim();
+
+
+  if(
+    ![
+      'eligible',
+      'ms'
+    ].includes(currentStatus)
   ){
 
     showToast(
-      'แก้ไขไม่ได้',
-      'รายการนี้ไม่ได้มีสถานะ มส แล้ว',
+      'สถานะไม่ถูกต้อง',
+      'สถานะปัจจุบันของรายการไม่รองรับการแก้ไข',
+      'error'
+    );
+
+    return;
+
+  }
+
+
+  if(
+    currentStatus ===
+    nextStatus
+  ){
+
+    showToast(
+      'ไม่ต้องแก้ไข',
+      'สถานะใหม่เหมือนกับสถานะปัจจุบัน',
       'warning'
     );
 
@@ -10899,8 +10937,59 @@ function openMsResolveModal(
   }
 
 
-  state.msResolveTarget =
-    row;
+  state.msResolveTarget = {
+    ...row,
+
+    next_exam_status:
+      nextStatus
+  };
+
+
+  const currentText =
+    currentStatus === 'ms'
+      ? 'มส (ไม่มีสิทธิ์สอบ)'
+      : 'มีสิทธิ์สอบ';
+
+
+  const nextText =
+    nextStatus === 'ms'
+      ? 'มส (ไม่มีสิทธิ์สอบ)'
+      : 'มีสิทธิ์สอบ';
+
+
+  if(
+    el('msResolveTitle')
+  ){
+
+    el('msResolveTitle').textContent =
+      nextStatus === 'eligible'
+        ? '✅ เปลี่ยนเป็นมีสิทธิ์สอบ'
+        : '🚫 เปลี่ยนเป็น มส';
+
+  }
+
+
+  if(
+    el('msResolveIntro')
+  ){
+
+    el('msResolveIntro').innerHTML =
+      `
+        ตรวจสอบข้อมูลก่อนเปลี่ยนสถานะจาก
+        <strong>
+          ${escapeHtml(
+            currentText
+          )}
+        </strong>
+        เป็น
+        <strong>
+          ${escapeHtml(
+            nextText
+          )}
+        </strong>
+      `;
+
+  }
 
 
   if(
@@ -10991,6 +11080,19 @@ function openMsResolveModal(
                 attendance.toFixed(2)
               )}%`
         }
+
+        <br>
+
+        สถานะ:
+        <strong>
+          ${escapeHtml(
+            currentText
+          )}
+          →
+          ${escapeHtml(
+            nextText
+          )}
+        </strong>
       `;
 
   }
@@ -11003,12 +11105,35 @@ function openMsResolveModal(
     el('msResolveNoteInput').value =
       '';
 
+    el('msResolveNoteInput').placeholder =
+      nextStatus === 'eligible'
+        ? 'เช่น นักเรียนนำเอกสารรับรองการแก้ มส มายื่นแล้ว'
+        : 'เช่น ครูผู้สอนแจ้งแก้ไขข้อมูล นักเรียนต้องเป็น มส';
+
+  }
+
+
+  if(
+    el('msResolveConfirmBtn')
+  ){
+
+    el('msResolveConfirmBtn').className =
+      nextStatus === 'eligible'
+        ? 'btn-success'
+        : 'btn-warning';
+
+
+    el('msResolveConfirmBtn').textContent =
+      nextStatus === 'eligible'
+        ? '✅ ยืนยันเป็นมีสิทธิ์สอบ'
+        : '🚫 ยืนยันเปลี่ยนเป็น มส';
+
   }
 
 
   setStatus(
     'msResolveStatus',
-    'โปรดตรวจสอบข้อมูลและเอกสารก่อนยืนยัน',
+    'โปรดตรวจสอบข้อมูลก่อนยืนยัน',
     'warning'
   );
 
@@ -11089,7 +11214,7 @@ async function confirmMsResolve(){
 
     showToast(
       'ไม่พบรายการ',
-      'กรุณาเลือกรายการ มส ใหม่อีกครั้ง',
+      'กรุณาเลือกรายการใหม่อีกครั้ง',
       'error'
     );
 
@@ -11097,6 +11222,45 @@ async function confirmMsResolve(){
 
   }
 
+
+  /* =====================================================
+     สถานะปลายทาง
+     มาจาก openMsResolveModal()
+     ===================================================== */
+
+  const nextStatus =
+    String(
+      target.next_exam_status || ''
+    ).trim();
+
+
+  if(
+    ![
+      'eligible',
+      'ms'
+    ].includes(nextStatus)
+  ){
+
+    showToast(
+      'สถานะไม่ถูกต้อง',
+      'ไม่พบสถานะที่ต้องการเปลี่ยน',
+      'error'
+    );
+
+    return;
+
+  }
+
+
+  const nextText =
+    nextStatus === 'eligible'
+      ? 'มีสิทธิ์สอบ'
+      : 'มส';
+
+
+  /* =====================================================
+     Admin Session
+     ===================================================== */
 
   const token =
     String(
@@ -11148,17 +11312,21 @@ async function confirmMsResolve(){
 
     setStatus(
       'msResolveStatus',
-      'กำลังเปลี่ยนสถานะเป็นมีสิทธิ์สอบ...',
+      `กำลังเปลี่ยนสถานะเป็น ${nextText}...`,
       'info'
     );
 
+
+    /* =====================================================
+       RPC กลางตัวใหม่
+       ===================================================== */
 
     const {
       data,
       error
     } =
       await supabaseClient.rpc(
-        'admin_resolve_exam_eligibility_ms_session',
+        'admin_set_exam_eligibility_status_session',
         {
 
           p_token:
@@ -11168,6 +11336,9 @@ async function confirmMsResolve(){
             Number(
               target.id
             ),
+
+          p_exam_status:
+            nextStatus,
 
           p_note:
             note || null
@@ -11193,21 +11364,22 @@ async function confirmMsResolve(){
     ){
 
       throw new Error(
-        'ฐานข้อมูลไม่ยืนยันการแก้สถานะ มส'
+        'ฐานข้อมูลไม่ยืนยันการเปลี่ยนสถานะสิทธิ์สอบ'
       );
 
     }
 
 
     console.info(
-      '[MS Resolve RPC]',
+      '[Exam Eligibility Status RPC]',
       result
     );
 
 
-    /*
-     * จำข้อมูลก่อนปิด Modal
-     */
+    /* =====================================================
+       เตรียมข้อความแจ้งผล
+       ===================================================== */
+
     const studentText =
       [
         target.student_code,
@@ -11226,43 +11398,47 @@ async function confirmMsResolve(){
       .join(' ');
 
 
-closeMsResolveModal();
+    /*
+     * RPC สำเร็จแล้ว
+     */
+    closeMsResolveModal();
 
 
-/*
- * RPC สำเร็จแล้ว
- * แจ้งผลสำเร็จก่อน เพื่อไม่ให้การ reload
- * ทำให้ผู้ใช้เข้าใจผิดว่าบันทึกไม่สำเร็จ
- */
-showToast(
-  'แก้ มส เรียบร้อยแล้ว',
-  `${studentText} • ${subjectText}`,
-  'success'
-);
+    showToast(
+      nextStatus === 'eligible'
+        ? 'เปลี่ยนเป็นมีสิทธิ์สอบแล้ว'
+        : 'เปลี่ยนเป็น มส แล้ว',
+
+      `${studentText} • ${subjectText}`,
+
+      'success'
+    );
 
 
-/*
- * โหลดข้อมูลล่าสุด
- * ถ้าโหลดซ้ำไม่สำเร็จ ไม่ถือว่าการแก้ มส ล้มเหลว
- */
-try{
+    /* =====================================================
+       โหลดข้อมูลล่าสุด
+       ถ้า reload พลาด ไม่ถือว่าการบันทึกล้มเหลว
+       ===================================================== */
 
-  await loadMsReportingRows();
+    try{
 
-}catch(reloadError){
+      await loadMsReportingRows();
 
-  console.error(
-    'reload MS report after resolve ERROR',
-    reloadError
-  );
+    }catch(reloadError){
 
-  showToast(
-    'บันทึกสำเร็จแล้ว',
-    'แต่โหลดข้อมูลล่าสุดไม่สำเร็จ กรุณากดโหลดใหม่',
-    'warning'
-  );
+      console.error(
+        'reload MS report after status change ERROR',
+        reloadError
+      );
 
-}
+
+      showToast(
+        'บันทึกสำเร็จแล้ว',
+        'แต่โหลดข้อมูลล่าสุดไม่สำเร็จ กรุณากดโหลดใหม่',
+        'warning'
+      );
+
+    }
 
 
   }catch(error){
@@ -11276,13 +11452,13 @@ try{
     setStatus(
       'msResolveStatus',
       error?.message ||
-        'ไม่สามารถแก้สถานะ มส ได้',
+        'ไม่สามารถเปลี่ยนสถานะสิทธิ์สอบได้',
       'error'
     );
 
 
     showToast(
-      'แก้ มส ไม่สำเร็จ',
+      'เปลี่ยนสถานะไม่สำเร็จ',
       error?.message ||
         'เกิดข้อผิดพลาดในการบันทึก',
       'error'
@@ -11300,8 +11476,12 @@ try{
       button.disabled =
         false;
 
+      /*
+       * ตอนเปิด Modal ครั้งต่อไป
+       * openMsResolveModal() จะกำหนดข้อความปุ่มใหม่อีกครั้ง
+       */
       button.textContent =
-        '✅ ยืนยันเป็นมีสิทธิ์สอบ';
+        'ยืนยันการเปลี่ยนสถานะ';
 
     }
 
@@ -11663,24 +11843,38 @@ studentMap.set(
                 </span>
               `;
 
-          const resolveActionHtml =
+const resolveActionHtml =
   status === 'ms'
     ? `
       <button
         type="button"
-        class="btn-success btn-small ms-resolve-btn"
+        class="btn-success btn-small ms-status-change-btn"
         data-report-id="${escapeHtml(
           String(row.id || '')
         )}"
+        data-target-status="eligible"
       >
-        ✅ แก้ มส
+        ✅ เป็นมีสิทธิ์สอบ
       </button>
     `
-    : `
-      <span class="small">
-        -
-      </span>
-    `;
+    : status === 'eligible'
+      ? `
+        <button
+          type="button"
+          class="btn-warning btn-small ms-status-change-btn"
+          data-report-id="${escapeHtml(
+            String(row.id || '')
+          )}"
+          data-target-status="ms"
+        >
+          🚫 เปลี่ยนเป็น มส
+        </button>
+      `
+      : `
+        <span class="small">
+          -
+        </span>
+      `;
 
 
           const teacherText =
@@ -11982,6 +12176,16 @@ async function loadMsReportingRows(){
   ms_resolved_at,
   ms_resolved_by,
   ms_resolution_note,
+
+  ms_resolution_cancelled_at,
+  ms_resolution_cancelled_by,
+  ms_resolution_cancel_note,
+
+  admin_status_changed_at,
+  admin_status_changed_by,
+  admin_status_change_note,
+  admin_previous_exam_status,
+
   updated_at
 `)
           .eq(
@@ -32004,7 +32208,7 @@ if(
 
         const button =
           event.target.closest(
-            '.ms-resolve-btn'
+            '.ms-status-change-btn'
           );
 
 
@@ -32013,13 +32217,18 @@ if(
         }
 
 
-        const reportId =
-          button.dataset.reportId;
+const reportId =
+  button.dataset.reportId;
 
 
-        openMsResolveModal(
-          reportId
-        );
+const targetStatus =
+  button.dataset.targetStatus;
+
+
+openMsResolveModal(
+  reportId,
+  targetStatus
+);
 
       }
     );
