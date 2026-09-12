@@ -12009,6 +12009,27 @@ const resolveActionHtml =
         </span>
       `;
 
+          const historyActionHtml =
+  row.admin_status_changed_at
+    ? `
+      <button
+        type="button"
+        class="btn-secondary btn-small"
+        title="${escapeHtml(
+          adminHistoryTooltip
+        )}"
+        style="
+          width:34px;
+          min-width:34px;
+          padding:0;
+          border-radius:10px;
+        "
+      >
+        🕘
+      </button>
+    `
+    : '';
+
 
           const teacherText =
             [
@@ -12058,11 +12079,20 @@ return `
 
 <td>
   ${statusHtml}
-  ${adminHistoryHtml}
 </td>
 
 <td>
-  ${resolveActionHtml}
+  <div
+    style="
+      display:flex;
+      align-items:center;
+      gap:6px;
+      flex-wrap:nowrap;
+    "
+  >
+    ${resolveActionHtml}
+    ${historyActionHtml}
+  </div>
 </td>
 
 </tr>
