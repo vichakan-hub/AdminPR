@@ -11843,6 +11843,136 @@ studentMap.set(
                 </span>
               `;
 
+          const adminChangedAt =
+  row.admin_status_changed_at
+    ? new Date(
+        row.admin_status_changed_at
+      )
+    : null;
+
+
+const adminChangedAtText =
+  adminChangedAt &&
+  !Number.isNaN(
+    adminChangedAt.getTime()
+  )
+    ? adminChangedAt.toLocaleString(
+        'th-TH',
+        {
+          timeZone: 'Asia/Bangkok',
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }
+      )
+    : '';
+
+
+const previousStatus =
+  String(
+    row.admin_previous_exam_status || ''
+  ).trim();
+
+
+const previousStatusText =
+  previousStatus === 'ms'
+    ? 'มส'
+    : previousStatus === 'eligible'
+      ? 'มีสิทธิ์สอบ'
+      : '';
+
+
+const currentStatusText =
+  status === 'ms'
+    ? 'มส'
+    : status === 'eligible'
+      ? 'มีสิทธิ์สอบ'
+      : status;
+
+
+const adminHistoryHtml =
+  row.admin_status_changed_at
+    ? `
+      <div
+        class="small"
+        style="
+          margin-top:7px;
+          line-height:1.6;
+          text-align:left;
+        "
+      >
+
+        <div style="font-weight:700;color:#6b7a90;">
+          ✏️ แก้ไขโดย Admin
+        </div>
+
+        ${
+          previousStatusText
+            ? `
+              <div>
+                ${escapeHtml(
+                  previousStatusText
+                )}
+                →
+                ${escapeHtml(
+                  currentStatusText
+                )}
+              </div>
+            `
+            : ''
+        }
+
+        ${
+          row.admin_status_changed_by
+            ? `
+              <div>
+                โดย
+                <strong>
+                  ${escapeHtml(
+                    row.admin_status_changed_by
+                  )}
+                </strong>
+              </div>
+            `
+            : ''
+        }
+
+        ${
+          adminChangedAtText
+            ? `
+              <div>
+                ${escapeHtml(
+                  adminChangedAtText
+                )}
+              </div>
+            `
+            : ''
+        }
+
+        ${
+          row.admin_status_change_note
+            ? `
+              <div
+                style="
+                  margin-top:3px;
+                  color:#41536c;
+                "
+              >
+                หมายเหตุ:
+                ${escapeHtml(
+                  row.admin_status_change_note
+                )}
+              </div>
+            `
+            : ''
+        }
+
+      </div>
+    `
+    : '';
+
 const resolveActionHtml =
   status === 'ms'
     ? `
@@ -11925,6 +12055,7 @@ return `
 
 <td>
   ${statusHtml}
+  ${adminHistoryHtml}
 </td>
 
 <td>
