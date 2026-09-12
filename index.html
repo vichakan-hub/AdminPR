@@ -2590,13 +2590,19 @@ body.app-booting #appView{
 
 
 .ms-report-table th:nth-child(5){
-  width:180px;
+  width:360px;
+  text-align:center;
+}
+
+.ms-report-table th:nth-child(6){
+  width:150px;
   text-align:center;
 }
 
 
 .ms-report-table td:nth-child(4),
-.ms-report-table td:nth-child(5){
+.ms-report-table td:nth-child(5),
+.ms-report-table td:nth-child(6){
   text-align:center;
 }
 
@@ -2618,6 +2624,21 @@ body.app-booting #appView{
   color:#0f9d58;
   background:#e9f8ef;
   border:1px solid #bfe6cb;
+}
+
+.ms-report-status-cell{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+}
+
+.ms-report-admin-history{
+  font-size:11px;
+  font-weight:600;
+  color:#6b7a90;
+  line-height:1.45;
+  white-space:normal;
 }
 
 
@@ -11912,6 +11933,50 @@ const adminHistoryTooltip = [
 .filter(Boolean)
 .join('\n');
 
+const adminHistoryHtml =
+  row.admin_status_changed_at
+    ? `
+      <div class="ms-report-admin-history">
+
+        ✏️ แก้โดย
+        ${
+          row.admin_status_changed_by
+            ? escapeHtml(
+                row.admin_status_changed_by
+              )
+            : 'Admin'
+        }
+
+        ${
+          previousStatusText
+            ? `
+              •
+              ${escapeHtml(
+                previousStatusText
+              )}
+              →
+              ${escapeHtml(
+                currentStatusText
+              )}
+            `
+            : ''
+        }
+
+        ${
+          adminChangedAtText
+            ? `
+              •
+              ${escapeHtml(
+                adminChangedAtText
+              )}
+            `
+            : ''
+        }
+
+      </div>
+    `
+    : '';
+
 
 
 const resolveActionHtml =
@@ -11947,76 +12012,7 @@ const resolveActionHtml =
         </span>
       `;
 
-       const historyActionHtml =
-  row.admin_status_changed_at
-    ? `
-      <span
-        title="${escapeHtml(
-          adminHistoryTooltip
-        )}"
-        style="
-          display:inline-flex;
-          align-items:center;
-          min-height:30px;
-          padding:4px 10px;
-          border-radius:999px;
-          background:#eef4ff;
-          border:1px solid #cfe0ff;
-          color:#1d4ed8;
-          font-size:11px;
-          font-weight:700;
-          white-space:nowrap;
-        "
-      >
 
-        ✏️ แก้โดย
-        ${
-          row.admin_status_changed_by
-            ? ` ${escapeHtml(
-                row.admin_status_changed_by
-              )}`
-            : ' Admin'
-        }
-
-        ${
-          previousStatusText
-            ? `
-              <span style="color:#98a2b3;margin:0 5px;">
-                •
-              </span>
-
-              <span>
-                ${escapeHtml(
-                  previousStatusText
-                )}
-                →
-                ${escapeHtml(
-                  currentStatusText
-                )}
-              </span>
-            `
-            : ''
-        }
-
-        ${
-          adminChangedAtText
-            ? `
-              <span style="color:#98a2b3;margin:0 5px;">
-                •
-              </span>
-
-              <span>
-                ${escapeHtml(
-                  adminChangedAtText
-                )}
-              </span>
-            `
-            : ''
-        }
-
-      </span>
-    `
-    : '';
           const teacherText =
             [
               row.teacher_code,
@@ -12064,21 +12060,14 @@ return `
 
 
 <td>
-  ${statusHtml}
+  <div class="ms-report-status-cell">
+    ${statusHtml}
+    ${adminHistoryHtml}
+  </div>
 </td>
 
 <td>
-  <div
-    style="
-      display:flex;
-      align-items:center;
-      gap:6px;
-      flex-wrap:nowrap;
-    "
-  >
-    ${resolveActionHtml}
-    ${historyActionHtml}
-  </div>
+  ${resolveActionHtml}
 </td>
 
 </tr>
