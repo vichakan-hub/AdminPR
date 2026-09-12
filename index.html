@@ -11947,27 +11947,38 @@ const resolveActionHtml =
         </span>
       `;
 
-          const historyActionHtml =
+        const historyActionHtml =
   row.admin_status_changed_at
     ? `
-      <button
-        type="button"
-        class="btn-secondary btn-small"
+      <span
         title="${escapeHtml(
           adminHistoryTooltip
         )}"
         style="
-          width:34px;
-          min-width:34px;
-          padding:0;
-          border-radius:10px;
+          display:inline-flex;
+          align-items:center;
+          min-height:30px;
+          padding:4px 10px;
+          border-radius:999px;
+          background:#eef4ff;
+          border:1px solid #cfe0ff;
+          color:#1d4ed8;
+          font-size:11px;
+          font-weight:700;
+          white-space:nowrap;
         "
       >
-        🕘
-      </button>
+        ✏️ แก้โดย
+        ${
+          row.admin_status_changed_by
+            ? ` ${escapeHtml(
+                row.admin_status_changed_by
+              )}`
+            : ' Admin'
+        }
+      </span>
     `
     : '';
-
 
           const teacherText =
             [
