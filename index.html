@@ -9980,41 +9980,72 @@ async function toggleMsReportSubmissionLock(){
     }
 
 
-    /*
-     * ใช้ ...current
-     * เพื่อไม่ทำ year_options / term_options
-     * หรือ property อื่นหาย
-     */
-    const nextValue = {
+/*
+ * เปลี่ยนสถานะผ่าน Admin Session RPC
+ * ไม่อนุญาตให้ Browser update app_settings ตรง
+ */
 
-      ...current,
+const token =
+  String(
+    state.adminSessionToken || ''
+  ).trim();
 
-      lock:
+
+if(!token){
+
+  throw new Error(
+    'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+  );
+
+}
+
+
+const {
+  data,
+  error
+} =
+  await supabaseClient.rpc(
+    'admin_set_exam_eligibility_lock_session',
+    {
+
+      p_token:
+        token,
+
+      p_academic_year:
+        year,
+
+      p_term:
+        term,
+
+      p_lock:
         nextLock
 
-    };
-
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .from('app_settings')
-        .update({
-          value: nextValue
-        })
-        .eq(
-          'key',
-          MS_REPORT_SETTING_KEY
-        )
-        .select('key, value')
-        .single();
-
-
-    if(error){
-      throw error;
     }
+  );
+
+
+if(error){
+  throw error;
+}
+
+
+if(
+  !data ||
+  data.ok !== true ||
+  !data.value
+){
+
+  throw new Error(
+    'ฐานข้อมูลไม่ยืนยันการเปลี่ยนสถานะรับรายงาน มส'
+  );
+
+}
+
+
+console.info(
+  '[MS Setting RPC]',
+  data
+);
 
 
     state.msReportSubmissionSetting =
