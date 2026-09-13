@@ -2549,7 +2549,7 @@ body.app-booting #appView{
 
 .ms-report-table{
   width:100%;
-  min-width:850px;
+  min-width:1050px;
   table-layout:fixed;
   border-collapse:collapse;
 }
@@ -2584,25 +2584,29 @@ body.app-booting #appView{
 
 
 .ms-report-table th:nth-child(4){
-  width:130px;
+  width:120px;
   text-align:center;
 }
 
-
 .ms-report-table th:nth-child(5){
-  width:360px;
+  width:180px;
   text-align:center;
 }
 
 .ms-report-table th:nth-child(6){
-  width:150px;
+  width:160px;
   text-align:center;
 }
 
+.ms-report-table th:nth-child(7){
+  width:170px;
+  text-align:center;
+}
 
 .ms-report-table td:nth-child(4),
 .ms-report-table td:nth-child(5),
-.ms-report-table td:nth-child(6){
+.ms-report-table td:nth-child(6),
+.ms-report-table td:nth-child(7){
   text-align:center;
 }
 
@@ -11864,6 +11868,26 @@ studentMap.set(
                 </span>
               `;
 
+    const resolutionStatus =
+  String(
+    row.ms_resolution_status || 'none'
+  ).trim();
+
+
+const resolutionHtml =
+  status === 'ms' &&
+  resolutionStatus === 'approved'
+    ? `
+      <span class="ms-report-status eligible">
+        🟢 อนุมัติแล้ว
+      </span>
+    `
+    : `
+      <span class="small">
+        -
+      </span>
+    `;
+
           const adminChangedAt =
   row.admin_status_changed_at
     ? new Date(
@@ -12060,10 +12084,11 @@ return `
 
 
 <td>
-  <div class="ms-report-status-cell">
-    ${statusHtml}
-    ${adminHistoryHtml}
-  </div>
+  ${statusHtml}
+</td>
+
+<td>
+  ${resolutionHtml}
 </td>
 
 <td>
@@ -12193,6 +12218,7 @@ return `
   <th>ครูผู้สอน</th>
   <th>% เวลาเรียน</th>
   <th>สถานะ</th>
+  <th>ขอมีสิทธิ์สอบ</th>
   <th>จัดการ</th>
 </tr>
                 </thead>
@@ -12311,10 +12337,12 @@ async function loadMsReportingRows(){
   attendance_score,
   attendance_max,
   attendance_percent,
-  exam_status,
-  ms_resolved_at,
-  ms_resolved_by,
-  ms_resolution_note,
+exam_status,
+ms_resolution_status,
+
+ms_resolved_at,
+ms_resolved_by,
+ms_resolution_note,
 
   ms_resolution_cancelled_at,
   ms_resolution_cancelled_by,
