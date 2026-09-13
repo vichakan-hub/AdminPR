@@ -10978,6 +10978,48 @@ function openMsResolveModal(
 
   }
 
+  const examStatusSelect =
+  el('msResolveExamStatus');
+
+const resolutionStatusSelect =
+  el('msResolveResolutionStatus');
+
+
+if(
+  examStatusSelect &&
+  resolutionStatusSelect
+){
+
+  const syncResolutionStatus = () => {
+
+    if(
+      examStatusSelect.value === 'eligible'
+    ){
+
+      resolutionStatusSelect.value =
+        'none';
+
+      resolutionStatusSelect.disabled =
+        true;
+
+    }else{
+
+      resolutionStatusSelect.disabled =
+        false;
+
+    }
+
+  };
+
+
+  examStatusSelect.onchange =
+    syncResolutionStatus;
+
+
+  syncResolutionStatus();
+
+}
+
 
   if(
     el('msResolveDetail')
@@ -11077,8 +11119,8 @@ function openMsResolveModal(
     el('msResolveConfirmBtn')
   ){
 
-    el('msResolveConfirmBtn').disabled =
-      true;
+el('msResolveConfirmBtn').disabled =
+  false;
 
     el('msResolveConfirmBtn').textContent =
       'บันทึกการเปลี่ยนแปลง';
@@ -11179,13 +11221,22 @@ async function confirmMsResolve(){
 
 
   /* =====================================================
-     สถานะปลายทาง
-     มาจาก openMsResolveModal()
+     อ่านค่าจาก Dropdown
      ===================================================== */
 
-  const nextStatus =
+  const examStatus =
     String(
-      target.next_exam_status || ''
+      el('msResolveExamStatus')
+        ?.value ||
+      ''
+    ).trim();
+
+
+  const resolutionStatus =
+    String(
+      el('msResolveResolutionStatus')
+        ?.value ||
+      ''
     ).trim();
 
 
@@ -11193,12 +11244,14 @@ async function confirmMsResolve(){
     ![
       'eligible',
       'ms'
-    ].includes(nextStatus)
+    ].includes(
+      examStatus
+    )
   ){
 
     showToast(
       'สถานะไม่ถูกต้อง',
-      'ไม่พบสถานะที่ต้องการเปลี่ยน',
+      'กรุณาเลือกสถานะสิทธิ์สอบ',
       'error'
     );
 
@@ -11207,14 +11260,85 @@ async function confirmMsResolve(){
   }
 
 
-  const nextText =
-    nextStatus === 'eligible'
-      ? 'มีสิทธิ์สอบ'
-      : 'มส';
+  if(
+    ![
+      'none',
+      'approved'
+    ].includes(
+      resolutionStatus
+    )
+  ){
+
+    showToast(
+      'สถานะไม่ถูกต้อง',
+      'กรุณาเลือกสถานะการขอมีสิทธิ์สอบ',
+      'error'
+    );
+
+    return;
+
+  }
+
+
+  /*
+   * ป้องกันข้อมูลขัดกัน
+   *
+   * มีสิทธิ์สอบอยู่แล้ว
+   * จะเป็น "อนุมัติขอมีสิทธิ์สอบ" ไม่ได้
+   */
+  if(
+    examStatus === 'eligible' &&
+    resolutionStatus !== 'none'
+  ){
+
+    setStatus(
+      'msResolveStatus',
+      'นักเรียนที่มีสิทธิ์สอบอยู่แล้ว ไม่ต้องมีสถานะขอมีสิทธิ์สอบ',
+      'error'
+    );
+
+    return;
+
+  }
 
 
   /* =====================================================
-     Admin Session
+     ตรวจว่ามีอะไรเปลี่ยนหรือไม่
+     ===================================================== */
+
+  const currentExamStatus =
+    String(
+      target.exam_status || ''
+    ).trim();
+
+
+  const currentResolutionStatus =
+    String(
+      target.ms_resolution_status ||
+      'none'
+    ).trim();
+
+
+  if(
+    currentExamStatus ===
+      examStatus &&
+    currentResolutionStatus ===
+      resolutionStatus
+  ){
+
+    setStatus(
+      'msResolveStatus',
+      'ยังไม่มีข้อมูลที่เปลี่ยนแปลง',
+      'warning'
+    );
+
+    return;
+
+  }
+
+
+  /* =====================================================
+     Session
      ===================================================== */
 
   const token =
@@ -11267,13 +11391,13 @@ async function confirmMsResolve(){
 
     setStatus(
       'msResolveStatus',
-      `กำลังเปลี่ยนสถานะเป็น ${nextText}...`,
+      'กำลังบันทึกการจัดการสิทธิ์สอบ...',
       'info'
     );
 
 
     /* =====================================================
-       RPC กลางตัวใหม่
+       RPC ใหม่
        ===================================================== */
 
     const {
@@ -11281,7 +11405,7 @@ async function confirmMsResolve(){
       error
     } =
       await supabaseClient.rpc(
-        'admin_set_exam_eligibility_status_session',
+        'admin_update_exam_eligibility_session',
         {
 
           p_token:
@@ -11293,7 +11417,10 @@ async function confirmMsResolve(){
             ),
 
           p_exam_status:
-            nextStatus,
+            examStatus,
+
+          p_ms_resolution_status:
+            resolutionStatus,
 
           p_note:
             note || null
@@ -11319,20 +11446,20 @@ async function confirmMsResolve(){
     ){
 
       throw new Error(
-        'ฐานข้อมูลไม่ยืนยันการเปลี่ยนสถานะสิทธิ์สอบ'
+        'ฐานข้อมูลไม่ยืนยันการบันทึกสิทธิ์สอบ'
       );
 
     }
 
 
     console.info(
-      '[Exam Eligibility Status RPC]',
+      '[Exam Eligibility Manage RPC]',
       result
     );
 
 
     /* =====================================================
-       เตรียมข้อความแจ้งผล
+       ข้อความแจ้งผล
        ===================================================== */
 
     const studentText =
@@ -11353,6 +11480,18 @@ async function confirmMsResolve(){
       .join(' ');
 
 
+    const examStatusText =
+      examStatus === 'ms'
+        ? 'มส'
+        : 'มีสิทธิ์สอบ';
+
+
+    const resolutionStatusText =
+      resolutionStatus === 'approved'
+        ? 'อนุมัติแล้ว'
+        : '-';
+
+
     /*
      * RPC สำเร็จแล้ว
      */
@@ -11360,19 +11499,23 @@ async function confirmMsResolve(){
 
 
     showToast(
-      nextStatus === 'eligible'
-        ? 'เปลี่ยนเป็นมีสิทธิ์สอบแล้ว'
-        : 'เปลี่ยนเป็น มส แล้ว',
+      'บันทึกสิทธิ์สอบเรียบร้อยแล้ว',
 
-      `${studentText} • ${subjectText}`,
+      [
+        studentText,
+        subjectText,
+        `สถานะ: ${examStatusText}`,
+        `ขอมีสิทธิ์สอบ: ${resolutionStatusText}`
+      ]
+      .filter(Boolean)
+      .join(' • '),
 
       'success'
     );
 
 
     /* =====================================================
-       โหลดข้อมูลล่าสุด
-       ถ้า reload พลาด ไม่ถือว่าการบันทึกล้มเหลว
+       โหลดข้อมูลใหม่
        ===================================================== */
 
     try{
@@ -11382,7 +11525,7 @@ async function confirmMsResolve(){
     }catch(reloadError){
 
       console.error(
-        'reload MS report after status change ERROR',
+        'reload MS report after manage ERROR',
         reloadError
       );
 
@@ -11407,13 +11550,13 @@ async function confirmMsResolve(){
     setStatus(
       'msResolveStatus',
       error?.message ||
-        'ไม่สามารถเปลี่ยนสถานะสิทธิ์สอบได้',
+        'ไม่สามารถบันทึกข้อมูลสิทธิ์สอบได้',
       'error'
     );
 
 
     showToast(
-      'เปลี่ยนสถานะไม่สำเร็จ',
+      'บันทึกไม่สำเร็จ',
       error?.message ||
         'เกิดข้อผิดพลาดในการบันทึก',
       'error'
@@ -11431,12 +11574,8 @@ async function confirmMsResolve(){
       button.disabled =
         false;
 
-      /*
-       * ตอนเปิด Modal ครั้งต่อไป
-       * openMsResolveModal() จะกำหนดข้อความปุ่มใหม่อีกครั้ง
-       */
       button.textContent =
-        'ยืนยันการเปลี่ยนสถานะ';
+        'บันทึกการเปลี่ยนแปลง';
 
     }
 
