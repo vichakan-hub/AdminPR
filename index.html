@@ -13859,23 +13859,35 @@ const teacherText =
     : '-';
 
 
-            const attendance =
-              safeNumber(
-                row.attendance_percent,
-                null
-              );
+const attendance =
+  safeNumber(
+    row.attendance_percent,
+    null
+  );
 
 
-   return [
+const resolutionStatus =
+  String(
+    row.ms_resolution_status || 'none'
+  ).trim();
+
+
+const resolutionText =
+  resolutionStatus === 'approved'
+    ? 'อนุมัติแล้ว'
+    : '-';
+
+
+return [
 
   row.subject_code ||
-  '-',
+    '-',
 
   row.subject_name ||
-  '-',
+    '-',
 
   teacherText ||
-  '-',
+    '-',
 
   attendance === null
     ? '-'
