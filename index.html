@@ -6537,11 +6537,11 @@ body.app-booting #appView{
   <div class="modal">
 
 <h3 id="msResolveTitle">
-  แก้ไขสถานะสิทธิ์สอบ
+  จัดการสิทธิ์สอบ
 </h3>
 
 <p id="msResolveIntro">
-  ตรวจสอบข้อมูลก่อนยืนยันการเปลี่ยนสถานะ
+  แก้ไขสถานะที่ครูรายงาน และสถานะการขอมีสิทธิ์สอบ
 </p>
 
 
@@ -6557,6 +6557,44 @@ body.app-booting #appView{
       -
     </div>
 
+     <div class="field">
+  <span class="label-in-form">
+    สถานะ
+  </span>
+
+  <select
+    id="msResolveExamStatus"
+    class="std"
+  >
+    <option value="eligible">
+      มีสิทธิ์สอบ
+    </option>
+
+    <option value="ms">
+      มส (ไม่มีสิทธิ์สอบ)
+    </option>
+  </select>
+</div>
+
+
+<div class="field">
+  <span class="label-in-form">
+    ขอมีสิทธิ์สอบ
+  </span>
+
+  <select
+    id="msResolveResolutionStatus"
+    class="std"
+  >
+    <option value="none">
+      ยังไม่ได้อนุมัติ
+    </option>
+
+    <option value="approved">
+      อนุมัติแล้ว
+    </option>
+  </select>
+</div>
 
     <div class="field">
 
@@ -10840,20 +10878,13 @@ function applyMsReportFiltersAndRender(){
    ========================================================= */
 
 function openMsResolveModal(
-  reportId,
-  targetStatus
+  reportId
 ){
 
   const id =
     Number(
       reportId
     );
-
-
-  const nextStatus =
-    String(
-      targetStatus || ''
-    ).trim();
 
 
   if(
@@ -10864,24 +10895,6 @@ function openMsResolveModal(
     showToast(
       'ไม่พบรายการ',
       'รหัสรายการสิทธิ์สอบไม่ถูกต้อง',
-      'error'
-    );
-
-    return;
-
-  }
-
-
-  if(
-    ![
-      'eligible',
-      'ms'
-    ].includes(nextStatus)
-  ){
-
-    showToast(
-      'สถานะไม่ถูกต้อง',
-      'ไม่พบสถานะปลายทางที่ต้องการ',
       'error'
     );
 
@@ -10913,7 +10926,7 @@ function openMsResolveModal(
 
     showToast(
       'ไม่พบรายการ',
-      'ไม่พบข้อมูลสิทธิ์สอบที่ต้องการแก้ไข',
+      'ไม่พบข้อมูลสิทธิ์สอบที่ต้องการจัดการ',
       'error'
     );
 
@@ -10922,97 +10935,46 @@ function openMsResolveModal(
   }
 
 
-  const currentStatus =
+  const examStatus =
     String(
-      row.exam_status || ''
+      row.exam_status || 'eligible'
     ).trim();
 
 
-  if(
-    ![
-      'eligible',
-      'ms'
-    ].includes(currentStatus)
-  ){
-
-    showToast(
-      'สถานะไม่ถูกต้อง',
-      'สถานะปัจจุบันของรายการไม่รองรับการแก้ไข',
-      'error'
-    );
-
-    return;
-
-  }
-
-
-  if(
-    currentStatus ===
-    nextStatus
-  ){
-
-    showToast(
-      'ไม่ต้องแก้ไข',
-      'สถานะใหม่เหมือนกับสถานะปัจจุบัน',
-      'warning'
-    );
-
-    return;
-
-  }
+  const resolutionStatus =
+    String(
+      row.ms_resolution_status || 'none'
+    ).trim();
 
 
   state.msResolveTarget = {
-    ...row,
-
-    next_exam_status:
-      nextStatus
+    ...row
   };
 
 
-  const currentText =
-    currentStatus === 'ms'
-      ? 'มส (ไม่มีสิทธิ์สอบ)'
-      : 'มีสิทธิ์สอบ';
-
-
-  const nextText =
-    nextStatus === 'ms'
-      ? 'มส (ไม่มีสิทธิ์สอบ)'
-      : 'มีสิทธิ์สอบ';
-
-
   if(
-    el('msResolveTitle')
+    el('msResolveExamStatus')
   ){
 
-    el('msResolveTitle').textContent =
-      nextStatus === 'eligible'
-        ? '✅ เปลี่ยนเป็นมีสิทธิ์สอบ'
-        : '🚫 เปลี่ยนเป็น มส';
+    el('msResolveExamStatus').value =
+      [
+        'eligible',
+        'ms'
+      ].includes(examStatus)
+        ? examStatus
+        : 'eligible';
 
   }
 
 
   if(
-    el('msResolveIntro')
+    el('msResolveResolutionStatus')
   ){
 
-    el('msResolveIntro').innerHTML =
-      `
-        ตรวจสอบข้อมูลก่อนเปลี่ยนสถานะจาก
-        <strong>
-          ${escapeHtml(
-            currentText
-          )}
-        </strong>
-        เป็น
-        <strong>
-          ${escapeHtml(
-            nextText
-          )}
-        </strong>
-      `;
+    el('msResolveResolutionStatus').value =
+      resolutionStatus === 'approved'
+        ? 'approved'
+        : 'none';
 
   }
 
@@ -11037,88 +10999,61 @@ function openMsResolveModal(
       );
 
 
-    el('msResolveDetail').innerHTML =
-      `
-        <strong>
-          ${escapeHtml(
-            row.student_code || '-'
-          )}
-          ${escapeHtml(
-            row.student_name || '-'
-          )}
-        </strong>
-
-        <br>
-
-        ชั้น
+    el('msResolveDetail').innerHTML = `
+      <strong>
         ${escapeHtml(
-          row.class_level || '-'
+          [
+            row.student_code,
+            row.student_name
+          ]
+          .filter(Boolean)
+          .join(' ')
         )}
-        /
+      </strong>
+
+      <br>
+
+      ชั้น
+      ${escapeHtml(
+        row.class_level || '-'
+      )}
+      /
+      ${escapeHtml(
+        String(
+          row.room || '-'
+        )
+      )}
+
+      <br>
+
+      รายวิชา:
+      <strong>
         ${escapeHtml(
-          String(
-            row.room || '-'
-          )
+          row.subject_code || '-'
         )}
-
-        ${
-          row.student_no !== null &&
-          row.student_no !== undefined &&
-          row.student_no !== ''
-            ? `
-              • เลขที่
-              ${escapeHtml(
-                String(
-                  row.student_no
-                )
-              )}
-            `
-            : ''
-        }
-
-        <br>
-
-        รายวิชา:
-        <strong>
-          ${escapeHtml(
-            row.subject_code || '-'
-          )}
-          ${escapeHtml(
-            row.subject_name || '-'
-          )}
-        </strong>
-
-        <br>
-
-        ครูผู้สอน:
         ${escapeHtml(
-          teacherText || '-'
+          row.subject_name || '-'
         )}
+      </strong>
 
-        <br>
+      <br>
 
-        เวลาเรียน:
-        ${
-          attendance === null
-            ? '-'
-            : `${escapeHtml(
-                attendance.toFixed(2)
-              )}%`
-        }
+      ครูผู้สอน:
+      ${escapeHtml(
+        teacherText || '-'
+      )}
 
-        <br>
+      <br>
 
-        สถานะ:
-        <strong>
-          ${escapeHtml(
-            currentText
-          )}
-          →
-          ${escapeHtml(
-            nextText
-          )}
-        </strong>
-      `;
+      เวลาเรียน:
+      ${
+        attendance === null
+          ? '-'
+          : `${escapeHtml(
+              attendance.toFixed(2)
+            )}%`
+      }
+    `;
 
   }
 
@@ -11130,36 +11065,31 @@ function openMsResolveModal(
     el('msResolveNoteInput').value =
       '';
 
-    el('msResolveNoteInput').placeholder =
-      nextStatus === 'eligible'
-        ? 'เช่น นักเรียนนำเอกสารรับรองการแก้ มส มายื่นแล้ว'
-        : 'เช่น ครูผู้สอนแจ้งแก้ไขข้อมูล นักเรียนต้องเป็น มส';
-
   }
 
 
+  /*
+   * ขั้นนี้ยังไม่เปิดให้บันทึก
+   * จนกว่าจะเปลี่ยน confirmMsResolve()
+   * ไปใช้ RPC ใหม่
+   */
   if(
     el('msResolveConfirmBtn')
   ){
 
-    el('msResolveConfirmBtn').className =
-      nextStatus === 'eligible'
-        ? 'btn-success'
-        : 'btn-warning';
-
+    el('msResolveConfirmBtn').disabled =
+      true;
 
     el('msResolveConfirmBtn').textContent =
-      nextStatus === 'eligible'
-        ? '✅ ยืนยันเป็นมีสิทธิ์สอบ'
-        : '🚫 ยืนยันเปลี่ยนเป็น มส';
+      'บันทึกการเปลี่ยนแปลง';
 
   }
 
 
   setStatus(
     'msResolveStatus',
-    'โปรดตรวจสอบข้อมูลก่อนยืนยัน',
-    'warning'
+    'ตรวจสอบสถานะทั้ง 2 ช่องก่อนบันทึก',
+    'info'
   );
 
 
@@ -12003,38 +11933,17 @@ const adminHistoryHtml =
 
 
 
-const resolveActionHtml =
-  status === 'ms'
-    ? `
-      <button
-        type="button"
-        class="btn-success btn-small ms-status-change-btn"
-        data-report-id="${escapeHtml(
-          String(row.id || '')
-        )}"
-        data-target-status="eligible"
-      >
-        ✅ เป็นมีสิทธิ์สอบ
-      </button>
-    `
-    : status === 'eligible'
-      ? `
-        <button
-          type="button"
-          class="btn-warning btn-small ms-status-change-btn"
-          data-report-id="${escapeHtml(
-            String(row.id || '')
-          )}"
-          data-target-status="ms"
-        >
-          🚫 เปลี่ยนเป็น มส
-        </button>
-      `
-      : `
-        <span class="small">
-          -
-        </span>
-      `;
+const resolveActionHtml = `
+  <button
+    type="button"
+    class="btn-secondary btn-small ms-manage-btn"
+    data-report-id="${escapeHtml(
+      String(row.id || '')
+    )}"
+  >
+    ⚙️ จัดการ
+  </button>
+`;
 
 
           const teacherText =
@@ -32373,28 +32282,23 @@ if(
       'click',
       event => {
 
-        const button =
-          event.target.closest(
-            '.ms-status-change-btn'
-          );
+const button =
+  event.target.closest(
+    '.ms-manage-btn'
+  );
 
 
-        if(!button){
-          return;
-        }
+if(!button){
+  return;
+}
 
 
 const reportId =
   button.dataset.reportId;
 
 
-const targetStatus =
-  button.dataset.targetStatus;
-
-
 openMsResolveModal(
-  reportId,
-  targetStatus
+  reportId
 );
 
       }
