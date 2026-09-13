@@ -11027,6 +11027,17 @@ if(
         null
       );
 
+    const resolutionStatus =
+  String(
+    row.ms_resolution_status || 'none'
+  ).trim();
+
+
+const resolutionText =
+  resolutionStatus === 'approved'
+    ? 'อนุมัติแล้ว'
+    : '-';
+
 
     el('msResolveDetail').innerHTML = `
       <strong>
@@ -13855,28 +13866,28 @@ const teacherText =
               );
 
 
-            return [
+   return [
 
-              row.subject_code ||
-              '-',
+  row.subject_code ||
+  '-',
 
-              row.subject_name ||
-              '-',
+  row.subject_name ||
+  '-',
 
-              teacherText ||
-              '-',
+  teacherText ||
+  '-',
 
-              attendance === null
-                ? '-'
-                : `${attendance.toFixed(2)}%`,
+  attendance === null
+    ? '-'
+    : `${attendance.toFixed(2)}%`,
 
-              'มส (ไม่มีสิทธิ์สอบ)',
+  'มส (ไม่มีสิทธิ์สอบ)',
 
-              '',
+  resolutionText,
 
-              ''
+  ''
 
-            ];
+];
 
           });
 
@@ -13926,7 +13937,7 @@ const teacherText =
               'ครูผู้สอน',
               '% เวลาเรียน',
               'สถานะ',
-              'แก้แล้ว',
+              'ขอมีสิทธิ์สอบ',
               'ลงชื่ออนุมัติ (ครูวิชาการ)'
             ]
           ],
