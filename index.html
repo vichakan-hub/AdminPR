@@ -10554,6 +10554,19 @@ function updateMsReportKpi(rows){
       ).trim() === 'ms'
     ).length;
 
+  const approvedCount =
+  data.filter(row =>
+
+    String(
+      row.exam_status || ''
+    ).trim() === 'ms' &&
+
+    String(
+      row.ms_resolution_status || 'none'
+    ).trim() === 'approved'
+
+  ).length;
+
 
   if(el('msReportStudentCount')){
 
@@ -10597,6 +10610,16 @@ function updateMsReportKpi(rows){
       );
 
   }
+
+  if(el('msReportApprovedCount')){
+
+  el('msReportApprovedCount')
+    .textContent =
+    String(
+      approvedCount
+    );
+
+}
 
 }
 
