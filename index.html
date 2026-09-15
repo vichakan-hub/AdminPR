@@ -6685,14 +6685,13 @@ body.app-booting #appView{
 
     <div class="actions">
 
-      <button
-        id="msReportExportConfirmBtn"
-        class="btn-primary"
-        type="button"
-        disabled
-      >
-        สร้าง PDF
-      </button>
+<button
+  id="msReportExportConfirmBtn"
+  class="btn-primary"
+  type="button"
+>
+  สร้าง PDF
+</button>
 
       <button
         id="msReportExportCancelBtn"
@@ -32606,6 +32605,91 @@ if(el('msReportExportCancelBtn')){
           el('msReportExportModal')
             .classList
             .remove('show');
+
+        }
+
+      }
+    );
+
+}
+
+/* =========================================================
+   สร้างรายงาน มส ตามประเภทที่เลือก
+   ========================================================= */
+
+if(el('msReportExportConfirmBtn')){
+
+  el('msReportExportConfirmBtn')
+    .addEventListener(
+      'click',
+      async () => {
+
+        const selected =
+          document.querySelector(
+            'input[name="msReportExportType"]:checked'
+          );
+
+
+        if(!selected){
+
+          showToast(
+            'ยังไม่ได้เลือกรายงาน',
+            'กรุณาเลือกรูปแบบรายงานที่ต้องการ',
+            'warning'
+          );
+
+          return;
+
+        }
+
+
+        const reportType =
+          String(
+            selected.value || ''
+          ).trim();
+
+
+        /*
+         * รายงานติดตามนักเรียน มส แบบละเอียด
+         * ใช้ PDF เดิม
+         */
+        if(
+          reportType === 'detail'
+        ){
+
+          if(
+            el('msReportExportModal')
+          ){
+
+            el('msReportExportModal')
+              .classList
+              .remove('show');
+
+          }
+
+
+          await exportMsReportPdf();
+
+          return;
+
+        }
+
+
+        /*
+         * รายงานประกาศ
+         * จะสร้างในขั้นถัดไป
+         */
+        if(
+          reportType === 'announcement'
+        ){
+
+          showToast(
+            'รายงานประกาศ',
+            'กำลังเตรียมรูปแบบประกาศรายชื่อนักเรียนไม่มีสิทธิ์สอบ',
+            'warning'
+          );
+
+          return;
 
         }
 
