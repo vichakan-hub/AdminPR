@@ -2344,7 +2344,7 @@ body.app-booting #appView{
 
 .ms-report-stat-grid{
   display:grid;
-  grid-template-columns:repeat(5,minmax(180px,1fr));
+  grid-template-columns:repeat(6,minmax(165px,1fr));
   gap:12px;
   margin-bottom:16px;
 }
@@ -2408,6 +2408,10 @@ body.app-booting #appView{
 
 .ms-report-stat-card.approved .v{
   color:#0f9d58;
+}
+
+.ms-report-stat-card.pending-approval .v{
+  color:#b26a00;
 }
 
 
@@ -4218,6 +4222,27 @@ body.app-booting #appView{
   </div>
 </div>
 
+<div
+  class="ms-report-stat-card pending-approval"
+  data-ms-report-stat="pending_approval"
+>
+  <div class="k">
+    มส ที่ยังไม่ได้อนุมัติ
+  </div>
+
+  <div
+    id="msReportPendingApprovalCount"
+    class="v"
+  >
+    0
+  </div>
+
+  <div class="s">
+    รายการ มส ที่ยังไม่ได้รับอนุมัติ
+    ให้มีสิทธิ์สอบ
+  </div>
+</div>
+
   </div>
 
 
@@ -4354,6 +4379,10 @@ body.app-booting #appView{
 
         <option value="approved">
           อนุมัติให้มีสิทธิ์สอบแล้ว
+        </option>
+
+        <option value="pending_approval">
+         มส ที่ยังไม่ได้อนุมัติ
         </option>
       </select>
     </div>
@@ -10571,6 +10600,19 @@ function updateMsReportKpi(rows){
 
   ).length;
 
+  const pendingApprovalCount =
+  data.filter(row =>
+
+    String(
+      row.exam_status || ''
+    ).trim() === 'ms' &&
+
+    String(
+      row.ms_resolution_status || 'none'
+    ).trim() === 'none'
+
+  ).length;
+
 
   if(el('msReportStudentCount')){
 
@@ -10621,6 +10663,16 @@ function updateMsReportKpi(rows){
     .textContent =
     String(
       approvedCount
+    );
+
+}
+
+  if(el('msReportPendingApprovalCount')){
+
+  el('msReportPendingApprovalCount')
+    .textContent =
+    String(
+      pendingApprovalCount
     );
 
 }
@@ -10787,6 +10839,23 @@ if(filters.status){
         String(
           row.ms_resolution_status || 'none'
         ).trim() === 'approved'
+
+      );
+
+  }else if(
+    filters.status === 'pending_approval'
+  ){
+
+    rows =
+      rows.filter(row =>
+
+        String(
+          row.exam_status || ''
+        ).trim() === 'ms' &&
+
+        String(
+          row.ms_resolution_status || 'none'
+        ).trim() === 'none'
 
       );
 
