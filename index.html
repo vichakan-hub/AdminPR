@@ -4466,13 +4466,13 @@ body.app-booting #appView{
     🔒 ปิดรับรายงาน มส
   </button>
 
-       <button
-    id="msReportExportPdfBtn"
-    class="btn-danger"
-    type="button"
-  >
-    📄 ส่งออก PDF รายชื่อนักเรียน มส
-  </button>
+<button
+  id="msReportExportPdfBtn"
+  class="btn-danger"
+  type="button"
+>
+  📄 ส่งออกรายงาน
+</button>
 
       <button
         id="msReportClearFilterBtn"
@@ -6588,6 +6588,124 @@ body.app-booting #appView{
       <div id="studentEditStatus" class="status info"></div>
     </div>
   </div>
+
+  <!-- =========================================================
+     เลือกประเภทรายงาน มส
+     ========================================================= -->
+<div
+  id="msReportExportModal"
+  class="modal-backdrop"
+>
+  <div class="modal">
+
+    <h3>
+      📄 ส่งออกรายงาน
+    </h3>
+
+    <p>
+      เลือกรูปแบบรายงานที่ต้องการสร้าง
+    </p>
+
+
+    <div
+      style="
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+        margin-bottom:18px;
+      "
+    >
+
+      <label
+        style="
+          display:flex;
+          align-items:flex-start;
+          gap:12px;
+          padding:14px 16px;
+          border:1px solid #dbe7f3;
+          border-radius:16px;
+          cursor:pointer;
+          background:#fff;
+        "
+      >
+        <input
+          type="radio"
+          name="msReportExportType"
+          value="announcement"
+          checked
+          style="margin-top:4px;"
+        >
+
+        <div>
+          <div style="font-weight:800;">
+            ประกาศรายชื่อนักเรียนไม่มีสิทธิ์สอบ
+          </div>
+
+          <div class="small" style="margin-top:4px;">
+            แยกตามชั้น/ห้อง และรายวิชา
+            สำหรับพิมพ์ประกาศรายชื่อนักเรียน
+          </div>
+        </div>
+      </label>
+
+
+      <label
+        style="
+          display:flex;
+          align-items:flex-start;
+          gap:12px;
+          padding:14px 16px;
+          border:1px solid #dbe7f3;
+          border-radius:16px;
+          cursor:pointer;
+          background:#fff;
+        "
+      >
+        <input
+          type="radio"
+          name="msReportExportType"
+          value="detail"
+          style="margin-top:4px;"
+        >
+
+        <div>
+          <div style="font-weight:800;">
+            รายงานติดตามนักเรียน มส แบบละเอียด
+          </div>
+
+          <div class="small" style="margin-top:4px;">
+            แสดงรายวิชา ครูผู้สอน % เวลาเรียน
+            สถานะ และการอนุมัติให้มีสิทธิ์สอบ
+          </div>
+        </div>
+      </label>
+
+    </div>
+
+
+    <div class="actions">
+
+      <button
+        id="msReportExportConfirmBtn"
+        class="btn-primary"
+        type="button"
+        disabled
+      >
+        สร้าง PDF
+      </button>
+
+      <button
+        id="msReportExportCancelBtn"
+        class="btn-secondary"
+        type="button"
+      >
+        ยกเลิก
+      </button>
+
+    </div>
+
+  </div>
+</div>
 
   <!-- =========================================================
      แก้สถานะ มส
@@ -32443,8 +32561,8 @@ if(el('msReportToggleLockBtn')){
 
       
 
-      /* =========================================================
-   Export PDF รายชื่อนักเรียน มส
+/* =========================================================
+   เปิด Modal เลือกประเภทรายงาน มส
    ========================================================= */
 
 if(el('msReportExportPdfBtn')){
@@ -32452,9 +32570,44 @@ if(el('msReportExportPdfBtn')){
   el('msReportExportPdfBtn')
     .addEventListener(
       'click',
-      async () => {
+      () => {
 
-        await exportMsReportPdf();
+        if(
+          el('msReportExportModal')
+        ){
+
+          el('msReportExportModal')
+            .classList
+            .add('show');
+
+        }
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   ปิด Modal ส่งออกรายงาน
+   ========================================================= */
+
+if(el('msReportExportCancelBtn')){
+
+  el('msReportExportCancelBtn')
+    .addEventListener(
+      'click',
+      () => {
+
+        if(
+          el('msReportExportModal')
+        ){
+
+          el('msReportExportModal')
+            .classList
+            .remove('show');
+
+        }
 
       }
     );
