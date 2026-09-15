@@ -2344,7 +2344,7 @@ body.app-booting #appView{
 
 .ms-report-stat-grid{
   display:grid;
-  grid-template-columns:repeat(4,minmax(190px,1fr));
+  grid-template-columns:repeat(5,minmax(180px,1fr));
   gap:12px;
   margin-bottom:16px;
 }
@@ -2404,6 +2404,10 @@ body.app-booting #appView{
 
 .ms-report-stat-card.ms .v{
   color:#d92d20;
+}
+
+.ms-report-stat-card.approved .v{
+  color:#0f9d58;
 }
 
 
@@ -4192,6 +4196,27 @@ body.app-booting #appView{
         รายการที่ครูรายงานว่าไม่มีสิทธิ์สอบ
       </div>
     </div>
+
+    <div
+  class="ms-report-stat-card approved"
+  data-ms-report-stat="approved"
+>
+  <div class="k">
+    อนุมัติขอมีสิทธิ์สอบแล้ว
+  </div>
+
+  <div
+    id="msReportApprovedCount"
+    class="v"
+  >
+    0
+  </div>
+
+  <div class="s">
+    รายการ มส ที่ได้รับอนุมัติ
+    ให้มีสิทธิ์สอบแล้ว
+  </div>
+</div>
 
   </div>
 
