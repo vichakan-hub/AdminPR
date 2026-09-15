@@ -13296,19 +13296,22 @@ function buildMsAnnouncementGroups(){
       )
     ){
 
-      roomGroup.subjects.set(
-        subjectKey,
-        {
-          subject_code:
-            subjectCode,
+roomGroup.subjects.set(
+  subjectKey,
+  {
+    subject_code:
+      subjectCode,
 
-          subject_name:
-            subjectName,
+    subject_name:
+      subjectName,
 
-          students:
-            new Map()
-        }
-      );
+    teacher_names:
+      new Set(),
+
+    students:
+      new Map()
+  }
+);
 
     }
 
@@ -13317,6 +13320,23 @@ function buildMsAnnouncementGroups(){
       roomGroup.subjects.get(
         subjectKey
       );
+
+    const teacherShortName =
+  getMsPdfTeacherShortName(
+    row.teacher_name
+  );
+
+
+if(
+  teacherShortName &&
+  teacherShortName !== '-'
+){
+
+  subjectGroup.teacher_names.add(
+    teacherShortName
+  );
+
+}
 
 
     const studentCode =
@@ -13421,16 +13441,21 @@ function buildMsAnnouncementGroups(){
                   });
 
 
-              return {
-                subject_code:
-                  subjectGroup.subject_code,
+return {
+  subject_code:
+    subjectGroup.subject_code,
 
-                subject_name:
-                  subjectGroup.subject_name,
+  subject_name:
+    subjectGroup.subject_name,
 
-                students:
-                  students
-              };
+  teacher_names:
+    Array.from(
+      subjectGroup.teacher_names
+    ),
+
+  students:
+    students
+};
 
             })
             .sort((a,b) =>
@@ -13857,14 +13882,25 @@ async function exportMsAnnouncementPdf(){
                รหัสวิชา + ชื่อวิชา
                ============================================= */
 
-            const subjectLine =
-              `รหัสวิชา ${
-                subject.subject_code ||
-                '-'
-              }    ชื่อวิชา ${
-                subject.subject_name ||
-                '-'
-              }`;
+const teacherText =
+  Array.isArray(
+    subject.teacher_names
+  ) &&
+  subject.teacher_names.length
+    ? subject.teacher_names
+        .map(name => `ครู${name}`)
+        .join(', ')
+    : '-';
+
+
+const subjectLine =
+  `รหัสวิชา ${
+    subject.subject_code || '-'
+  }     ${
+    subject.subject_name || '-'
+  }    ครูผู้สอน ${
+    teacherText
+  }`;
 
 
             drawThaiPdfText(
@@ -13971,7 +14007,7 @@ async function exportMsAnnouncementPdf(){
                   'normal',
 
                 fontSize:
-                  10,
+                  11,
 
                 textColor:[
                   35,
@@ -13991,15 +14027,15 @@ async function exportMsAnnouncementPdf(){
                 valign:
                   'middle',
 
-                cellPadding:{
-                  top:2,
-                  right:2,
-                  bottom:2,
-                  left:2
-                },
+cellPadding:{
+  top:1,
+  right:2,
+  bottom:1,
+  left:2
+},
 
-                minCellHeight:
-                  9
+minCellHeight:
+  7
               },
 
 
@@ -14119,10 +14155,10 @@ async function exportMsAnnouncementPdf(){
                   );
 
 
-                const textHeight =
-                  isHead
-                    ? 5.5
-                    : 6;
+const textHeight =
+  isHead
+    ? 5.2
+    : 5.4;
 
 
                 drawThaiPdfText(
@@ -14147,10 +14183,10 @@ async function exportMsAnnouncementPdf(){
                     height:
                       textHeight,
 
-                    fontPx:
-                      isHead
-                        ? 28
-                        : 30,
+fontPx:
+  isHead
+    ? 31
+    : 33,
 
                     weight:
                       isHead
