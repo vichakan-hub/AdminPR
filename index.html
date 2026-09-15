@@ -4351,6 +4351,10 @@ body.app-booting #appView{
         <option value="ms">
           มส (ไม่มีสิทธิ์สอบ)
         </option>
+
+        <option value="approved">
+          อนุมัติให้มีสิทธิ์สอบแล้ว
+        </option>
       </select>
     </div>
 
@@ -10763,11 +10767,30 @@ function applyMsReportFiltersAndRender(){
   }
 
 
-  /* =====================================================
-     สถานะ
-     ===================================================== */
+/* =====================================================
+   สถานะ / การอนุมัติให้มีสิทธิ์สอบ
+   ===================================================== */
 
-  if(filters.status){
+if(filters.status){
+
+  if(
+    filters.status === 'approved'
+  ){
+
+    rows =
+      rows.filter(row =>
+
+        String(
+          row.exam_status || ''
+        ).trim() === 'ms' &&
+
+        String(
+          row.ms_resolution_status || 'none'
+        ).trim() === 'approved'
+
+      );
+
+  }else{
 
     rows =
       rows.filter(row =>
@@ -10778,6 +10801,8 @@ function applyMsReportFiltersAndRender(){
       );
 
   }
+
+}
 
 
   /* =====================================================
