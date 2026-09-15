@@ -13166,6 +13166,1070 @@ function getMsReportPdfRows(){
 }
 
 /* =========================================================
+   PDF ประกาศรายชื่อนักเรียนไม่มีสิทธิ์สอบ
+   ========================================================= */
+
+function getMsAnnouncementPdfRows(){
+
+  /*
+   * เริ่มจากข้อมูล มส สำหรับ PDF เดิม
+   * เพื่อใช้ตัวกรอง ชั้น / ห้อง / รายวิชา /
+   * ครูผู้สอน / ค้นหานักเรียน แบบเดียวกัน
+   */
+  let rows =
+    getMsReportPdfRows();
+
+
+  /*
+   * สำหรับ "ประกาศไม่มีสิทธิ์สอบ"
+   *
+   * ตัดนักเรียนที่งานวิชาการ
+   * อนุมัติให้มีสิทธิ์สอบแล้วออก
+   *
+   * คงไว้เฉพาะผู้ที่สถานะหลักยังเป็น มส
+   * และยังไม่ได้รับอนุมัติ
+   */
+  rows =
+    rows.filter(row =>
+
+      String(
+        row.ms_resolution_status || 'none'
+      ).trim() !== 'approved'
+
+    );
+
+
+  return rows;
+
+}
+
+/* =========================================================
+   จัดกลุ่มข้อมูลสำหรับ PDF ประกาศ มส
+
+   โครงสร้าง:
+   ชั้น/ห้อง
+      └─ รายวิชา
+           └─ นักเรียน
+   ========================================================= */
+
+function buildMsAnnouncementGroups(){
+
+  const rows =
+    getMsAnnouncementPdfRows();
+
+
+  const roomMap =
+    new Map();
+
+
+  rows.forEach(row => {
+
+    const classLevel =
+      String(
+        row.class_level || ''
+      ).trim();
+
+    const room =
+      String(
+        row.room || ''
+      ).trim();
+
+
+    if(
+      !classLevel ||
+      !room
+    ){
+      return;
+    }
+
+
+    const roomKey =
+      `${classLevel}__${room}`;
+
+
+    if(
+      !roomMap.has(roomKey)
+    ){
+
+      roomMap.set(
+        roomKey,
+        {
+          class_level: classLevel,
+          room: room,
+          subjects: new Map()
+        }
+      );
+
+    }
+
+
+    const roomGroup =
+      roomMap.get(roomKey);
+
+
+    const subjectCode =
+      String(
+        row.subject_code || ''
+      ).trim();
+
+    const subjectName =
+      String(
+        row.subject_name || ''
+      ).trim();
+
+
+    const subjectKey =
+      subjectCode ||
+      subjectName;
+
+
+    if(
+      !subjectKey
+    ){
+      return;
+    }
+
+
+    if(
+      !roomGroup.subjects.has(
+        subjectKey
+      )
+    ){
+
+      roomGroup.subjects.set(
+        subjectKey,
+        {
+          subject_code:
+            subjectCode,
+
+          subject_name:
+            subjectName,
+
+          students:
+            new Map()
+        }
+      );
+
+    }
+
+
+    const subjectGroup =
+      roomGroup.subjects.get(
+        subjectKey
+      );
+
+
+    const studentCode =
+      String(
+        row.student_code || ''
+      ).trim();
+
+    const studentName =
+      String(
+        row.student_name || ''
+      ).trim();
+
+    const studentNo =
+      safeNumber(
+        row.student_no,
+        null
+      );
+
+
+    /*
+     * ป้องกันชื่อซ้ำในรายวิชาเดียวกัน
+     */
+    const studentKey =
+      studentCode ||
+      `${studentNo || ''}__${studentName}`;
+
+
+    if(
+      !subjectGroup.students.has(
+        studentKey
+      )
+    ){
+
+      subjectGroup.students.set(
+        studentKey,
+        {
+          student_code:
+            studentCode,
+
+          student_no:
+            studentNo,
+
+          student_name:
+            studentName
+        }
+      );
+
+    }
+
+  });
+
+
+  /*
+   * แปลง Map เป็น Array
+   */
+  const groups =
+    Array
+      .from(
+        roomMap.values()
+      )
+      .map(roomGroup => {
+
+        const subjects =
+          Array
+            .from(
+              roomGroup.subjects.values()
+            )
+            .map(subjectGroup => {
+
+              const students =
+                Array
+                  .from(
+                    subjectGroup.students.values()
+                  )
+                  .sort((a,b) => {
+
+                    const noA =
+                      a.student_no ??
+                      9999;
+
+                    const noB =
+                      b.student_no ??
+                      9999;
+
+
+                    if(
+                      noA !== noB
+                    ){
+                      return noA - noB;
+                    }
+
+
+                    return String(
+                      a.student_name || ''
+                    ).localeCompare(
+                      String(
+                        b.student_name || ''
+                      ),
+                      'th'
+                    );
+
+                  });
+
+
+              return {
+                subject_code:
+                  subjectGroup.subject_code,
+
+                subject_name:
+                  subjectGroup.subject_name,
+
+                students:
+                  students
+              };
+
+            })
+            .sort((a,b) =>
+              String(
+                a.subject_code || ''
+              ).localeCompare(
+                String(
+                  b.subject_code || ''
+                ),
+                'th',
+                {
+                  numeric:true
+                }
+              )
+            );
+
+
+        return {
+          class_level:
+            roomGroup.class_level,
+
+          room:
+            roomGroup.room,
+
+          subjects:
+            subjects
+        };
+
+      });
+
+
+  /*
+   * เรียง ม.1/1 → ม.1/2 → ... → ม.6/...
+   */
+  groups.sort((a,b) => {
+
+    const classCompare =
+      getMsReportClassNumber(
+        a.class_level
+      ) -
+      getMsReportClassNumber(
+        b.class_level
+      );
+
+
+    if(
+      classCompare !== 0
+    ){
+      return classCompare;
+    }
+
+
+    return String(
+      a.room || ''
+    ).localeCompare(
+      String(
+        b.room || ''
+      ),
+      'th',
+      {
+        numeric:true
+      }
+    );
+
+  });
+
+
+  return groups;
+
+}
+
+/* =========================================================
+   Export PDF
+   ประกาศรายชื่อนักเรียนไม่มีสิทธิ์สอบ
+   ========================================================= */
+
+async function exportMsAnnouncementPdf(){
+
+  try{
+
+    /* =====================================================
+       1. เตรียมข้อมูล
+       ===================================================== */
+
+    const groups =
+      buildMsAnnouncementGroups();
+
+
+    if(!groups.length){
+
+      showToast(
+        'ยังส่งออกไม่ได้',
+        'ไม่พบนักเรียนที่ยังไม่มีสิทธิ์สอบตามเงื่อนไขที่เลือก',
+        'warning'
+      );
+
+      return;
+
+    }
+
+
+    /* =====================================================
+       2. ตรวจ Library
+       ===================================================== */
+
+    if(
+      !window.jspdf ||
+      !window.jspdf.jsPDF
+    ){
+
+      throw new Error(
+        'ไม่พบ jsPDF กรุณาตรวจสอบการโหลด library'
+      );
+
+    }
+
+
+    const {
+      jsPDF
+    } =
+      window.jspdf;
+
+
+    const doc =
+      new jsPDF({
+        orientation:'portrait',
+        unit:'mm',
+        format:'a4'
+      });
+
+
+    if(
+      typeof doc.autoTable !==
+      'function'
+    ){
+
+      throw new Error(
+        'ไม่พบ jsPDF AutoTable กรุณาตรวจสอบการโหลด library'
+      );
+
+    }
+
+
+    showToast(
+      'กำลังสร้าง PDF',
+      'กำลังจัดทำประกาศรายชื่อนักเรียนไม่มีสิทธิ์สอบ...',
+      'info'
+    );
+
+
+    /* =====================================================
+       3. Font ภาษาไทย
+       ===================================================== */
+
+    await prepareMidtermPdfThaiFont(
+      doc
+    );
+
+
+    if(
+      document.fonts &&
+      document.fonts.load
+    ){
+
+      await Promise.all([
+
+        document.fonts.load(
+          '400 24px Sarabun'
+        ),
+
+        document.fonts.load(
+          '700 24px Sarabun'
+        )
+
+      ]);
+
+    }
+
+
+    /* =====================================================
+       4. ข้อมูลหัวรายงาน
+       ===================================================== */
+
+    const year =
+      String(
+        el('msReportFilterYear')
+          ?.value || ''
+      ).trim();
+
+
+    const term =
+      String(
+        el('msReportFilterTerm')
+          ?.value || ''
+      ).trim();
+
+
+    /* =====================================================
+       5. Filename
+       ===================================================== */
+
+    const filenameParts = [
+
+      'MS_announcement',
+
+      year || 'all',
+
+      term
+        ? `term${term}`
+        : 'allterm'
+
+    ];
+
+
+    const filename =
+      filenameParts.join('_') +
+      '.pdf';
+
+
+    /* =====================================================
+       6. Page constants
+       ===================================================== */
+
+    const pageWidth =
+      doc.internal.pageSize.getWidth();
+
+
+    const pageHeight =
+      doc.internal.pageSize.getHeight();
+
+
+    const marginLeft =
+      15;
+
+
+    const marginRight =
+      15;
+
+
+    const bottomMargin =
+      14;
+
+
+    const contentWidth =
+      pageWidth -
+      marginLeft -
+      marginRight;
+
+
+    /* =====================================================
+       7. วาดหัวกระดาษของแต่ละห้อง
+       ===================================================== */
+
+    const drawRoomHeader =
+      (
+        roomGroup,
+        continuation = false
+      ) => {
+
+        drawThaiPdfText(
+          doc,
+          'โรงเรียนท่าใหม่ “พูลสวัสดิ์ราษฎร์นุกูล”',
+          {
+            x:marginLeft,
+            y:7,
+
+            maxWidth:
+              contentWidth,
+
+            height:7,
+            fontPx:34,
+            weight:'700',
+            color:'#17324a',
+            align:'center'
+          }
+        );
+
+
+        drawThaiPdfText(
+          doc,
+          'ประกาศรายชื่อนักเรียนไม่มีสิทธิ์สอบ',
+          {
+            x:marginLeft,
+            y:15,
+
+            maxWidth:
+              contentWidth,
+
+            height:8,
+            fontPx:38,
+            weight:'700',
+            color:'#17324a',
+            align:'center'
+          }
+        );
+
+
+        const subtitle =
+          [
+            `ปีการศึกษา ${year || '-'}`,
+
+            term
+              ? `ภาคเรียนที่ ${term}`
+              : 'ทุกภาคเรียน'
+          ]
+          .join('   ');
+
+
+        drawThaiPdfText(
+          doc,
+          subtitle,
+          {
+            x:marginLeft,
+            y:25,
+
+            maxWidth:
+              contentWidth,
+
+            height:6.5,
+            fontPx:29,
+            weight:'400',
+            color:'#556478',
+            align:'center'
+          }
+        );
+
+
+        const roomTitle =
+          `ชั้น ${
+            roomGroup.class_level || '-'
+          }/${
+            roomGroup.room || '-'
+          }${
+            continuation
+              ? ' (ต่อ)'
+              : ''
+          }`;
+
+
+        drawThaiPdfText(
+          doc,
+          roomTitle,
+          {
+            x:marginLeft,
+            y:33,
+
+            maxWidth:
+              contentWidth,
+
+            height:7,
+            fontPx:34,
+            weight:'700',
+            color:'#17324a',
+            align:'center'
+          }
+        );
+
+      };
+
+
+    /* =====================================================
+       8. วาดแต่ละห้อง
+       ===================================================== */
+
+    groups.forEach(
+      (
+        roomGroup,
+        roomIndex
+      ) => {
+
+        /*
+         * แต่ละห้องเริ่มหน้าใหม่
+         */
+        if(
+          roomIndex > 0
+        ){
+
+          doc.addPage();
+
+        }
+
+
+        drawRoomHeader(
+          roomGroup
+        );
+
+
+        let cursorY =
+          47;
+
+
+        /* =================================================
+           วาดแต่ละรายวิชา
+           ================================================= */
+
+        roomGroup.subjects.forEach(
+          subject => {
+
+            /*
+             * ถ้าพื้นที่ท้ายหน้าเหลือน้อย
+             * ให้ขึ้นหน้าใหม่ก่อนเริ่มรายวิชา
+             */
+            if(
+              cursorY >
+              pageHeight - 35
+            ){
+
+              doc.addPage();
+
+
+              drawRoomHeader(
+                roomGroup,
+                true
+              );
+
+
+              cursorY =
+                47;
+
+            }
+
+
+            /* =============================================
+               รหัสวิชา + ชื่อวิชา
+               ============================================= */
+
+            const subjectLine =
+              `รหัสวิชา ${
+                subject.subject_code ||
+                '-'
+              }    ชื่อวิชา ${
+                subject.subject_name ||
+                '-'
+              }`;
+
+
+            drawThaiPdfText(
+              doc,
+              subjectLine,
+              {
+                x:
+                  marginLeft,
+
+                y:
+                  cursorY,
+
+                maxWidth:
+                  contentWidth,
+
+                height:
+                  7,
+
+                fontPx:
+                  31,
+
+                weight:
+                  '700',
+
+                color:
+                  '#17324a',
+
+                align:
+                  'left'
+              }
+            );
+
+
+            cursorY +=
+              8.5;
+
+
+            /* =============================================
+               ตารางนักเรียน
+               ============================================= */
+
+            const body =
+              subject.students.map(
+                student => [
+
+                  student.student_no ??
+                    '-',
+
+                  student.student_name ||
+                    '-'
+
+                ]
+              );
+
+
+            doc.autoTable({
+
+              startY:
+                cursorY,
+
+
+              head:[
+                [
+                  'เลขที่',
+                  'ชื่อ-นามสกุล'
+                ]
+              ],
+
+
+              body,
+
+
+              theme:
+                'grid',
+
+
+              rowPageBreak:
+                'avoid',
+
+
+              margin:{
+
+                left:
+                  marginLeft,
+
+                right:
+                  marginRight,
+
+                top:
+                  14,
+
+                bottom:
+                  bottomMargin
+
+              },
+
+
+              styles:{
+
+                font:
+                  'Sarabun',
+
+                fontStyle:
+                  'normal',
+
+                fontSize:
+                  10,
+
+                textColor:[
+                  35,
+                  50,
+                  70
+                ],
+
+                lineColor:[
+                  180,
+                  192,
+                  205
+                ],
+
+                lineWidth:
+                  0.25,
+
+                valign:
+                  'middle',
+
+                cellPadding:{
+                  top:2,
+                  right:2,
+                  bottom:2,
+                  left:2
+                },
+
+                minCellHeight:
+                  9
+              },
+
+
+              headStyles:{
+
+                fillColor:[
+                  238,
+                  244,
+                  255
+                ],
+
+                textColor:[
+                  35,
+                  50,
+                  70
+                ],
+
+                fontStyle:
+                  'bold',
+
+                halign:
+                  'center'
+              },
+
+
+              columnStyles:{
+
+                0:{
+                  cellWidth:25,
+                  halign:'center'
+                },
+
+                1:{
+                  cellWidth:
+                    contentWidth - 25,
+                  halign:'left'
+                }
+
+              },
+
+
+              /* ===========================================
+                 เก็บข้อความไทยไว้ให้ Canvas วาด
+                 =========================================== */
+
+              didParseCell(data){
+
+                const rawText =
+                  Array.isArray(
+                    data.cell.text
+                  )
+                    ? data.cell.text.join(' ')
+                    : String(
+                        data.cell.raw ?? ''
+                      );
+
+
+                const hasThai =
+                  /[\u0E00-\u0E7F]/.test(
+                    rawText
+                  );
+
+
+                if(
+                  !hasThai
+                ){
+                  return;
+                }
+
+
+                data.cell._thaiCanvasText =
+                  rawText;
+
+
+                data.cell.text =
+                  [''];
+
+              },
+
+
+              /* ===========================================
+                 วาดข้อความภาษาไทย
+                 =========================================== */
+
+              didDrawCell(data){
+
+                if(
+                  !data.cell._thaiCanvasText
+                ){
+                  return;
+                }
+
+
+                const text =
+                  String(
+                    data.cell._thaiCanvasText
+                  );
+
+
+                const isHead =
+                  data.section ===
+                  'head';
+
+
+                const cellPadding =
+                  2;
+
+
+                const availableWidth =
+                  Math.max(
+                    1,
+                    data.cell.width -
+                    (
+                      cellPadding *
+                      2
+                    )
+                  );
+
+
+                const textHeight =
+                  isHead
+                    ? 5.5
+                    : 6;
+
+
+                drawThaiPdfText(
+                  doc,
+                  text,
+                  {
+
+                    x:
+                      data.cell.x +
+                      cellPadding,
+
+                    y:
+                      data.cell.y +
+                      (
+                        data.cell.height -
+                        textHeight
+                      ) / 2,
+
+                    maxWidth:
+                      availableWidth,
+
+                    height:
+                      textHeight,
+
+                    fontPx:
+                      isHead
+                        ? 28
+                        : 30,
+
+                    weight:
+                      isHead
+                        ? '700'
+                        : '400',
+
+                    color:
+                      '#233246',
+
+                    align:
+                      isHead
+                        ? 'center'
+                        : (
+                            data.column.index === 0
+                              ? 'center'
+                              : 'left'
+                          )
+
+                  }
+                );
+
+              }
+
+            });
+
+
+            /*
+             * จุดเริ่มรายวิชาถัดไป
+             */
+            cursorY =
+              (
+                doc.lastAutoTable
+                  ?.finalY ||
+                cursorY
+              ) +
+              7;
+
+          }
+        );
+
+      }
+    );
+
+
+    /* =====================================================
+       9. Save
+       ===================================================== */
+
+    doc.save(
+      filename
+    );
+
+
+    showToast(
+      'สร้าง PDF สำเร็จ',
+      'ส่งออกประกาศรายชื่อนักเรียนไม่มีสิทธิ์สอบเรียบร้อยแล้ว',
+      'success'
+    );
+
+  }catch(error){
+
+    console.error(
+      '[exportMsAnnouncementPdf]',
+      error
+    );
+
+
+    showToast(
+      'สร้าง PDF ไม่สำเร็จ',
+      error?.message ||
+        'เกิดข้อผิดพลาดระหว่างสร้าง PDF',
+      'error'
+    );
+
+  }
+
+}
+
+/* =========================================================
    Thai PDF Text Renderer
    ให้ Browser Canvas จัดวางสระ/วรรณยุกต์ภาษาไทย
    ========================================================= */
@@ -32679,19 +33743,26 @@ if(el('msReportExportConfirmBtn')){
          * รายงานประกาศ
          * จะสร้างในขั้นถัดไป
          */
-        if(
-          reportType === 'announcement'
-        ){
+if(
+  reportType === 'announcement'
+){
 
-          showToast(
-            'รายงานประกาศ',
-            'กำลังเตรียมรูปแบบประกาศรายชื่อนักเรียนไม่มีสิทธิ์สอบ',
-            'warning'
-          );
+  if(
+    el('msReportExportModal')
+  ){
 
-          return;
+    el('msReportExportModal')
+      .classList
+      .remove('show');
 
-        }
+  }
+
+
+  await exportMsAnnouncementPdf();
+
+  return;
+
+}
 
       }
     );
