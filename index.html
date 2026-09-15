@@ -2734,7 +2734,24 @@ body.app-booting #appView{
     0 0 0 3px rgba(217,45,32,.12),
     0 12px 28px rgba(18,38,63,.10);
 }
+/* KPI อนุมัติให้มีสิทธิ์สอบแล้ว */
 
+.ms-report-stat-card.approved.active{
+  border-color:#63c18e;
+  box-shadow:
+    0 0 0 3px rgba(15,157,88,.12),
+    0 12px 28px rgba(18,38,63,.10);
+}
+
+
+/* KPI มส ที่ยังไม่ได้อนุมัติ */
+
+.ms-report-stat-card.pending-approval.active{
+  border-color:#e6b85c;
+  box-shadow:
+    0 0 0 3px rgba(178,106,0,.12),
+    0 12px 28px rgba(18,38,63,.10);
+}
 
 /* =========================================================
    Student Card with มส
