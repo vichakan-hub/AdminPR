@@ -13696,7 +13696,7 @@ async function exportMsAnnouncementPdf(){
 
 
     const bottomMargin =
-      14;
+      19;
 
 
     const contentWidth =
@@ -13705,116 +13705,156 @@ async function exportMsAnnouncementPdf(){
       marginRight;
 
 
-    /* =====================================================
-       7. วาดหัวกระดาษของแต่ละห้อง
-       ===================================================== */
 
-    const drawRoomHeader =
-      (
-        roomGroup,
-        continuation = false
-      ) => {
-
-        drawThaiPdfText(
-          doc,
-          'ประกาศรายชื่อนักเรียนไม่มีสิทธิ์สอบ',
-          {
-            x:marginLeft,
-            y:7,
-
-            maxWidth:
-              contentWidth,
-
-            height:9,
-            fontPx:40,
-            weight:'700',
-            color:'#17324a',
-            align:'center'
-          }
-        );
+/* =====================================================
+   7. หัวกระดาษรายงาน
+   ===================================================== */
 
 
-        drawThaiPdfText(
-          doc,
-          'โรงเรียนท่าใหม่ “พูลสวัสดิ์ราษฎร์นุกูล”',
-          {
-            x:marginLeft,
-            y:14.5,
+/* -----------------------------------------------------
+   หัวเต็ม
+   ใช้เฉพาะหน้าแรกของแต่ละห้อง
+   ----------------------------------------------------- */
 
-            maxWidth:
-              contentWidth,
+const drawRoomFullHeader =
+  (
+    roomGroup
+  ) => {
 
-            height:8,
-            fontPx:38,
-            weight:'700',
-            color:'#17324a',
-            align:'center'
-          }
-        );
+    drawThaiPdfText(
+      doc,
+      'ประกาศรายชื่อนักเรียนไม่มีสิทธิ์สอบ',
+      {
+        x:marginLeft,
+        y:7,
 
+        maxWidth:
+          contentWidth,
 
-        const subtitle =
-          [
-            `ปีการศึกษา ${year || '-'}`,
-
-            term
-              ? `ภาคเรียนที่ ${term}`
-              : 'ทุกภาคเรียน'
-          ]
-          .join('   ');
-
-
-        drawThaiPdfText(
-          doc,
-          subtitle,
-          {
-            x:marginLeft,
-            y:22,
-
-            maxWidth:
-              contentWidth,
-
-            height:7,
-            fontPx:34,
-            weight:'400',
-            color:'#556478',
-            align:'center'
-          }
-        );
+        height:9,
+        fontPx:40,
+        weight:'700',
+        color:'#17324a',
+        align:'center'
+      }
+    );
 
 
-        const roomTitle =
-          `ชั้น ${
-            roomGroup.class_level || '-'
-          }/${
-            roomGroup.room || '-'
-          }${
-            continuation
-              ? ' (ต่อ)'
-              : ''
-          }`;
+    drawThaiPdfText(
+      doc,
+      'โรงเรียนท่าใหม่ “พูลสวัสดิ์ราษฎร์นุกูล”',
+      {
+        x:marginLeft,
+        y:14.5,
+
+        maxWidth:
+          contentWidth,
+
+        height:8,
+        fontPx:38,
+        weight:'700',
+        color:'#17324a',
+        align:'center'
+      }
+    );
 
 
-        drawThaiPdfText(
-          doc,
-          roomTitle,
-          {
-            x:marginLeft,
-            y:28.5,
+    const subtitle =
+      [
+        `ปีการศึกษา ${year || '-'}`,
 
-            maxWidth:
-              contentWidth,
+        term
+          ? `ภาคเรียนที่ ${term}`
+          : 'ทุกภาคเรียน'
+      ]
+      .join('   ');
 
-            height:8,
-            fontPx:38,
-            weight:'700',
-            color:'#17324a',
-            align:'center'
-          }
-        );
 
-      };
+    drawThaiPdfText(
+      doc,
+      subtitle,
+      {
+        x:marginLeft,
+        y:22,
 
+        maxWidth:
+          contentWidth,
+
+        height:7,
+        fontPx:34,
+        weight:'400',
+        color:'#556478',
+        align:'center'
+      }
+    );
+
+
+    const roomTitle =
+      `ชั้น ${
+        roomGroup.class_level || '-'
+      }/${
+        roomGroup.room || '-'
+      }`;
+
+
+    drawThaiPdfText(
+      doc,
+      roomTitle,
+      {
+        x:marginLeft,
+        y:28.5,
+
+        maxWidth:
+          contentWidth,
+
+        height:8,
+        fontPx:38,
+        weight:'700',
+        color:'#17324a',
+        align:'center'
+      }
+    );
+
+  };
+
+
+/* -----------------------------------------------------
+   หัวต่อแบบสั้น
+   ใช้ตั้งแต่หน้าที่ 2 ของห้องเป็นต้นไป
+   ----------------------------------------------------- */
+
+const drawRoomContinuationHeader =
+  (
+    roomGroup
+  ) => {
+
+    const roomTitle =
+      `ชั้น ${
+        roomGroup.class_level || '-'
+      }/${
+        roomGroup.room || '-'
+      } (ต่อ)`;
+
+
+    drawThaiPdfText(
+      doc,
+      roomTitle,
+      {
+        x:marginLeft,
+        y:8,
+
+        maxWidth:
+          contentWidth,
+
+        height:8,
+        fontPx:38,
+        weight:'700',
+        color:'#17324a',
+        align:'center'
+      }
+    );
+
+  };
 
     /* =====================================================
        8. วาดแต่ละห้อง
@@ -13838,9 +13878,9 @@ async function exportMsAnnouncementPdf(){
         }
 
 
-        drawRoomHeader(
-          roomGroup
-        );
+drawRoomFullHeader(
+  roomGroup
+);
 
 
         let cursorY =
@@ -13863,17 +13903,16 @@ async function exportMsAnnouncementPdf(){
               pageHeight - 30
             ){
 
-              doc.addPage();
+doc.addPage();
 
 
-              drawRoomHeader(
-                roomGroup,
-                true
-              );
+drawRoomContinuationHeader(
+  roomGroup
+);
 
 
-              cursorY =
-                38;
+cursorY =
+  18;
 
             }
 
@@ -13981,21 +14020,27 @@ const subjectLine =
                 'avoid',
 
 
-              margin:{
+margin:{
 
-                left:
-                  marginLeft,
+  left:
+    marginLeft,
 
-                right:
-                  marginRight,
+  right:
+    marginRight,
 
-                top:
-                  14,
+  /*
+   * ใช้กับหน้าที่ 2 เป็นต้นไปของ AutoTable
+   * เพื่อเหลือพื้นที่สำหรับ
+   * ชั้น/ห้อง (ต่อ)
+   * และชื่อรายวิชา (ต่อ)
+   */
+  top:
+    26.5,
 
-                bottom:
-                  bottomMargin
+  bottom:
+    bottomMargin
 
-              },
+},
 
 
               styles:{
@@ -14075,6 +14120,76 @@ minCellHeight:
                 }
 
               },
+
+              /* ===========================================
+   หัวหน้าต่อกรณีตารางวิชาเดียวกันข้ามหน้า
+   =========================================== */
+
+willDrawPage(data){
+
+  /*
+   * pageNumber ของ AutoTable
+   * เริ่มที่ 1 สำหรับหน้าแรกของตารางนี้
+   */
+  if(
+    data.pageNumber <= 1
+  ){
+    return;
+  }
+
+
+  /*
+   * ชั้น/ห้อง (ต่อ)
+   */
+  drawRoomContinuationHeader(
+    roomGroup
+  );
+
+
+  /*
+   * ชื่อรายวิชาเดิม (ต่อ)
+   */
+  const continuedSubjectLine =
+    `${
+      subject.subject_code || '-'
+    }     ${
+      subject.subject_name || '-'
+    }     ${
+      teacherText
+    }     (ต่อ)`;
+
+
+  drawThaiPdfText(
+    doc,
+    continuedSubjectLine,
+    {
+      x:
+        marginLeft,
+
+      y:
+        18,
+
+      maxWidth:
+        contentWidth,
+
+      height:
+        7,
+
+      fontPx:
+        31,
+
+      weight:
+        '700',
+
+      color:
+        '#17324a',
+
+      align:
+        'left'
+    }
+  );
+
+},
 
 
               /* ===========================================
@@ -14231,9 +14346,133 @@ fontPx:
     );
 
 
-    /* =====================================================
-       9. Save
-       ===================================================== */
+/* =====================================================
+   9. Footer ทุกหน้า
+   ===================================================== */
+
+const totalPages =
+  doc.getNumberOfPages();
+
+
+for(
+  let pageNumber = 1;
+  pageNumber <= totalPages;
+  pageNumber++
+){
+
+  doc.setPage(
+    pageNumber
+  );
+
+
+  /*
+   * เส้นแบ่งเหนือ Footer
+   */
+  doc.setDrawColor(
+    190,
+    200,
+    212
+  );
+
+  doc.setLineWidth(
+    0.25
+  );
+
+  doc.line(
+    marginLeft,
+    pageHeight - 13,
+    pageWidth - marginRight,
+    pageHeight - 13
+  );
+
+
+  /*
+   * รายละเอียดเอกสาร
+   */
+  const footerDocumentText =
+    [
+      'เอกสาร: ประกาศรายชื่อนักเรียนไม่มีสิทธิ์สอบ',
+
+      `ปีการศึกษา ${year || '-'}`,
+
+      term
+        ? `ภาคเรียนที่ ${term}`
+        : 'ทุกภาคเรียน'
+    ]
+    .join('  •  ');
+
+
+  drawThaiPdfText(
+    doc,
+    footerDocumentText,
+    {
+      x:
+        marginLeft,
+
+      y:
+        pageHeight - 10.5,
+
+      maxWidth:
+        contentWidth - 35,
+
+      height:
+        5,
+
+      fontPx:
+        21,
+
+      weight:
+        '400',
+
+      color:
+        '#6b7a90',
+
+      align:
+        'left'
+    }
+  );
+
+
+  /*
+   * เลขหน้า
+   */
+  const footerPageText =
+    `หน้า ${pageNumber} / ${totalPages}`;
+
+
+  drawThaiPdfText(
+    doc,
+    footerPageText,
+    {
+      x:
+        pageWidth -
+        marginRight -
+        32,
+
+      y:
+        pageHeight - 10.5,
+
+      maxWidth:
+        32,
+
+      height:
+        5,
+
+      fontPx:
+        21,
+
+      weight:
+        '700',
+
+      color:
+        '#556478',
+
+      align:
+        'right'
+    }
+  );
+
+}
 
     doc.save(
       filename
