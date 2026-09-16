@@ -13898,23 +13898,36 @@ drawRoomFullHeader(
              * ถ้าพื้นที่ท้ายหน้าเหลือน้อย
              * ให้ขึ้นหน้าใหม่ก่อนเริ่มรายวิชา
              */
-            if(
-              cursorY >
-              pageHeight - 30
-            ){
+/*
+ * พื้นที่ขั้นต่ำที่ต้องเหลือ
+ * ก่อนเริ่มรายวิชาใหม่
+ *
+ * subjectLine
+ * + หัวตาราง
+ * + นักเรียนอย่างน้อย 1 แถว
+ */
+const minimumSubjectBlockHeight =
+  23;
 
-doc.addPage();
+
+if(
+  cursorY +
+  minimumSubjectBlockHeight >
+  pageHeight -
+  bottomMargin
+){
+
+  doc.addPage();
 
 
-drawRoomContinuationHeader(
-  roomGroup
-);
+  drawRoomContinuationHeader(
+    roomGroup
+  );
 
 
-cursorY =
-  17;
-
-            }
+  cursorY =
+    17;
+}
 
 
             /* =============================================
