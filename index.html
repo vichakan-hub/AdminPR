@@ -2786,6 +2786,182 @@ body.app-booting #appView{
   background:#fff5f4;
 }
 
+/* =========================================================
+   StudentPR Result Release Settings
+   ========================================================= */
+
+#releaseSettingList{
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+}
+
+.release-setting-card{
+  overflow:hidden;
+  border:1px solid #dbe7f3;
+  border-radius:22px;
+  background:#ffffff;
+  box-shadow:0 8px 22px rgba(18,38,63,.06);
+}
+
+.release-setting-card.active-window{
+  border-color:#7aa7ff;
+  box-shadow:
+    0 0 0 3px rgba(37,99,235,.10),
+    0 10px 26px rgba(37,99,235,.10);
+}
+
+.release-setting-card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:16px 18px;
+  border-bottom:1px solid #e7edf4;
+  background:linear-gradient(
+    135deg,
+    #f8fbff,
+    #f5f8fc
+  );
+}
+
+.release-setting-class{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.release-setting-class-icon{
+  width:46px;
+  height:46px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+  border-radius:15px;
+  background:#dbeafe;
+  color:#2563eb;
+  font-size:20px;
+  font-weight:800;
+}
+
+.release-setting-class-name{
+  font-size:19px;
+  font-weight:800;
+  color:#17324a;
+}
+
+.release-setting-class-sub{
+  margin-top:2px;
+  font-size:12px;
+  color:#6b7a90;
+}
+
+.release-status-pill{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:32px;
+  padding:5px 11px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.release-status-pill.closed{
+  color:#d92d20;
+  border:1px solid #ffd2cf;
+  background:#fff1f0;
+}
+
+.release-status-pill.scheduled{
+  color:#b26a00;
+  border:1px solid #ffe0aa;
+  background:#fff7ea;
+}
+
+.release-status-pill.active{
+  color:#ffffff;
+  border:1px solid #2563eb;
+  background:linear-gradient(
+    135deg,
+    #2563eb,
+    #3b82f6
+  );
+}
+
+.release-status-pill.released{
+  color:#0f9d58;
+  border:1px solid #bfe6cb;
+  background:#e9f8ef;
+}
+
+.release-setting-body{
+  display:grid;
+  gap:12px;
+  padding:16px 18px 18px;
+}
+
+.release-setting-info-grid{
+  display:grid;
+  grid-template-columns:
+    repeat(2, minmax(0,1fr));
+  gap:10px;
+}
+
+.release-setting-info{
+  min-height:72px;
+  padding:11px 13px;
+  border:1px solid #e1eaf3;
+  border-radius:15px;
+  background:#f9fbff;
+}
+
+.release-setting-info-label{
+  margin-bottom:4px;
+  color:#718195;
+  font-size:11.5px;
+  font-weight:700;
+}
+
+.release-setting-info-value{
+  color:#17324a;
+  font-size:13.5px;
+  font-weight:800;
+  line-height:1.5;
+}
+
+.release-setting-note{
+  padding:11px 13px;
+  border-radius:14px;
+  color:#52677d;
+  background:#f8fbff;
+  border:1px solid #dce8f3;
+  font-size:12.5px;
+  line-height:1.6;
+}
+
+@media (max-width:900px){
+
+  #releaseSettingList{
+    grid-template-columns:1fr;
+  }
+
+}
+
+@media (max-width:520px){
+
+  .release-setting-info-grid{
+    grid-template-columns:1fr;
+  }
+
+  .release-setting-card-head{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+}
+
 
 
 
@@ -7713,6 +7889,10 @@ msReportSettingLoading: false,
 reportSubPage: 'tracking',
 reportSignerRows: [],
 
+// ตั้งค่าการประกาศผล StudentPR
+studentResultReleaseRows: [],
+studentResultReleaseLoading: false,
+
   };
 
   function setStatus(id, text, type = 'info'){
@@ -10166,6 +10346,829 @@ function setReportSubPage(page){
       : 'teacher-sub-btn';
 
 }
+
+}
+
+/* =========================================================
+   StudentPR Result Release Settings
+   ========================================================= */
+
+function formatResultReleaseDateTime(
+  value
+){
+
+  if(!value){
+    return '-';
+  }
+
+
+  const date =
+    new Date(value);
+
+
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return '-';
+  }
+
+
+  return date.toLocaleString(
+    'th-TH',
+    {
+      timeZone:
+        'Asia/Bangkok',
+
+      day:
+        'numeric',
+
+      month:
+        'short',
+
+      year:
+        'numeric',
+
+      hour:
+        '2-digit',
+
+      minute:
+        '2-digit',
+
+      hour12:
+        false
+    }
+  );
+
+}
+
+
+function getResultReleaseDisplayState(
+  row
+){
+
+  const mode =
+    String(
+      row?.release_mode ||
+      'closed'
+    ).trim();
+
+
+  /*
+   * ยังไม่ประกาศ
+   */
+  if(
+    mode === 'closed'
+  ){
+
+    return {
+      key: 'closed',
+      text: 'ยังไม่ประกาศ',
+      note:
+        'นักเรียนยังไม่เห็นผลการเรียนของภาคเรียนนี้'
+    };
+
+  }
+
+
+  /*
+   * เปิดผลตลอดไป
+   */
+  if(
+    mode === 'always_open'
+  ){
+
+    return {
+      key: 'released',
+      text: 'ประกาศแล้ว',
+      note:
+        'ผลการเรียนเปิดให้ดูตามปกติ โดยไม่มีช่วงสงวนระบบ'
+    };
+
+  }
+
+
+  /*
+   * กำหนดช่วงเวลา
+   */
+  if(
+    mode === 'scheduled'
+  ){
+
+    const start =
+      row.release_at
+        ? new Date(
+            row.release_at
+          )
+        : null;
+
+
+    const end =
+      row.exclusive_until
+        ? new Date(
+            row.exclusive_until
+          )
+        : null;
+
+
+    const now =
+      new Date();
+
+
+    /*
+     * ยังไม่ถึงเวลา
+     */
+    if(
+      start &&
+      now < start
+    ){
+
+      return {
+        key: 'scheduled',
+        text: 'รอประกาศ',
+        note:
+          'มีการกำหนดวันและเวลาไว้แล้ว แต่ยังไม่ถึงเวลาเปิดประกาศผล'
+      };
+
+    }
+
+
+    /*
+     * อยู่ในช่วงของชั้นนี้
+     */
+    if(
+      start &&
+      end &&
+      now >= start &&
+      now < end
+    ){
+
+      return {
+        key: 'active',
+        text: 'กำลังประกาศผล',
+        note:
+          'ขณะนี้ StudentPR อยู่ในช่วงสงวนการเข้าใช้งานสำหรับระดับชั้นนี้'
+      };
+
+    }
+
+
+    /*
+     * ผ่านช่วงประกาศแล้ว
+     */
+    if(
+      end &&
+      now >= end
+    ){
+
+      return {
+        key: 'released',
+        text: 'ประกาศแล้ว',
+        note:
+          'ช่วงสงวนระบบสิ้นสุดแล้ว และผลการเรียนถือว่าประกาศแล้ว'
+      };
+
+    }
+
+
+    return {
+      key: 'scheduled',
+      text: 'กำหนดเวลาแล้ว',
+      note:
+        'มีการตั้งค่าช่วงเวลาประกาศผล'
+    };
+
+  }
+
+
+  return {
+    key: 'closed',
+    text: 'ยังไม่ประกาศ',
+    note: '-'
+  };
+
+}
+
+
+function renderStudentResultReleaseSettings(){
+
+  const container =
+    el(
+      'releaseSettingList'
+    );
+
+
+  if(!container){
+    return;
+  }
+
+
+  const rows =
+    Array.isArray(
+      state.studentResultReleaseRows
+    )
+      ? state.studentResultReleaseRows
+      : [];
+
+
+  if(!rows.length){
+
+    container.innerHTML = `
+
+      <div
+        class="filter-empty-state"
+        style="grid-column:1/-1;"
+      >
+
+        <div class="filter-empty-card">
+
+          <div class="filter-empty-icon">
+            📢
+          </div>
+
+          <div class="filter-empty-title">
+            ยังไม่มีข้อมูล
+          </div>
+
+          <div class="filter-empty-text">
+            กรุณากดโหลดข้อมูลอีกครั้ง
+          </div>
+
+        </div>
+
+      </div>
+    `;
+
+    return;
+  }
+
+
+  container.innerHTML =
+    rows
+      .map(row => {
+
+        const classLevel =
+          Number(
+            row.class_level
+          );
+
+
+        const displayState =
+          getResultReleaseDisplayState(
+            row
+          );
+
+
+        const startText =
+          row.release_mode ===
+          'scheduled'
+            ? formatResultReleaseDateTime(
+                row.release_at
+              )
+            : '-';
+
+
+        const endText =
+          row.release_mode ===
+          'scheduled'
+            ? formatResultReleaseDateTime(
+                row.exclusive_until
+              )
+            : '-';
+
+
+        const updatedText =
+          row.updated_at
+            ? formatResultReleaseDateTime(
+                row.updated_at
+              )
+            : 'ยังไม่เคยบันทึก';
+
+
+        const updatedBy =
+          String(
+            row.updated_by_teacher_code ||
+            ''
+          ).trim() || '-';
+
+
+        return `
+
+          <div
+            class="
+              release-setting-card
+              ${
+                displayState.key ===
+                'active'
+                  ? 'active-window'
+                  : ''
+              }
+            "
+            data-release-class="${classLevel}"
+          >
+
+            <div
+              class="release-setting-card-head"
+            >
+
+              <div
+                class="release-setting-class"
+              >
+
+                <div
+                  class="release-setting-class-icon"
+                >
+                  ${classLevel}
+                </div>
+
+                <div>
+
+                  <div
+                    class="release-setting-class-name"
+                  >
+                    ชั้น ม.${classLevel}
+                  </div>
+
+                  <div
+                    class="release-setting-class-sub"
+                  >
+                    การประกาศผล StudentPR
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              <span
+                class="
+                  release-status-pill
+                  ${displayState.key}
+                "
+              >
+                ${escapeHtml(
+                  displayState.text
+                )}
+              </span>
+
+            </div>
+
+
+            <div
+              class="release-setting-body"
+            >
+
+              <div
+                class="release-setting-info-grid"
+              >
+
+                <div
+                  class="release-setting-info"
+                >
+
+                  <div
+                    class="release-setting-info-label"
+                  >
+                    เริ่มประกาศผล
+                  </div>
+
+                  <div
+                    class="release-setting-info-value"
+                  >
+                    ${escapeHtml(
+                      startText
+                    )}
+                  </div>
+
+                </div>
+
+
+                <div
+                  class="release-setting-info"
+                >
+
+                  <div
+                    class="release-setting-info-label"
+                  >
+                    สิ้นสุดช่วงสงวนระบบ
+                  </div>
+
+                  <div
+                    class="release-setting-info-value"
+                  >
+                    ${escapeHtml(
+                      endText
+                    )}
+                  </div>
+
+                </div>
+
+
+                <div
+                  class="release-setting-info"
+                >
+
+                  <div
+                    class="release-setting-info-label"
+                  >
+                    แก้ไขล่าสุด
+                  </div>
+
+                  <div
+                    class="release-setting-info-value"
+                  >
+                    ${escapeHtml(
+                      updatedText
+                    )}
+                  </div>
+
+                </div>
+
+
+                <div
+                  class="release-setting-info"
+                >
+
+                  <div
+                    class="release-setting-info-label"
+                  >
+                    ผู้แก้ไข
+                  </div>
+
+                  <div
+                    class="release-setting-info-value"
+                  >
+                    ${escapeHtml(
+                      updatedBy
+                    )}
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              <div
+                class="release-setting-note"
+              >
+                ${escapeHtml(
+                  displayState.note
+                )}
+              </div>
+
+            </div>
+
+          </div>
+        `;
+
+      })
+      .join('');
+
+}
+
+
+function updateStudentResultReleaseSummary(){
+
+  const box =
+    el(
+      'releaseCurrentStatusBox'
+    );
+
+
+  if(!box){
+    return;
+  }
+
+
+  const rows =
+    Array.isArray(
+      state.studentResultReleaseRows
+    )
+      ? state.studentResultReleaseRows
+      : [];
+
+
+  const activeRow =
+    rows.find(row => {
+
+      return (
+        getResultReleaseDisplayState(
+          row
+        ).key === 'active'
+      );
+
+    });
+
+
+  if(activeRow){
+
+    box.textContent =
+      `กำลังประกาศผล ม.${activeRow.class_level}`;
+
+    return;
+  }
+
+
+  const scheduledCount =
+    rows.filter(row => {
+
+      const key =
+        getResultReleaseDisplayState(
+          row
+        ).key;
+
+      return (
+        key === 'scheduled'
+      );
+
+    }).length;
+
+
+  if(scheduledCount > 0){
+
+    box.textContent =
+      `มีคิวรอประกาศ ${scheduledCount} ระดับชั้น`;
+
+    return;
+  }
+
+
+  const releasedCount =
+    rows.filter(row => {
+
+      return (
+        getResultReleaseDisplayState(
+          row
+        ).key === 'released'
+      );
+
+    }).length;
+
+
+  if(releasedCount > 0){
+
+    box.textContent =
+      `ประกาศแล้ว ${releasedCount} ระดับชั้น`;
+
+    return;
+  }
+
+
+  box.textContent =
+    'ยังไม่มีการประกาศผล';
+
+}
+
+
+async function loadStudentResultReleaseSettings(){
+
+  if(
+    state.studentResultReleaseLoading
+  ){
+    return;
+  }
+
+
+  const academicYear =
+    Number(
+      el(
+        'releaseFilterYear'
+      )?.value
+    );
+
+
+  const term =
+    Number(
+      el(
+        'releaseFilterTerm'
+      )?.value
+    );
+
+
+  if(
+    !Number.isInteger(
+      academicYear
+    ) ||
+    academicYear < 2500 ||
+    academicYear > 3000
+  ){
+
+    setStatus(
+      'releaseListStatus',
+      'กรุณาระบุปีการศึกษาให้ถูกต้อง',
+      'warning'
+    );
+
+    return;
+  }
+
+
+  if(
+    ![1,2].includes(term)
+  ){
+
+    setStatus(
+      'releaseListStatus',
+      'กรุณาเลือกภาคเรียน 1 หรือ 2',
+      'warning'
+    );
+
+    return;
+  }
+
+
+  const token =
+    String(
+      state.adminSessionToken ||
+      ''
+    ).trim();
+
+
+  if(!token){
+
+    setStatus(
+      'releaseListStatus',
+      'ไม่พบ Admin Session กรุณาเข้าสู่ระบบใหม่',
+      'error'
+    );
+
+    return;
+  }
+
+
+  const reloadBtn =
+    el(
+      'releaseReloadBtn'
+    );
+
+
+  try{
+
+    state.studentResultReleaseLoading =
+      true;
+
+
+    if(reloadBtn){
+
+      reloadBtn.disabled =
+        true;
+
+      reloadBtn.textContent =
+        'กำลังโหลด...';
+
+    }
+
+
+    setStatus(
+      'releaseListStatus',
+      'กำลังโหลดการตั้งค่าการประกาศผล...',
+      'info'
+    );
+
+
+    if(
+      el(
+        'releaseCurrentStatusBox'
+      )
+    ){
+
+      el(
+        'releaseCurrentStatusBox'
+      ).textContent =
+        'กำลังโหลดข้อมูล...';
+
+    }
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+
+        'admin_get_student_result_release_settings_session',
+
+        {
+
+          p_token:
+            token,
+
+          p_academic_year:
+            academicYear,
+
+          p_term:
+            term
+
+        }
+
+      );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    if(
+      !data ||
+      data.ok !== true
+    ){
+
+      throw new Error(
+        data?.message ||
+        'ไม่สามารถโหลดการตั้งค่าได้'
+      );
+
+    }
+
+
+    const rows =
+      Array.isArray(
+        data.rows
+      )
+        ? data.rows
+        : [];
+
+
+    state.studentResultReleaseRows =
+      rows;
+
+
+    renderStudentResultReleaseSettings();
+
+    updateStudentResultReleaseSummary();
+
+
+    setStatus(
+      'releaseListStatus',
+      `โหลดการตั้งค่า ปีการศึกษา ${academicYear} ภาคเรียน ${term} เรียบร้อยแล้ว`,
+      'success'
+    );
+
+
+  }catch(error){
+
+    console.error(
+      'LOAD RESULT RELEASE SETTINGS ERROR =',
+      error
+    );
+
+
+    state.studentResultReleaseRows =
+      [];
+
+
+    renderStudentResultReleaseSettings();
+
+
+    if(
+      el(
+        'releaseCurrentStatusBox'
+      )
+    ){
+
+      el(
+        'releaseCurrentStatusBox'
+      ).textContent =
+        'โหลดข้อมูลไม่สำเร็จ';
+
+    }
+
+
+    setStatus(
+      'releaseListStatus',
+      error?.message ||
+      'ไม่สามารถโหลดการตั้งค่าการประกาศผลได้',
+      'error'
+    );
+
+
+    showToast(
+      'โหลดข้อมูลไม่สำเร็จ',
+      error?.message ||
+      'ไม่สามารถโหลดการตั้งค่าการประกาศผลได้',
+      'error'
+    );
+
+
+  }finally{
+
+    state.studentResultReleaseLoading =
+      false;
+
+
+    if(reloadBtn){
+
+      reloadBtn.disabled =
+        false;
+
+      reloadBtn.textContent =
+        '🔄 โหลดใหม่';
+
+    }
+
+  }
 
 }
 
@@ -34664,7 +35667,7 @@ if(el('reportSubReleaseBtn')){
   el('reportSubReleaseBtn')
     .addEventListener(
       'click',
-      () => {
+      async () => {
 
         setReportSubPage(
           'release'
@@ -34672,25 +35675,44 @@ if(el('reportSubReleaseBtn')){
 
 
         if(
-          !el('releaseFilterYear')
-            ?.value
+          !el('releaseFilterYear')?.value
         ){
 
-          el('releaseFilterYear').value =
+          el(
+            'releaseFilterYear'
+          ).value =
             getCurrentThaiAcademicYear();
 
         }
 
 
         if(
-          !el('releaseFilterTerm')
-            ?.value
+          !el('releaseFilterTerm')?.value
         ){
 
-          el('releaseFilterTerm').value =
+          el(
+            'releaseFilterTerm'
+          ).value =
             '1';
 
         }
+
+
+        await loadStudentResultReleaseSettings();
+
+      }
+    );
+
+}
+
+if(el('releaseReloadBtn')){
+
+  el('releaseReloadBtn')
+    .addEventListener(
+      'click',
+      async () => {
+
+        await loadStudentResultReleaseSettings();
 
       }
     );
