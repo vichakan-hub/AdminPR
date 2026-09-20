@@ -37220,6 +37220,23 @@ safeBind('studentImportSaveBtn', 'click', saveStudentImportRows);
   
 }
 
+    /*
+ * =========================================================
+ * Boot fail-safe
+ * ป้องกันหน้าขาวหากมี JavaScript error ระหว่างเริ่มระบบ
+ * =========================================================
+ */
+document.addEventListener(
+  'DOMContentLoaded',
+  () => {
+
+    document.body.classList.remove(
+      'app-booting'
+    );
+
+  }
+);
+
     document.addEventListener('DOMContentLoaded', async () => {
     el('loginBtn').addEventListener('click', login);
     el('loginPassword').addEventListener('keydown', e => { if(e.key === 'Enter') login(); });
