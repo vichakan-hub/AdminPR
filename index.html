@@ -2962,6 +2962,83 @@ body.app-booting #appView{
 
 }
 
+/* =========================================================
+   Result Release : Editor
+   ========================================================= */
+
+.release-setting-editor{
+  padding-top:14px;
+  border-top:1px solid #e7edf4;
+}
+
+.release-setting-editor-grid{
+  display:grid;
+  grid-template-columns:
+    minmax(170px,.9fr)
+    minmax(220px,1.2fr)
+    minmax(220px,1.2fr);
+  gap:10px;
+  align-items:end;
+}
+
+.release-setting-editor .field{
+  margin-bottom:0;
+}
+
+.release-setting-editor .std{
+  height:44px;
+}
+
+.release-setting-editor-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:12px;
+}
+
+.release-setting-save-btn{
+  min-width:160px;
+}
+
+.release-mode-help{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:13px;
+  border:1px solid #dce8f3;
+  background:#f8fbff;
+  color:#52677d;
+  font-size:12px;
+  line-height:1.55;
+}
+
+.release-mode-help.warning{
+  color:#92520d;
+  border-color:#fed7aa;
+  background:#fff8ed;
+}
+
+.release-mode-help.success{
+  color:#166534;
+  border-color:#bbf7d0;
+  background:#f0fdf4;
+}
+
+@media (max-width:900px){
+
+  .release-setting-editor-grid{
+    grid-template-columns:1fr;
+  }
+
+  .release-setting-editor-actions{
+    justify-content:stretch;
+  }
+
+  .release-setting-save-btn{
+    width:100%;
+  }
+
+}
+
 
 
 
