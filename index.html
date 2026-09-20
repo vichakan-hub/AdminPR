@@ -3273,6 +3273,90 @@ body.app-booting #appView{
 
 }
 
+/* =========================================================
+   Result Release : Copy Schedule
+   ========================================================= */
+
+.release-setting-editor-actions{
+  flex-wrap:wrap;
+}
+
+.release-setting-copy-btn{
+  min-width:190px;
+}
+
+.release-copy-source{
+  padding:14px 16px;
+  border:1px solid #cfe0ff;
+  border-radius:16px;
+  background:#f3f8ff;
+  color:#24405f;
+  font-size:14px;
+  font-weight:700;
+  line-height:1.7;
+}
+
+.release-copy-class-list{
+  display:grid;
+  grid-template-columns:
+    repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+
+.release-copy-class-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:52px;
+  padding:10px 14px;
+  border:1px solid #dbe7f3;
+  border-radius:15px;
+  background:#ffffff;
+  cursor:pointer;
+  font-weight:800;
+}
+
+.release-copy-class-item:hover{
+  border-color:#93c5fd;
+  background:#f8fbff;
+}
+
+.release-copy-class-item input{
+  width:18px;
+  height:18px;
+  accent-color:#2563eb;
+}
+
+.release-copy-warning{
+  margin-top:16px;
+  padding:12px 14px;
+  border:1px solid #fed7aa;
+  border-radius:14px;
+  background:#fff8ed;
+  color:#92520d;
+  font-size:12.5px;
+  line-height:1.6;
+}
+
+@media (max-width:620px){
+
+  .release-copy-class-list{
+    grid-template-columns:
+      repeat(2,minmax(0,1fr));
+  }
+
+  .release-setting-editor-actions{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+
+  .release-setting-copy-btn,
+  .release-setting-save-btn{
+    width:100%;
+  }
+
+}
+
 
 
 
@@ -8295,6 +8379,8 @@ reportSignerRows: [],
 // ตั้งค่าการประกาศผล StudentPR
 studentResultReleaseRows: [],
 studentResultReleaseLoading: false,
+releaseCopySourceLevel: null,
+
 
   };
 
@@ -11442,17 +11528,30 @@ function renderStudentResultReleaseSettings(){
                 </div>
 
 
-                <div class="release-setting-editor-actions">
+<div class="release-setting-editor-actions">
 
-                  <button
-                    class="btn-primary release-setting-save-btn"
-                    type="button"
-                    data-release-save="${classLevel}"
-                  >
-                    💾 บันทึก ม.${classLevel}
-                  </button>
+  <button
+    class="btn-secondary release-setting-copy-btn"
+    type="button"
+    data-release-copy="${classLevel}"
+    ${
+      mode !== 'scheduled'
+        ? 'disabled'
+        : ''
+    }
+  >
+    📋 คัดลอกเวลาไปชั้นอื่น
+  </button>
 
-                </div>
+  <button
+    class="btn-primary release-setting-save-btn"
+    type="button"
+    data-release-save="${classLevel}"
+  >
+    💾 บันทึก ม.${classLevel}
+  </button>
+
+</div>
 
               </div>
 
@@ -11585,6 +11684,39 @@ function updateResultReleaseEditor(
       .trim();
 
   }
+
+  const copyBtn =
+  document.querySelector(
+    `[data-release-copy="${classLevel}"]`
+  );
+
+if(copyBtn){
+
+  const savedRow =
+    (
+      state.studentResultReleaseRows ||
+      []
+    )
+    .find(row =>
+      Number(row.class_level) ===
+      Number(classLevel)
+    );
+
+
+  const hasSavedSchedule =
+    mode === 'scheduled'
+    &&
+    savedRow?.release_mode === 'scheduled'
+    &&
+    !!savedRow?.release_at
+    &&
+    !!savedRow?.exclusive_until;
+
+
+  copyBtn.disabled =
+    !hasSavedSchedule;
+
+}
 
 }
 
@@ -13012,6 +13144,568 @@ renderStudentResultReleaseOverview();
 
       reloadBtn.textContent =
         '🔄 โหลดใหม่';
+
+    }
+
+  }
+
+}
+
+function closeResultReleaseCopyModal(){
+
+  const backdrop =
+    el(
+      'releaseCopyModalBackdrop'
+    );
+
+
+  if(backdrop){
+
+    backdrop.classList.remove(
+      'show'
+    );
+
+  }
+
+
+  state.releaseCopySourceLevel =
+    null;
+
+}
+
+
+function openResultReleaseCopyModal(
+  classLevel
+){
+
+  const level =
+    Number(
+      classLevel
+    );
+
+
+  const sourceRow =
+    (
+      state.studentResultReleaseRows ||
+      []
+    )
+    .find(row => {
+
+      return (
+        Number(
+          row.class_level
+        ) === level
+      );
+
+    });
+
+
+  if(
+    !sourceRow ||
+    sourceRow.release_mode !==
+      'scheduled' ||
+    !sourceRow.release_at ||
+    !sourceRow.exclusive_until
+  ){
+
+    showToast(
+      `ม.${level}`,
+      'กรุณาบันทึกช่วงเวลาของชั้นต้นทางก่อนคัดลอก',
+      'warning'
+    );
+
+    return;
+
+  }
+
+
+  state.releaseCopySourceLevel =
+    level;
+
+
+  const subtitle =
+    el(
+      'releaseCopyModalSubtitle'
+    );
+
+
+  if(subtitle){
+
+    subtitle.textContent =
+      `คัดลอกช่วงเวลาของ ม.${level} ไปยังระดับชั้นอื่น`;
+
+  }
+
+
+  const info =
+    el(
+      'releaseCopySourceInfo'
+    );
+
+
+  if(info){
+
+    info.innerHTML = `
+
+      <div>
+        <strong>ต้นทาง:</strong>
+        ม.${level}
+      </div>
+
+      <div>
+        <strong>เริ่ม:</strong>
+        ${escapeHtml(
+          formatResultReleaseDateTime(
+            sourceRow.release_at
+          )
+        )}
+      </div>
+
+      <div>
+        <strong>สิ้นสุด:</strong>
+        ${escapeHtml(
+          formatResultReleaseDateTime(
+            sourceRow.exclusive_until
+          )
+        )}
+      </div>
+
+    `;
+
+  }
+
+
+  const list =
+    el(
+      'releaseCopyClassList'
+    );
+
+
+  if(list){
+
+    list.innerHTML =
+      [1,2,3,4,5,6]
+        .filter(targetLevel => {
+
+          return (
+            targetLevel !== level
+          );
+
+        })
+        .map(targetLevel => {
+
+          const targetRow =
+            (
+              state.studentResultReleaseRows ||
+              []
+            )
+            .find(row => {
+
+              return (
+                Number(
+                  row.class_level
+                ) ===
+                targetLevel
+              );
+
+            });
+
+
+          let currentText =
+            'ยังไม่ประกาศ';
+
+
+          if(
+            targetRow?.release_mode ===
+            'scheduled'
+          ){
+
+            currentText =
+              'มีช่วงเวลาเดิม';
+
+          }
+
+
+          if(
+            targetRow?.release_mode ===
+            'always_open'
+          ){
+
+            currentText =
+              'เปิดผลตลอดไป';
+
+          }
+
+
+          return `
+
+            <label
+              class="release-copy-class-item"
+            >
+
+              <input
+                type="checkbox"
+                value="${targetLevel}"
+                data-release-copy-target
+              >
+
+              <span>
+                ม.${targetLevel}
+                <div
+                  class="small"
+                  style="margin-top:2px;"
+                >
+                  ${escapeHtml(currentText)}
+                </div>
+              </span>
+
+            </label>
+
+          `;
+
+        })
+        .join('');
+
+  }
+
+
+  const backdrop =
+    el(
+      'releaseCopyModalBackdrop'
+    );
+
+
+  if(backdrop){
+
+    backdrop.classList.add(
+      'show'
+    );
+
+  }
+
+}
+
+async function copyResultReleaseSchedule(){
+
+  const sourceLevel =
+    Number(
+      state.releaseCopySourceLevel
+    );
+
+
+  if(
+    !Number.isInteger(
+      sourceLevel
+    )
+  ){
+    return;
+  }
+
+
+  const sourceRow =
+    (
+      state.studentResultReleaseRows ||
+      []
+    )
+    .find(row => {
+
+      return (
+        Number(
+          row.class_level
+        ) === sourceLevel
+      );
+
+    });
+
+
+  if(
+    !sourceRow ||
+    sourceRow.release_mode !==
+      'scheduled' ||
+    !sourceRow.release_at ||
+    !sourceRow.exclusive_until
+  ){
+
+    showToast(
+      'ไม่สามารถคัดลอกได้',
+      'ไม่พบช่วงเวลาของชั้นต้นทาง',
+      'error'
+    );
+
+    return;
+
+  }
+
+
+  const selectedLevels =
+    Array
+      .from(
+        document.querySelectorAll(
+          '[data-release-copy-target]:checked'
+        )
+      )
+      .map(node =>
+        Number(
+          node.value
+        )
+      )
+      .filter(level =>
+        Number.isInteger(level)
+      );
+
+
+  if(
+    !selectedLevels.length
+  ){
+
+    showToast(
+      'ยังไม่ได้เลือกระดับชั้น',
+      'กรุณาเลือกอย่างน้อย 1 ระดับชั้น',
+      'warning'
+    );
+
+    return;
+
+  }
+
+
+  const academicYear =
+    Number(
+      el(
+        'releaseFilterYear'
+      )?.value
+    );
+
+
+  const term =
+    Number(
+      el(
+        'releaseFilterTerm'
+      )?.value
+    );
+
+
+  const token =
+    String(
+      state.adminSessionToken ||
+      ''
+    ).trim();
+
+
+  if(!token){
+
+    showToast(
+      'Session หมดอายุ',
+      'กรุณาเข้าสู่ระบบใหม่',
+      'error'
+    );
+
+    return;
+
+  }
+
+
+  const classesText =
+    selectedLevels
+      .map(level =>
+        `ม.${level}`
+      )
+      .join(', ');
+
+
+  const confirmed =
+    window.confirm(
+
+      `ยืนยันคัดลอกช่วงเวลาของ ม.${sourceLevel} ไปยัง ${classesText} ?\n\n` +
+
+      `เริ่ม: ${formatResultReleaseDateTime(sourceRow.release_at)}\n` +
+
+      `สิ้นสุด: ${formatResultReleaseDateTime(sourceRow.exclusive_until)}\n\n` +
+
+      `การตั้งค่าเดิมของชั้นปลายทางจะถูกเขียนทับ`
+
+    );
+
+
+  if(!confirmed){
+    return;
+  }
+
+
+  const confirmBtn =
+    el(
+      'releaseCopyConfirmBtn'
+    );
+
+
+  try{
+
+    if(confirmBtn){
+
+      confirmBtn.disabled =
+        true;
+
+      confirmBtn.textContent =
+        'กำลังบันทึก...';
+
+    }
+
+
+    const successLevels =
+      [];
+
+
+    const failedLevels =
+      [];
+
+
+    /*
+     * บันทึกทีละชั้น
+     * ไม่ยิง RPC หลายตัวพร้อมกันโดยไม่จำเป็น
+     */
+    for(
+      const targetLevel
+      of selectedLevels
+    ){
+
+      try{
+
+        const {
+          data,
+          error
+        } =
+          await supabaseClient.rpc(
+
+            'admin_set_student_result_release_setting_session',
+
+            {
+
+              p_token:
+                token,
+
+              p_academic_year:
+                academicYear,
+
+              p_term:
+                term,
+
+              p_class_level:
+                targetLevel,
+
+              p_release_mode:
+                'scheduled',
+
+              p_release_at:
+                sourceRow.release_at,
+
+              p_exclusive_until:
+                sourceRow.exclusive_until
+
+            }
+
+          );
+
+
+        if(error){
+          throw error;
+        }
+
+
+        if(
+          !data ||
+          data.ok !== true
+        ){
+
+          throw new Error(
+            data?.message ||
+            'บันทึกไม่สำเร็จ'
+          );
+
+        }
+
+
+        successLevels.push(
+          targetLevel
+        );
+
+
+      }catch(error){
+
+        console.error(
+          `COPY RELEASE TO M.${targetLevel} ERROR =`,
+          error
+        );
+
+
+        failedLevels.push({
+
+          level:
+            targetLevel,
+
+          message:
+            error?.message ||
+            'บันทึกไม่สำเร็จ'
+
+        });
+
+      }
+
+    }
+
+
+    /*
+     * โหลดจาก Database ใหม่ครั้งเดียว
+     */
+    await loadStudentResultReleaseSettings();
+
+
+    if(!failedLevels.length){
+
+      closeResultReleaseCopyModal();
+
+
+      showToast(
+        'คัดลอกเวลาเรียบร้อย',
+        `คัดลอกไปยัง ${
+          successLevels
+            .map(level =>
+              `ม.${level}`
+            )
+            .join(', ')
+        } สำเร็จ`,
+        'success'
+      );
+
+
+      return;
+
+    }
+
+
+    const failedText =
+      failedLevels
+        .map(item =>
+          `ม.${item.level}`
+        )
+        .join(', ');
+
+
+    showToast(
+      'คัดลอกได้บางส่วน',
+      `ไม่สำเร็จ: ${failedText}`,
+      'warning'
+    );
+
+
+  }finally{
+
+    if(confirmBtn){
+
+      confirmBtn.disabled =
+        false;
+
+      confirmBtn.textContent =
+        '📋 คัดลอกและบันทึก';
 
     }
 
@@ -37566,6 +38260,33 @@ if(el('releaseReloadBtn')){
 
 }
 
+[
+  'releaseFilterYear',
+  'releaseFilterTerm'
+]
+.forEach(id => {
+
+  const node =
+    el(id);
+
+  if(!node){
+    return;
+  }
+
+  node.addEventListener(
+    'change',
+    async () => {
+
+      state.studentResultReleaseRows =
+        [];
+
+      await loadStudentResultReleaseSettings();
+
+    }
+  );
+
+});
+
 if(
   el(
     'releaseSettingList'
@@ -37608,26 +38329,50 @@ if(
   );
 
 
-  /*
-   * บันทึกแต่ละชั้น
-   */
-  el(
-    'releaseSettingList'
-  )
-  .addEventListener(
-    'click',
-    async event => {
+el(
+  'releaseSettingList'
+)
+.addEventListener(
+  'click',
+  async event => {
 
-      const saveBtn =
-        event.target.closest(
-          '[data-release-save]'
+    /*
+     * คัดลอกเวลา
+     */
+    const copyBtn =
+      event.target.closest(
+        '[data-release-copy]'
+      );
+
+
+    if(copyBtn){
+
+      const classLevel =
+        Number(
+          copyBtn.dataset
+            .releaseCopy
         );
 
 
-      if(!saveBtn){
-        return;
-      }
+      openResultReleaseCopyModal(
+        classLevel
+      );
 
+      return;
+
+    }
+
+
+    /*
+     * บันทึก
+     */
+    const saveBtn =
+      event.target.closest(
+        '[data-release-save]'
+      );
+
+
+    if(saveBtn){
 
       const classLevel =
         Number(
@@ -37641,7 +38386,80 @@ if(
       );
 
     }
+
+  }
+);
+
+if(
+  el(
+    'releaseCopyCancelBtn'
+  )
+){
+
+  el(
+    'releaseCopyCancelBtn'
+  )
+  .addEventListener(
+    'click',
+    () => {
+
+      closeResultReleaseCopyModal();
+
+    }
   );
+
+}
+
+
+if(
+  el(
+    'releaseCopyConfirmBtn'
+  )
+){
+
+  el(
+    'releaseCopyConfirmBtn'
+  )
+  .addEventListener(
+    'click',
+    async () => {
+
+      await copyResultReleaseSchedule();
+
+    }
+  );
+
+}
+
+
+if(
+  el(
+    'releaseCopyModalBackdrop'
+  )
+){
+
+  el(
+    'releaseCopyModalBackdrop'
+  )
+  .addEventListener(
+    'click',
+    event => {
+
+      if(
+        event.target ===
+        el(
+          'releaseCopyModalBackdrop'
+        )
+      ){
+
+        closeResultReleaseCopyModal();
+
+      }
+
+    }
+  );
+
+}
 
 }
 
@@ -37829,6 +38647,90 @@ try{
   });
   </script>
    <script src="./pwa-register.js"></script>
+  <!-- =========================================================
+     Copy Result Release Schedule Modal
+     ========================================================= -->
+
+<div
+  id="releaseCopyModalBackdrop"
+  class="modal-backdrop"
+>
+
+  <div class="modal">
+
+    <h3>
+      📋 คัดลอกช่วงเวลาประกาศผล
+    </h3>
+
+    <p id="releaseCopyModalSubtitle">
+      -
+    </p>
+
+
+    <div
+      id="releaseCopySourceInfo"
+      class="release-copy-source"
+    >
+      -
+    </div>
+
+
+    <div style="margin-top:18px;">
+
+      <div
+        style="
+          font-weight:800;
+          margin-bottom:10px;
+        "
+      >
+        เลือกระดับชั้นปลายทาง
+      </div>
+
+      <div
+        id="releaseCopyClassList"
+        class="release-copy-class-list"
+      ></div>
+
+    </div>
+
+
+    <div class="release-copy-warning">
+
+      ⚠️ หากชั้นที่เลือกมีการตั้งค่าอยู่แล้ว
+      ระบบจะเขียนทับด้วยช่วงเวลาของชั้นต้นทาง
+
+    </div>
+
+
+    <div
+      class="actions"
+      style="
+        justify-content:flex-end;
+        margin-top:18px;
+      "
+    >
+
+      <button
+        id="releaseCopyCancelBtn"
+        class="btn-secondary"
+        type="button"
+      >
+        ยกเลิก
+      </button>
+
+      <button
+        id="releaseCopyConfirmBtn"
+        class="btn-primary"
+        type="button"
+      >
+        📋 คัดลอกและบันทึก
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
 </body>
 </html>
 
