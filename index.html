@@ -3362,6 +3362,14 @@ body.app-booting #appView{
     ✍️ ตั้งค่าผู้อนุมัติผลการเรียน
   </button>
 
+  <button
+  id="reportSubReleaseBtn"
+  class="teacher-sub-btn"
+  type="button"
+>
+  📢 ตั้งค่าการประกาศผล
+</button>
+
 </div>
         
         <section id="reportSubTrackingPage">
@@ -4655,6 +4663,182 @@ body.app-booting #appView{
     </table>
   </div>
 </section>
+<!-- =========================================================
+     StudentPR Result Release Setting
+     ตั้งค่าการประกาศผลการเรียน
+     ========================================================= -->
+
+<section
+  id="reportSubReleasePage"
+  class="hidden"
+>
+
+  <div class="report-summary-box">
+
+    <div
+      style="
+        font-size:18px;
+        font-weight:800;
+        margin-bottom:4px;
+      "
+    >
+      📢 ตั้งค่าการประกาศผลใน StudentPR
+    </div>
+
+    <div class="small">
+      กำหนดการประกาศผลการเรียนแยกตามระดับชั้น
+      และกำหนดช่วงเวลาที่ StudentPR จะสงวนการเข้าใช้งาน
+      สำหรับนักเรียนระดับชั้นที่กำลังประกาศผล
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       ปีการศึกษา / ภาคเรียน
+       ===================================================== -->
+
+  <div
+    class="report-toolbar"
+    style="
+      grid-template-columns:
+        minmax(180px,1fr)
+        minmax(160px,1fr)
+        minmax(180px,1fr)
+        2fr;
+    "
+  >
+
+    <div class="field">
+
+      <span class="label-in-form">
+        ปีการศึกษา
+      </span>
+
+      <input
+        id="releaseFilterYear"
+        class="std"
+        type="number"
+        min="2500"
+        max="3000"
+        value="2569"
+      >
+
+    </div>
+
+
+    <div class="field">
+
+      <span class="label-in-form">
+        ภาคเรียน
+      </span>
+
+      <select
+        id="releaseFilterTerm"
+        class="std"
+      >
+
+        <option value="1">
+          1
+        </option>
+
+        <option value="2">
+          2
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <div class="field">
+
+      <span class="label-in-form">
+        โหลดข้อมูล
+      </span>
+
+      <button
+        id="releaseReloadBtn"
+        class="btn-secondary"
+        type="button"
+        style="width:100%;"
+      >
+        🔄 โหลดใหม่
+      </button>
+
+    </div>
+
+
+    <div class="field">
+
+      <span class="label-in-form">
+        สถานะ
+      </span>
+
+      <div
+        id="releaseCurrentStatusBox"
+        class="readonly-box"
+      >
+        ยังไม่ได้โหลดการตั้งค่า
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div
+    id="releaseListStatus"
+    class="status info"
+  >
+    เลือกปีการศึกษาและภาคเรียน
+    เพื่อจัดการการประกาศผล
+  </div>
+
+
+  <!-- =====================================================
+       รายการ ม.1 - ม.6
+       ขั้นถัดไป JavaScript จะสร้าง Card ลงในนี้
+       ===================================================== -->
+
+  <div
+    id="releaseSettingList"
+    style="
+      display:grid;
+      gap:14px;
+      margin-top:16px;
+    "
+  >
+
+    <div class="filter-empty-state">
+
+      <div class="filter-empty-card">
+
+        <div class="filter-empty-icon">
+          📢
+        </div>
+
+        <div class="filter-empty-title">
+          ตั้งค่าการประกาศผล StudentPR
+        </div>
+
+        <div class="filter-empty-text">
+          ระบบจะแสดงการตั้งค่า ม.1 ถึง ม.6
+          พร้อมวัน เวลา และสถานะการประกาศผล
+        </div>
+
+        <div class="filter-empty-hint">
+          ยังไม่ได้โหลดข้อมูล
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+        
      </section>
 
       <section id="pageGradeManage" class="card hidden">
@@ -9869,6 +10053,9 @@ function setReportSubPage(page){
   const isSigner =
     page === 'signer';
 
+  const isRelease =
+  page === 'release';
+
 
   // =========================================================
   // Pages
@@ -9917,6 +10104,16 @@ function setReportSubPage(page){
 
   }
 
+  if(el('reportSubReleasePage')){
+
+  el('reportSubReleasePage')
+    .classList.toggle(
+      'hidden',
+      !isRelease
+    );
+
+}
+
 
   // =========================================================
   // Buttons
@@ -9960,6 +10157,15 @@ function setReportSubPage(page){
         : 'teacher-sub-btn';
 
   }
+
+  if(el('reportSubReleaseBtn')){
+
+  el('reportSubReleaseBtn').className =
+    isRelease
+      ? 'teacher-sub-btn active'
+      : 'teacher-sub-btn';
+
+}
 
 }
 
@@ -34451,6 +34657,44 @@ if(el('reportSubSignerBtn')){
       await loadReportSigners();
     }
   });
+}
+
+if(el('reportSubReleaseBtn')){
+
+  el('reportSubReleaseBtn')
+    .addEventListener(
+      'click',
+      () => {
+
+        setReportSubPage(
+          'release'
+        );
+
+
+        if(
+          !el('releaseFilterYear')
+            ?.value
+        ){
+
+          el('releaseFilterYear').value =
+            getCurrentThaiAcademicYear();
+
+        }
+
+
+        if(
+          !el('releaseFilterTerm')
+            ?.value
+        ){
+
+          el('releaseFilterTerm').value =
+            '1';
+
+        }
+
+      }
+    );
+
 }
 
 if(el('signerReloadBtn')){
