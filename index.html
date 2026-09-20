@@ -3393,22 +3393,63 @@ body.app-booting #appView{
             </div>
           </div>
 
-          <div class="field">
-            <label for="loginTeacherCode">ชื่อผู้ใช้</label>
-            <div class="input-wrap">
-              <span class="input-icon">👤</span>
-              <input id="loginTeacherCode" type="text" placeholder="เช่น G323">
-            </div>
-          </div>
+<form
+  id="adminLoginForm"
+  autocomplete="on"
+>
+  <div class="field">
+    <label for="loginTeacherCode">
+      ชื่อผู้ใช้
+    </label>
 
-          <div class="field">
-            <label for="loginPassword">รหัสผ่าน</label>
-            <div class="input-wrap">
-              <span class="input-icon">🔒</span>
-              <input id="loginPassword" type="password" placeholder="กรอกรหัสผ่าน">
-              <span id="togglePasswordBtn" class="input-action">👁️</span>
-            </div>
-          </div>
+    <div class="input-wrap">
+      <span class="input-icon">👤</span>
+
+      <input
+        id="loginTeacherCode"
+        name="username"
+        type="text"
+        autocomplete="username"
+        placeholder="เช่น G323"
+      >
+    </div>
+  </div>
+
+
+  <div class="field">
+    <label for="loginPassword">
+      รหัสผ่าน
+    </label>
+
+    <div class="input-wrap">
+      <span class="input-icon">🔒</span>
+
+      <input
+        id="loginPassword"
+        name="password"
+        type="password"
+        autocomplete="current-password"
+        placeholder="กรอกรหัสผ่าน"
+      >
+
+      <span
+        id="togglePasswordBtn"
+        class="input-action"
+      >
+        👁️
+      </span>
+    </div>
+  </div>
+
+
+  <button
+    id="loginBtn"
+    class="login-btn"
+    type="submit"
+  >
+    ↪ เข้าสู่ระบบ
+  </button>
+</form>
 
           <button id="loginBtn" class="login-btn">↪ เข้าสู่ระบบ</button>
           <div id="loginStatus" class="status info"></div>
@@ -37238,8 +37279,17 @@ document.addEventListener(
 );
 
     document.addEventListener('DOMContentLoaded', async () => {
-    el('loginBtn').addEventListener('click', login);
-    el('loginPassword').addEventListener('keydown', e => { if(e.key === 'Enter') login(); });
+el('adminLoginForm')
+  ?.addEventListener(
+    'submit',
+    event => {
+
+      event.preventDefault();
+
+      login();
+
+    }
+  );
     el('togglePasswordBtn').addEventListener('click', () => {
       const node = el('loginPassword');
       node.type = node.type === 'password' ? 'text' : 'password';
