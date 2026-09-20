@@ -3039,6 +3039,240 @@ body.app-booting #appView{
 
 }
 
+/* =========================================================
+   Result Release Overview
+   ========================================================= */
+
+.release-overview{
+  display:grid;
+  gap:14px;
+  margin:16px 0 18px;
+}
+
+.release-overview-status{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:18px 20px;
+  border:1px solid #dbe7f3;
+  border-radius:20px;
+  background:linear-gradient(
+    135deg,
+    #ffffff,
+    #f4f9ff
+  );
+}
+
+.release-overview-status.active{
+  color:#1d4ed8;
+  border-color:#93c5fd;
+  background:linear-gradient(
+    135deg,
+    #eff6ff,
+    #e0f2fe
+  );
+}
+
+.release-overview-status.normal{
+  color:#15803d;
+  border-color:#bbf7d0;
+  background:linear-gradient(
+    135deg,
+    #f0fdf4,
+    #f7fff9
+  );
+}
+
+.release-overview-status-icon{
+  width:54px;
+  height:54px;
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  border-radius:17px;
+  background:#ffffff;
+  border:1px solid rgba(0,0,0,.06);
+  font-size:26px;
+}
+
+.release-overview-kicker{
+  color:#718195;
+  font-size:12px;
+  font-weight:700;
+}
+
+.release-overview-title{
+  margin-top:2px;
+  color:#17324a;
+  font-size:19px;
+  font-weight:900;
+}
+
+.release-overview-sub{
+  margin-top:4px;
+  color:#64748b;
+  font-size:13px;
+  line-height:1.55;
+}
+
+.release-overview-queue{
+  overflow:hidden;
+  border:1px solid #dbe7f3;
+  border-radius:20px;
+  background:#ffffff;
+}
+
+.release-overview-queue-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:15px 18px;
+  border-bottom:1px solid #e6edf5;
+  background:#f8fbff;
+}
+
+.release-overview-queue-title{
+  color:#17324a;
+  font-size:16px;
+  font-weight:900;
+}
+
+.release-overview-count{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:32px;
+  padding:0 12px;
+  border-radius:999px;
+  color:#1d4ed8;
+  background:#eef5ff;
+  border:1px solid #cfe0ff;
+  font-size:12px;
+  font-weight:800;
+}
+
+.release-overview-queue-list{
+  display:grid;
+}
+
+.release-queue-item{
+  display:grid;
+  grid-template-columns:
+    90px
+    minmax(0,1fr)
+    auto;
+  align-items:center;
+  gap:12px;
+  padding:14px 18px;
+  border-bottom:1px solid #edf2f7;
+}
+
+.release-queue-item:last-child{
+  border-bottom:none;
+}
+
+.release-queue-class{
+  color:#2563eb;
+  font-size:17px;
+  font-weight:900;
+}
+
+.release-queue-time{
+  color:#17324a;
+  font-size:13px;
+  font-weight:700;
+  line-height:1.55;
+}
+
+.release-queue-time-sub{
+  color:#718195;
+  font-size:11.5px;
+  font-weight:600;
+}
+
+.release-queue-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:30px;
+  padding:5px 10px;
+  border-radius:999px;
+  white-space:nowrap;
+  font-size:11.5px;
+  font-weight:800;
+}
+
+.release-queue-badge.upcoming{
+  color:#b45309;
+  border:1px solid #fed7aa;
+  background:#fff7ed;
+}
+
+.release-queue-badge.active{
+  color:#ffffff;
+  border:1px solid #2563eb;
+  background:#2563eb;
+}
+
+.release-queue-badge.finished{
+  color:#15803d;
+  border:1px solid #bbf7d0;
+  background:#f0fdf4;
+}
+
+.release-queue-empty{
+  padding:24px;
+  text-align:center;
+  color:#718195;
+  font-size:13px;
+}
+
+.release-overlap-section{
+  padding:16px 18px;
+  border:1px solid #d8c9ff;
+  border-radius:20px;
+  background:#faf7ff;
+}
+
+.release-overlap-head{
+  margin-bottom:10px;
+  color:#6d28d9;
+  font-size:14px;
+  font-weight:900;
+}
+
+.release-overlap-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.release-overlap-pill{
+  display:inline-flex;
+  align-items:center;
+  min-height:34px;
+  padding:6px 11px;
+  border-radius:12px;
+  color:#6d28d9;
+  background:#ffffff;
+  border:1px solid #ddd0ff;
+  font-size:12px;
+  font-weight:800;
+}
+
+@media (max-width:620px){
+
+  .release-queue-item{
+    grid-template-columns:1fr;
+  }
+
+  .release-overview-queue-head{
+    align-items:flex-start;
+  }
+
+}
+
 
 
 
@@ -5047,6 +5281,98 @@ body.app-booting #appView{
     เลือกปีการศึกษาและภาคเรียน
     เพื่อจัดการการประกาศผล
   </div>
+
+  <!-- =====================================================
+     ภาพรวมคิวประกาศผล
+     ===================================================== -->
+
+<div
+  id="releaseOverview"
+  class="release-overview"
+>
+
+  <div class="release-overview-status">
+
+    <div class="release-overview-status-icon">
+      📡
+    </div>
+
+    <div>
+
+      <div class="release-overview-kicker">
+        สถานะระบบตามการตั้งค่า
+      </div>
+
+      <div
+        id="releaseOverviewStatusTitle"
+        class="release-overview-title"
+      >
+        ยังไม่ได้โหลดข้อมูล
+      </div>
+
+      <div
+        id="releaseOverviewStatusText"
+        class="release-overview-sub"
+      >
+        กรุณาโหลดการตั้งค่าการประกาศผล
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div class="release-overview-queue">
+
+    <div class="release-overview-queue-head">
+
+      <div>
+        <div class="release-overview-queue-title">
+          🕒 คิวการประกาศผล
+        </div>
+
+        <div class="small">
+          เรียงตามวันและเวลาเริ่มประกาศ
+        </div>
+      </div>
+
+      <div
+        id="releaseOverviewQueueCount"
+        class="release-overview-count"
+      >
+        0 คิว
+      </div>
+
+    </div>
+
+
+    <div
+      id="releaseOverviewQueueList"
+      class="release-overview-queue-list"
+    >
+      ยังไม่มีข้อมูล
+    </div>
+
+  </div>
+
+
+  <div
+    id="releaseOverlapSection"
+    class="release-overlap-section hidden"
+  >
+
+    <div class="release-overlap-head">
+      🔗 ช่วงที่ประกาศพร้อมกันหลายระดับชั้น
+    </div>
+
+    <div
+      id="releaseOverlapList"
+      class="release-overlap-list"
+    ></div>
+
+  </div>
+
+</div>
 
 
   <!-- =====================================================
@@ -11799,6 +12125,645 @@ if(activeRows.length){
 
 }
 
+function getReleaseQueueState(
+  row
+){
+
+  const now =
+    Date.now();
+
+
+  const start =
+    row.release_at
+      ? new Date(
+          row.release_at
+        ).getTime()
+      : NaN;
+
+
+  const end =
+    row.exclusive_until
+      ? new Date(
+          row.exclusive_until
+        ).getTime()
+      : NaN;
+
+
+  if(
+    Number.isNaN(start) ||
+    Number.isNaN(end)
+  ){
+
+    return 'upcoming';
+
+  }
+
+
+  if(now < start){
+    return 'upcoming';
+  }
+
+
+  if(
+    now >= start &&
+    now < end
+  ){
+    return 'active';
+  }
+
+
+  return 'finished';
+
+}
+
+
+function getReleaseQueueBadgeText(
+  stateKey
+){
+
+  if(
+    stateKey === 'active'
+  ){
+    return 'กำลังประกาศ';
+  }
+
+
+  if(
+    stateKey === 'finished'
+  ){
+    return 'ประกาศแล้ว';
+  }
+
+
+  return 'รอประกาศ';
+
+}
+
+
+function findResultReleaseOverlaps(
+  rows
+){
+
+  const scheduled =
+    rows
+      .filter(row => {
+
+        return (
+          row.release_mode ===
+          'scheduled'
+          &&
+          row.release_at
+          &&
+          row.exclusive_until
+        );
+
+      })
+      .map(row => ({
+
+        classLevel:
+          Number(
+            row.class_level
+          ),
+
+        start:
+          new Date(
+            row.release_at
+          ),
+
+        end:
+          new Date(
+            row.exclusive_until
+          )
+
+      }))
+      .filter(item => {
+
+        return (
+          !Number.isNaN(
+            item.start.getTime()
+          )
+          &&
+          !Number.isNaN(
+            item.end.getTime()
+          )
+        );
+
+      });
+
+
+  const events = [];
+
+
+  scheduled.forEach(item => {
+
+    events.push({
+      time:
+        item.start.getTime(),
+      type:
+        'start',
+      classLevel:
+        item.classLevel
+    });
+
+
+    events.push({
+      time:
+        item.end.getTime(),
+      type:
+        'end',
+      classLevel:
+        item.classLevel
+    });
+
+  });
+
+
+  /*
+   * กรณีเวลาเท่ากัน
+   * ให้จบช่วงเดิมก่อนเริ่มช่วงใหม่
+   * 10:00-11:00 กับ 11:00-12:00
+   * จึงไม่ถือว่าทับกัน
+   */
+  events.sort(
+    (a,b) => {
+
+      if(
+        a.time !== b.time
+      ){
+        return a.time - b.time;
+      }
+
+
+      if(
+        a.type === b.type
+      ){
+        return 0;
+      }
+
+
+      return (
+        a.type === 'end'
+          ? -1
+          : 1
+      );
+
+    }
+  );
+
+
+  const active =
+    new Set();
+
+
+  const overlaps = [];
+
+
+  let previousTime =
+    null;
+
+
+  events.forEach(event => {
+
+    if(
+      previousTime !== null
+      &&
+      event.time > previousTime
+      &&
+      active.size > 1
+    ){
+
+      overlaps.push({
+
+        start:
+          new Date(
+            previousTime
+          ),
+
+        end:
+          new Date(
+            event.time
+          ),
+
+        classes:
+          Array.from(active)
+            .sort(
+              (a,b) =>
+                a-b
+            )
+
+      });
+
+    }
+
+
+    if(
+      event.type === 'start'
+    ){
+
+      active.add(
+        event.classLevel
+      );
+
+    }else{
+
+      active.delete(
+        event.classLevel
+      );
+
+    }
+
+
+    previousTime =
+      event.time;
+
+  });
+
+
+  /*
+   * รวมช่วงติดกันที่เป็นกลุ่มชั้นเดียวกัน
+   */
+  const merged = [];
+
+
+  overlaps.forEach(item => {
+
+    const previous =
+      merged[
+        merged.length - 1
+      ];
+
+
+    if(
+      previous
+      &&
+      previous.end.getTime() ===
+        item.start.getTime()
+      &&
+      previous.classes.join(',') ===
+        item.classes.join(',')
+    ){
+
+      previous.end =
+        item.end;
+
+      return;
+    }
+
+
+    merged.push({
+      ...item
+    });
+
+  });
+
+
+  return merged;
+
+}
+
+
+function renderStudentResultReleaseOverview(){
+
+  const rows =
+    Array.isArray(
+      state.studentResultReleaseRows
+    )
+      ? state.studentResultReleaseRows
+      : [];
+
+
+  const statusBox =
+    el(
+      'releaseOverview'
+    )
+    ?.querySelector(
+      '.release-overview-status'
+    );
+
+
+  const title =
+    el(
+      'releaseOverviewStatusTitle'
+    );
+
+
+  const text =
+    el(
+      'releaseOverviewStatusText'
+    );
+
+
+  const queueList =
+    el(
+      'releaseOverviewQueueList'
+    );
+
+
+  const countBox =
+    el(
+      'releaseOverviewQueueCount'
+    );
+
+
+  if(
+    !title ||
+    !text ||
+    !queueList ||
+    !countBox
+  ){
+    return;
+  }
+
+
+  /*
+   * =====================================================
+   * สถานะ ณ เวลาปัจจุบัน
+   * =====================================================
+   */
+
+  const activeRows =
+    rows.filter(row => {
+
+      return (
+        row.release_mode ===
+        'scheduled'
+        &&
+        getReleaseQueueState(
+          row
+        ) === 'active'
+      );
+
+    });
+
+
+  if(activeRows.length){
+
+    const classes =
+      activeRows
+        .map(row =>
+          `ม.${row.class_level}`
+        )
+        .join(', ');
+
+
+    title.textContent =
+      `ช่วงประกาศผล ${classes}`;
+
+
+    text.textContent =
+      `ตามการตั้งค่าปัจจุบัน ช่วงนี้อนุญาตระดับชั้น ${classes} เป็นกลุ่มประกาศผล`;
+
+
+    if(statusBox){
+
+      statusBox.classList.remove(
+        'normal'
+      );
+
+      statusBox.classList.add(
+        'active'
+      );
+
+    }
+
+  }else{
+
+    title.textContent =
+      'การใช้งานปกติทุกระดับชั้น';
+
+
+    text.textContent =
+      'ขณะนี้ไม่มีช่วงเวลาประกาศผลแบบจำกัดระดับชั้น';
+
+
+    if(statusBox){
+
+      statusBox.classList.remove(
+        'active'
+      );
+
+      statusBox.classList.add(
+        'normal'
+      );
+
+    }
+
+  }
+
+
+  /*
+   * =====================================================
+   * คิว scheduled
+   * =====================================================
+   */
+
+  const scheduledRows =
+    rows
+      .filter(row => {
+
+        return (
+          row.release_mode ===
+          'scheduled'
+          &&
+          row.release_at
+          &&
+          row.exclusive_until
+        );
+
+      })
+      .slice()
+      .sort(
+        (a,b) => {
+
+          return (
+            new Date(
+              a.release_at
+            ).getTime()
+            -
+            new Date(
+              b.release_at
+            ).getTime()
+          );
+
+        }
+      );
+
+
+  countBox.textContent =
+    `${scheduledRows.length} คิว`;
+
+
+  if(!scheduledRows.length){
+
+    queueList.innerHTML = `
+
+      <div class="release-queue-empty">
+        ยังไม่มีการกำหนดคิวประกาศผล
+      </div>
+
+    `;
+
+  }else{
+
+    queueList.innerHTML =
+      scheduledRows
+        .map(row => {
+
+          const queueState =
+            getReleaseQueueState(
+              row
+            );
+
+
+          const badgeText =
+            getReleaseQueueBadgeText(
+              queueState
+            );
+
+
+          const startText =
+            formatResultReleaseDateTime(
+              row.release_at
+            );
+
+
+          const endText =
+            formatResultReleaseDateTime(
+              row.exclusive_until
+            );
+
+
+          return `
+
+            <div class="release-queue-item">
+
+              <div class="release-queue-class">
+                ม.${Number(row.class_level)}
+              </div>
+
+
+              <div class="release-queue-time">
+
+                ${escapeHtml(startText)}
+
+                <div class="release-queue-time-sub">
+                  ถึง ${escapeHtml(endText)}
+                </div>
+
+              </div>
+
+
+              <span
+                class="
+                  release-queue-badge
+                  ${queueState}
+                "
+              >
+                ${escapeHtml(badgeText)}
+              </span>
+
+            </div>
+
+          `;
+
+        })
+        .join('');
+
+  }
+
+
+  /*
+   * =====================================================
+   * ช่วงเวลาทับกัน
+   * =====================================================
+   */
+
+  const overlaps =
+    findResultReleaseOverlaps(
+      rows
+    );
+
+
+  const overlapSection =
+    el(
+      'releaseOverlapSection'
+    );
+
+
+  const overlapList =
+    el(
+      'releaseOverlapList'
+    );
+
+
+  if(
+    overlapSection &&
+    overlapList
+  ){
+
+    if(!overlaps.length){
+
+      overlapSection.classList.add(
+        'hidden'
+      );
+
+      overlapList.innerHTML =
+        '';
+
+    }else{
+
+      overlapSection.classList.remove(
+        'hidden'
+      );
+
+
+      overlapList.innerHTML =
+        overlaps
+          .map(item => {
+
+            const classes =
+              item.classes
+                .map(level =>
+                  `ม.${level}`
+                )
+                .join(', ');
+
+
+            const start =
+              formatResultReleaseDateTime(
+                item.start
+              );
+
+
+            const end =
+              formatResultReleaseDateTime(
+                item.end
+              );
+
+
+            return `
+
+              <div class="release-overlap-pill">
+
+                ${escapeHtml(classes)}
+                &nbsp;•&nbsp;
+                ${escapeHtml(start)}
+                –
+                ${escapeHtml(end)}
+
+              </div>
+
+            `;
+
+          })
+          .join('');
+
+    }
+
+  }
+
+}
+
 
 async function loadStudentResultReleaseSettings(){
 
@@ -11974,9 +12939,11 @@ async function loadStudentResultReleaseSettings(){
       rows;
 
 
-    renderStudentResultReleaseSettings();
+renderStudentResultReleaseSettings();
 
-    updateStudentResultReleaseSummary();
+updateStudentResultReleaseSummary();
+
+renderStudentResultReleaseOverview();
 
 
     setStatus(
@@ -11999,6 +12966,7 @@ async function loadStudentResultReleaseSettings(){
 
 
     renderStudentResultReleaseSettings();
+    renderStudentResultReleaseOverview();
 
 
     if(
