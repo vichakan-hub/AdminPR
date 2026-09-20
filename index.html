@@ -11720,25 +11720,33 @@ function updateStudentResultReleaseSummary(){
       : [];
 
 
-  const activeRow =
-    rows.find(row => {
+const activeRows =
+  rows.filter(row => {
 
-      return (
-        getResultReleaseDisplayState(
-          row
-        ).key === 'active'
-      );
+    return (
+      getResultReleaseDisplayState(
+        row
+      ).key === 'active'
+    );
 
-    });
+  });
 
 
-  if(activeRow){
+if(activeRows.length){
 
-    box.textContent =
-      `กำลังประกาศผล ม.${activeRow.class_level}`;
+  const classText =
+    activeRows
+      .map(row =>
+        `ม.${row.class_level}`
+      )
+      .join(', ');
 
-    return;
-  }
+
+  box.textContent =
+    `กำลังประกาศผล ${classText}`;
+
+  return;
+}
 
 
   const scheduledCount =
