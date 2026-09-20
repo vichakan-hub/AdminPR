@@ -10627,6 +10627,131 @@ function getResultReleaseDisplayState(
 
 }
 
+/* =========================================================
+   Result Release : Bangkok datetime helpers
+   ========================================================= */
+
+function toBangkokDateTimeLocal(
+  value
+){
+
+  if(!value){
+    return '';
+  }
+
+
+  const date =
+    new Date(value);
+
+
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return '';
+  }
+
+
+  const parts =
+    new Intl.DateTimeFormat(
+      'en-CA',
+      {
+        timeZone:
+          'Asia/Bangkok',
+
+        year:
+          'numeric',
+
+        month:
+          '2-digit',
+
+        day:
+          '2-digit',
+
+        hour:
+          '2-digit',
+
+        minute:
+          '2-digit',
+
+        hourCycle:
+          'h23'
+      }
+    )
+    .formatToParts(date);
+
+
+  const map = {};
+
+  parts.forEach(part => {
+
+    if(
+      part.type !==
+      'literal'
+    ){
+      map[part.type] =
+        part.value;
+    }
+
+  });
+
+
+  return (
+    `${map.year}-${map.month}-${map.day}` +
+    `T${map.hour}:${map.minute}`
+  );
+
+}
+
+
+function bangkokDateTimeLocalToIso(
+  value
+){
+
+  const raw =
+    String(
+      value || ''
+    ).trim();
+
+
+  if(
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/
+      .test(raw)
+  ){
+    return null;
+  }
+
+
+  const normalized =
+    raw.length === 16
+      ? `${raw}:00`
+      : raw;
+
+
+  /*
+   * การตั้งค่าของโรงเรียนยึดเวลาไทย UTC+7
+   * ไม่ขึ้นกับ timezone ของเครื่อง Admin
+   */
+  const date =
+    new Date(
+      `${normalized}+07:00`
+    );
+
+
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return null;
+  }
+
+
+  return date.toISOString();
+
+}
+
 
 function renderStudentResultReleaseSettings(){
 
@@ -10691,6 +10816,13 @@ function renderStudentResultReleaseSettings(){
           );
 
 
+        const mode =
+          String(
+            row.release_mode ||
+            'closed'
+          );
+
+
         const displayState =
           getResultReleaseDisplayState(
             row
@@ -10698,8 +10830,7 @@ function renderStudentResultReleaseSettings(){
 
 
         const startText =
-          row.release_mode ===
-          'scheduled'
+          mode === 'scheduled'
             ? formatResultReleaseDateTime(
                 row.release_at
               )
@@ -10707,12 +10838,27 @@ function renderStudentResultReleaseSettings(){
 
 
         const endText =
-          row.release_mode ===
-          'scheduled'
+          mode === 'scheduled'
             ? formatResultReleaseDateTime(
                 row.exclusive_until
               )
             : '-';
+
+
+        const startInput =
+          mode === 'scheduled'
+            ? toBangkokDateTimeLocal(
+                row.release_at
+              )
+            : '';
+
+
+        const endInput =
+          mode === 'scheduled'
+            ? toBangkokDateTimeLocal(
+                row.exclusive_until
+              )
+            : '';
 
 
         const updatedText =
@@ -10742,34 +10888,28 @@ function renderStudentResultReleaseSettings(){
                   : ''
               }
             "
-            data-release-class="${classLevel}"
+            data-release-card="${classLevel}"
           >
 
-            <div
-              class="release-setting-card-head"
-            >
+            <!-- ===============================
+                 Header
+                 =============================== -->
 
-              <div
-                class="release-setting-class"
-              >
+            <div class="release-setting-card-head">
 
-                <div
-                  class="release-setting-class-icon"
-                >
+              <div class="release-setting-class">
+
+                <div class="release-setting-class-icon">
                   ${classLevel}
                 </div>
 
                 <div>
 
-                  <div
-                    class="release-setting-class-name"
-                  >
+                  <div class="release-setting-class-name">
                     ชั้น ม.${classLevel}
                   </div>
 
-                  <div
-                    class="release-setting-class-sub"
-                  >
+                  <div class="release-setting-class-sub">
                     การประกาศผล StudentPR
                   </div>
 
@@ -10792,93 +10932,61 @@ function renderStudentResultReleaseSettings(){
             </div>
 
 
-            <div
-              class="release-setting-body"
-            >
+            <!-- ===============================
+                 Body
+                 =============================== -->
 
-              <div
-                class="release-setting-info-grid"
-              >
+            <div class="release-setting-body">
 
-                <div
-                  class="release-setting-info"
-                >
+              <div class="release-setting-info-grid">
 
-                  <div
-                    class="release-setting-info-label"
-                  >
+                <div class="release-setting-info">
+
+                  <div class="release-setting-info-label">
                     เริ่มประกาศผล
                   </div>
 
-                  <div
-                    class="release-setting-info-value"
-                  >
-                    ${escapeHtml(
-                      startText
-                    )}
+                  <div class="release-setting-info-value">
+                    ${escapeHtml(startText)}
                   </div>
 
                 </div>
 
 
-                <div
-                  class="release-setting-info"
-                >
+                <div class="release-setting-info">
 
-                  <div
-                    class="release-setting-info-label"
-                  >
+                  <div class="release-setting-info-label">
                     สิ้นสุดช่วงสงวนระบบ
                   </div>
 
-                  <div
-                    class="release-setting-info-value"
-                  >
-                    ${escapeHtml(
-                      endText
-                    )}
+                  <div class="release-setting-info-value">
+                    ${escapeHtml(endText)}
                   </div>
 
                 </div>
 
 
-                <div
-                  class="release-setting-info"
-                >
+                <div class="release-setting-info">
 
-                  <div
-                    class="release-setting-info-label"
-                  >
+                  <div class="release-setting-info-label">
                     แก้ไขล่าสุด
                   </div>
 
-                  <div
-                    class="release-setting-info-value"
-                  >
-                    ${escapeHtml(
-                      updatedText
-                    )}
+                  <div class="release-setting-info-value">
+                    ${escapeHtml(updatedText)}
                   </div>
 
                 </div>
 
 
-                <div
-                  class="release-setting-info"
-                >
+                <div class="release-setting-info">
 
-                  <div
-                    class="release-setting-info-label"
-                  >
+                  <div class="release-setting-info-label">
                     ผู้แก้ไข
                   </div>
 
-                  <div
-                    class="release-setting-info-value"
-                  >
-                    ${escapeHtml(
-                      updatedBy
-                    )}
+                  <div class="release-setting-info-value">
+                    ${escapeHtml(updatedBy)}
                   </div>
 
                 </div>
@@ -10886,12 +10994,140 @@ function renderStudentResultReleaseSettings(){
               </div>
 
 
-              <div
-                class="release-setting-note"
-              >
+              <div class="release-setting-note">
                 ${escapeHtml(
                   displayState.note
                 )}
+              </div>
+
+
+              <!-- ===============================
+                   Editor
+                   =============================== -->
+
+              <div class="release-setting-editor">
+
+                <div class="release-setting-editor-grid">
+
+                  <div class="field">
+
+                    <span class="label-in-form">
+                      รูปแบบการประกาศ
+                    </span>
+
+                    <select
+                      class="std"
+                      data-release-mode="${classLevel}"
+                    >
+
+                      <option
+                        value="closed"
+                        ${
+                          mode === 'closed'
+                            ? 'selected'
+                            : ''
+                        }
+                      >
+                        🔴 ยังไม่ประกาศ
+                      </option>
+
+                      <option
+                        value="scheduled"
+                        ${
+                          mode === 'scheduled'
+                            ? 'selected'
+                            : ''
+                        }
+                      >
+                        🕒 กำหนดวันและเวลา
+                      </option>
+
+                      <option
+                        value="always_open"
+                        ${
+                          mode === 'always_open'
+                            ? 'selected'
+                            : ''
+                        }
+                      >
+                        🟢 เปิดผลตลอดไป
+                      </option>
+
+                    </select>
+
+                  </div>
+
+
+                  <div
+                    class="field"
+                    data-release-time-field="${classLevel}"
+                    ${
+                      mode !== 'scheduled'
+                        ? 'style="display:none;"'
+                        : ''
+                    }
+                  >
+
+                    <span class="label-in-form">
+                      เริ่มประกาศผล
+                    </span>
+
+                    <input
+                      class="std"
+                      type="datetime-local"
+                      value="${escapeHtml(startInput)}"
+                      data-release-start="${classLevel}"
+                    >
+
+                  </div>
+
+
+                  <div
+                    class="field"
+                    data-release-time-field="${classLevel}"
+                    ${
+                      mode !== 'scheduled'
+                        ? 'style="display:none;"'
+                        : ''
+                    }
+                  >
+
+                    <span class="label-in-form">
+                      สิ้นสุดช่วงสงวนระบบ
+                    </span>
+
+                    <input
+                      class="std"
+                      type="datetime-local"
+                      value="${escapeHtml(endInput)}"
+                      data-release-end="${classLevel}"
+                    >
+
+                  </div>
+
+                </div>
+
+
+                <div
+                  class="release-mode-help"
+                  data-release-help="${classLevel}"
+                >
+                  ${getReleaseModeHelpText(mode)}
+                </div>
+
+
+                <div class="release-setting-editor-actions">
+
+                  <button
+                    class="btn-primary release-setting-save-btn"
+                    type="button"
+                    data-release-save="${classLevel}"
+                  >
+                    💾 บันทึก ม.${classLevel}
+                  </button>
+
+                </div>
+
               </div>
 
             </div>
@@ -10901,6 +11137,564 @@ function renderStudentResultReleaseSettings(){
 
       })
       .join('');
+
+}
+
+function getReleaseModeHelpText(
+  mode
+){
+
+  if(
+    mode === 'scheduled'
+  ){
+
+    return `
+      🕒 เมื่อถึงเวลาเริ่ม ผลการเรียนของชั้นนี้จะถือว่าประกาศแล้ว
+      และในช่วงเวลาที่กำหนด StudentPR จะสงวนให้ชั้นนี้
+    `;
+
+  }
+
+
+  if(
+    mode === 'always_open'
+  ){
+
+    return `
+      🟢 ผลการเรียนของภาคเรียนนี้ถือว่าประกาศแล้วทันที
+      และเปิดให้ดูต่อเนื่อง โดยไม่สงวน StudentPR ให้ชั้นนี้
+    `;
+
+  }
+
+
+  return `
+    🔴 ยังไม่ประกาศผลของภาคเรียนนี้
+    นักเรียนจะยังเห็นเฉพาะผลการเรียนเดิมที่อนุญาต
+  `;
+
+}
+
+
+function updateResultReleaseEditor(
+  classLevel
+){
+
+  const modeNode =
+    document.querySelector(
+      `[data-release-mode="${classLevel}"]`
+    );
+
+
+  if(!modeNode){
+    return;
+  }
+
+
+  const mode =
+    String(
+      modeNode.value ||
+      'closed'
+    );
+
+
+  document
+    .querySelectorAll(
+      `[data-release-time-field="${classLevel}"]`
+    )
+    .forEach(node => {
+
+      node.style.display =
+        mode === 'scheduled'
+          ? ''
+          : 'none';
+
+    });
+
+
+  const help =
+    document.querySelector(
+      `[data-release-help="${classLevel}"]`
+    );
+
+
+  if(help){
+
+    help.className =
+      'release-mode-help';
+
+
+    if(
+      mode ===
+      'always_open'
+    ){
+
+      help.classList.add(
+        'success'
+      );
+
+    }
+
+
+    if(
+      mode ===
+      'scheduled'
+    ){
+
+      help.classList.add(
+        'warning'
+      );
+
+    }
+
+
+    help.textContent =
+      getReleaseModeHelpText(
+        mode
+      )
+      .replace(
+        /\s+/g,
+        ' '
+      )
+      .trim();
+
+  }
+
+}
+
+async function saveStudentResultReleaseSetting(
+  classLevel
+){
+
+  const academicYear =
+    Number(
+      el(
+        'releaseFilterYear'
+      )?.value
+    );
+
+
+  const term =
+    Number(
+      el(
+        'releaseFilterTerm'
+      )?.value
+    );
+
+
+  const level =
+    Number(
+      classLevel
+    );
+
+
+  const modeNode =
+    document.querySelector(
+      `[data-release-mode="${level}"]`
+    );
+
+
+  const startNode =
+    document.querySelector(
+      `[data-release-start="${level}"]`
+    );
+
+
+  const endNode =
+    document.querySelector(
+      `[data-release-end="${level}"]`
+    );
+
+
+  const saveBtn =
+    document.querySelector(
+      `[data-release-save="${level}"]`
+    );
+
+
+  if(
+    !modeNode
+  ){
+    return;
+  }
+
+
+  const mode =
+    String(
+      modeNode.value ||
+      ''
+    ).trim();
+
+
+  if(
+    !Number.isInteger(
+      academicYear
+    ) ||
+    academicYear < 2500 ||
+    academicYear > 3000
+  ){
+
+    showToast(
+      'ข้อมูลไม่ถูกต้อง',
+      'กรุณาตรวจสอบปีการศึกษา',
+      'warning'
+    );
+
+    return;
+  }
+
+
+  if(
+    ![1,2].includes(term)
+  ){
+
+    showToast(
+      'ข้อมูลไม่ถูกต้อง',
+      'กรุณาเลือกภาคเรียน',
+      'warning'
+    );
+
+    return;
+  }
+
+
+  if(
+    !Number.isInteger(level) ||
+    level < 1 ||
+    level > 6
+  ){
+
+    return;
+  }
+
+
+  if(
+    ![
+      'closed',
+      'scheduled',
+      'always_open'
+    ].includes(mode)
+  ){
+
+    showToast(
+      'ข้อมูลไม่ถูกต้อง',
+      'รูปแบบการประกาศผลไม่ถูกต้อง',
+      'warning'
+    );
+
+    return;
+  }
+
+
+  let releaseAt =
+    null;
+
+
+  let exclusiveUntil =
+    null;
+
+
+  /*
+   * =====================================================
+   * scheduled
+   * =====================================================
+   */
+
+  if(
+    mode === 'scheduled'
+  ){
+
+    const startRaw =
+      String(
+        startNode?.value ||
+        ''
+      ).trim();
+
+
+    const endRaw =
+      String(
+        endNode?.value ||
+        ''
+      ).trim();
+
+
+    if(
+      !startRaw ||
+      !endRaw
+    ){
+
+      showToast(
+        `ม.${level}`,
+        'กรุณากำหนดวันเวลาเริ่มและสิ้นสุด',
+        'warning'
+      );
+
+      return;
+    }
+
+
+    releaseAt =
+      bangkokDateTimeLocalToIso(
+        startRaw
+      );
+
+
+    exclusiveUntil =
+      bangkokDateTimeLocalToIso(
+        endRaw
+      );
+
+
+    if(
+      !releaseAt ||
+      !exclusiveUntil
+    ){
+
+      showToast(
+        `ม.${level}`,
+        'รูปแบบวันหรือเวลาไม่ถูกต้อง',
+        'warning'
+      );
+
+      return;
+    }
+
+
+    if(
+      new Date(
+        exclusiveUntil
+      ).getTime()
+      <=
+      new Date(
+        releaseAt
+      ).getTime()
+    ){
+
+      showToast(
+        `ม.${level}`,
+        'เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม',
+        'warning'
+      );
+
+      return;
+    }
+
+  }
+
+
+  /*
+   * =====================================================
+   * always_open ต้องยืนยัน
+   * =====================================================
+   */
+
+  if(
+    mode === 'always_open'
+  ){
+
+    const confirmed =
+      window.confirm(
+        `ยืนยันเปิดประกาศผล ม.${level} ตลอดไป?\n\n` +
+        `ผลการเรียนของปี ${academicYear} ภาคเรียน ${term} ` +
+        `จะถือว่าประกาศแล้วทันที`
+      );
+
+
+    if(!confirmed){
+      return;
+    }
+
+  }
+
+
+  /*
+   * =====================================================
+   * closed ถ้าเคยเปิดแล้วให้เตือน
+   * =====================================================
+   */
+
+  if(
+    mode === 'closed'
+  ){
+
+    const oldRow =
+      (
+        state.studentResultReleaseRows ||
+        []
+      )
+      .find(row => {
+
+        return (
+          Number(
+            row.class_level
+          ) === level
+        );
+
+      });
+
+
+    if(
+      oldRow &&
+      oldRow.release_mode !==
+      'closed'
+    ){
+
+      const confirmed =
+        window.confirm(
+          `ยืนยันเปลี่ยน ม.${level} เป็น "ยังไม่ประกาศ" ?\n\n` +
+          `ผลการเรียนภาคเรียนล่าสุดของชั้นนี้จะถูกปิดเมื่อเชื่อม StudentPR ในขั้นถัดไป`
+        );
+
+
+      if(!confirmed){
+        return;
+      }
+
+    }
+
+  }
+
+
+  const token =
+    String(
+      state.adminSessionToken ||
+      ''
+    ).trim();
+
+
+  if(!token){
+
+    showToast(
+      'Session หมดอายุ',
+      'กรุณาเข้าสู่ระบบใหม่',
+      'error'
+    );
+
+    return;
+  }
+
+
+  try{
+
+    if(saveBtn){
+
+      saveBtn.disabled =
+        true;
+
+      saveBtn.textContent =
+        'กำลังบันทึก...';
+
+    }
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+
+        'admin_set_student_result_release_setting_session',
+
+        {
+
+          p_token:
+            token,
+
+          p_academic_year:
+            academicYear,
+
+          p_term:
+            term,
+
+          p_class_level:
+            level,
+
+          p_release_mode:
+            mode,
+
+          p_release_at:
+            releaseAt,
+
+          p_exclusive_until:
+            exclusiveUntil
+
+        }
+
+      );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    if(
+      !data ||
+      data.ok !== true
+    ){
+
+      throw new Error(
+        data?.message ||
+        'บันทึกการตั้งค่าไม่สำเร็จ'
+      );
+
+    }
+
+
+    showToast(
+      `บันทึก ม.${level} สำเร็จ`,
+      data.message ||
+      'บันทึกการตั้งค่าการประกาศผลเรียบร้อยแล้ว',
+      'success'
+    );
+
+
+    /*
+     * โหลดจาก DB ใหม่
+     * ไม่เชื่อค่าจาก browser หลัง save
+     */
+    await loadStudentResultReleaseSettings();
+
+
+  }catch(error){
+
+    console.error(
+      'SAVE RESULT RELEASE SETTING ERROR =',
+      error
+    );
+
+
+    showToast(
+      `บันทึก ม.${level} ไม่สำเร็จ`,
+      error?.message ||
+      'ไม่สามารถบันทึกการตั้งค่าได้',
+      'error'
+    );
+
+
+  }finally{
+
+    /*
+     * หลัง reload การ์ดอาจถูก render ใหม่แล้ว
+     * จึงหา button ใหม่อีกครั้ง
+     */
+    const currentSaveBtn =
+      document.querySelector(
+        `[data-release-save="${level}"]`
+      );
+
+
+    if(currentSaveBtn){
+
+      currentSaveBtn.disabled =
+        false;
+
+      currentSaveBtn.textContent =
+        `💾 บันทึก ม.${level}`;
+
+    }
+
+  }
 
 }
 
@@ -35793,6 +36587,85 @@ if(el('releaseReloadBtn')){
 
       }
     );
+
+}
+
+if(
+  el(
+    'releaseSettingList'
+  )
+){
+
+  /*
+   * เปลี่ยนรูปแบบการประกาศ
+   */
+  el(
+    'releaseSettingList'
+  )
+  .addEventListener(
+    'change',
+    event => {
+
+      const modeNode =
+        event.target.closest(
+          '[data-release-mode]'
+        );
+
+
+      if(!modeNode){
+        return;
+      }
+
+
+      const classLevel =
+        Number(
+          modeNode.dataset
+            .releaseMode
+        );
+
+
+      updateResultReleaseEditor(
+        classLevel
+      );
+
+    }
+  );
+
+
+  /*
+   * บันทึกแต่ละชั้น
+   */
+  el(
+    'releaseSettingList'
+  )
+  .addEventListener(
+    'click',
+    async event => {
+
+      const saveBtn =
+        event.target.closest(
+          '[data-release-save]'
+        );
+
+
+      if(!saveBtn){
+        return;
+      }
+
+
+      const classLevel =
+        Number(
+          saveBtn.dataset
+            .releaseSave
+        );
+
+
+      await saveStudentResultReleaseSetting(
+        classLevel
+      );
+
+    }
+  );
 
 }
 
