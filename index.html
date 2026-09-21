@@ -18279,9 +18279,67 @@ for(
 
 }
 
-    doc.save(
-      filename
+/* =====================================================
+   Download PDF
+   ใช้ Blob URL เพื่อให้ดาวน์โหลดซ้ำได้
+   โดยไม่ต้อง refresh หน้า
+   ===================================================== */
+
+const pdfBlob =
+  doc.output(
+    'blob'
+  );
+
+
+const pdfUrl =
+  URL.createObjectURL(
+    pdfBlob
+  );
+
+
+const downloadLink =
+  document.createElement(
+    'a'
+  );
+
+
+downloadLink.href =
+  pdfUrl;
+
+
+downloadLink.download =
+  filename;
+
+
+downloadLink.style.display =
+  'none';
+
+
+document.body.appendChild(
+  downloadLink
+);
+
+
+downloadLink.click();
+
+
+downloadLink.remove();
+
+
+/*
+ * อย่า revoke ทันที
+ * ให้ Browser เริ่มดาวน์โหลดก่อน
+ */
+setTimeout(
+  () => {
+
+    URL.revokeObjectURL(
+      pdfUrl
     );
+
+  },
+  2000
+);
 
 
     showToast(
