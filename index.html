@@ -37922,6 +37922,23 @@ if(
   }
 
 
+  /*
+   * ให้ Browser มีเวลาปิด Modal
+   * และ repaint หน้าจอก่อนเริ่มงาน PDF หนัก ๆ
+   */
+  await new Promise(resolve => {
+
+    requestAnimationFrame(() => {
+
+      requestAnimationFrame(
+        resolve
+      );
+
+    });
+
+  });
+
+
   await exportMsAnnouncementPdf();
 
   return;
