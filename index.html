@@ -32679,102 +32679,89 @@ offeringRows =
   });
 
 
-    /* =====================================================
-       2. โหลดสถานะสรุปจาก midterm_report_status
-       ===================================================== */
+ /* =====================================================
+   2. โหลดสถานะสรุปคะแนนกลางภาคผ่าน Secure RPC
+   ===================================================== */
 
-    let statusFrom = 0;
-
-    let statusRows = [];
-
-
-    while(true){
-
-      let query =
-        supabaseClient
-          .from(
-            'midterm_report_status'
-          )
-          .select(`
-            subject_offering_id,
-            academic_year,
-            term,
-            subject_id,
-            subject_code,
-            teacher_id,
-            teacher_code,
-            class_level,
-            room,
-            student_count,
-            latest_updated_at
-          `)
-          .eq(
-            'academic_year',
-            Number(year)
-          )
-          .range(
-            statusFrom,
-            statusFrom +
-              pageSize -
-              1
-          );
+const token =
+  String(
+    state.adminSessionToken || ''
+  ).trim();
 
 
-      if(term){
+if(!token){
 
-        query =
-          query.eq(
-            'term',
-            Number(term)
-          );
+  throw new Error(
+    'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+  );
 
-      }
+}
 
 
-      if(classLevel){
+let statusFrom = 0;
 
-        query =
-          query.eq(
-            'class_level',
-            classLevel
-          );
-
-      }
+let statusRows = [];
 
 
-      const {
-        data,
-        error
-      } = await query;
+while(true){
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .rpc(
+        'admin_get_midterm_report_status_session',
+        {
+          p_token:
+            token,
+
+          p_academic_year:
+            Number(year),
+
+          p_term:
+            term
+              ? Number(term)
+              : null,
+
+          p_class_level:
+            classLevel || null
+        }
+      )
+      .range(
+        statusFrom,
+        statusFrom +
+          pageSize -
+          1
+      );
 
 
-      if(error){
-        throw error;
-      }
+  if(error){
+    throw error;
+  }
 
 
-      const batch =
-        data || [];
+  const batch =
+    data || [];
 
 
-      statusRows =
-        statusRows.concat(
-          batch
-        );
+  statusRows =
+    statusRows.concat(
+      batch
+    );
 
 
-      if(
-        batch.length <
-        pageSize
-      ){
-        break;
-      }
+  if(
+    batch.length <
+    pageSize
+  ){
+    break;
+  }
 
 
-      statusFrom +=
-        pageSize;
-    }
-
+  statusFrom +=
+    pageSize;
+}
     /* =====================================================
    2.1 โหลด declaration
        "ไม่มีนักเรียนเลือกเรียน"
