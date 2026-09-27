@@ -31531,72 +31531,257 @@ function groupReportingRows(rows){
 
 
 async function attachReportImportStatus(groups){
-  if(!groups.length) return groups;
+
+  if(!groups.length){
+    return groups;
+  }
+
 
   const offeringIds = [
     ...new Set(
       groups
-        .flatMap(g => (g.offerings || []).map(o => o.subject_offering_id || o.id))
-        .map(x => String(x || '').trim())
+        .flatMap(group =>
+          (group.offerings || [])
+            .map(offering =>
+              offering.subject_offering_id ||
+              offering.id
+            )
+        )
+        .map(value =>
+          String(value || '').trim()
+        )
         .filter(Boolean)
     )
   ];
 
-  if(!offeringIds.length) return groups;
 
-  const statusMap = new Map();
-  const chunkSize = 500;
-
-  for(let i = 0; i < offeringIds.length; i += chunkSize){
-    const chunk = offeringIds.slice(i, i + chunkSize);
-
-    const { data, error } = await supabaseClient
-      .from('grade_report_status')
-      .select('subject_offering_id, result_count, latest_imported_at, room')
-      .in('subject_offering_id', chunk);
-
-    if(error) throw error;
-
-    (data || []).forEach(row => {
-      statusMap.set(String(row.subject_offering_id), row);
-    });
+  if(!offeringIds.length){
+    return groups;
   }
 
+
+  const token =
+    String(
+      state.adminSessionToken ||
+      ''
+    ).trim();
+
+
+  if(!token){
+    throw new Error(
+      'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+    );
+  }
+
+
+  const statusMap =
+    new Map();
+
+
+  const chunkSize =
+    500;
+
+
+  for(
+    let i = 0;
+    i < offeringIds.length;
+    i += chunkSize
+  ){
+
+    const chunk =
+      offeringIds.slice(
+        i,
+        i + chunkSize
+      );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+        'get_grade_report_status_session',
+        {
+          p_token:
+            token,
+
+          p_subject_offering_ids:
+            chunk
+        }
+      );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    const rows =
+      Array.isArray(data)
+        ? data
+        : [];
+
+
+    rows.forEach(row => {
+
+      const key =
+        String(
+          row.subject_offering_id ||
+          ''
+        ).trim();
+
+
+      if(!key){
+        return;
+      }
+
+
+      const count =
+        Number(
+          row.result_count ||
+          0
+        );
+
+
+      if(count <= 0){
+        return;
+      }
+
+
+      const prev =
+        statusMap.get(
+          key
+        );
+
+
+      if(!prev){
+
+        statusMap.set(
+          key,
+          row
+        );
+
+        return;
+      }
+
+
+      const oldTime =
+        new Date(
+          prev.latest_imported_at ||
+          0
+        ).getTime();
+
+
+      const newTime =
+        new Date(
+          row.latest_imported_at ||
+          0
+        ).getTime();
+
+
+      if(
+        newTime >=
+        oldTime
+      ){
+        statusMap.set(
+          key,
+          row
+        );
+      }
+
+    });
+
+  }
+
+
   return groups.map(group => {
-    const offerings = group.offerings || [];
 
-    const expectedRooms = getUniqueSortedRooms(
-      offerings.map(o => o.room)
-    );
+    const offerings =
+      group.offerings ||
+      [];
 
-    const reportedOfferings = offerings.filter(o =>
-      statusMap.has(String(o.subject_offering_id || o.id))
-    );
 
-    const reportedRooms = getUniqueSortedRooms(
-      reportedOfferings.map(o => o.room)
-    );
+    const expectedRooms =
+      getUniqueSortedRooms(
+        offerings.map(
+          offering =>
+            offering.room
+        )
+      );
 
-    const latestImportedAt = reportedOfferings
-      .map(o => {
-        const status = statusMap.get(String(o.subject_offering_id || o.id));
-        return status?.latest_imported_at || null;
-      })
-      .filter(Boolean)
-      .sort()
-      .reverse()[0] || null;
+
+    const reportedOfferings =
+      offerings.filter(
+        offering =>
+          statusMap.has(
+            String(
+              offering.subject_offering_id ||
+              offering.id
+            )
+          )
+      );
+
+
+    const reportedRooms =
+      getUniqueSortedRooms(
+        reportedOfferings.map(
+          offering =>
+            offering.room
+        )
+      );
+
+
+    const latestImportedAt =
+      reportedOfferings
+        .map(offering => {
+
+          const status =
+            statusMap.get(
+              String(
+                offering.subject_offering_id ||
+                offering.id
+              )
+            );
+
+
+          return (
+            status?.latest_imported_at ||
+            null
+          );
+
+        })
+        .filter(Boolean)
+        .sort(
+          (a, b) =>
+            new Date(b) -
+            new Date(a)
+        )[0] ||
+        null;
+
 
     const hasImported =
       expectedRooms.length > 0 &&
-      arraysEqualAsSet(expectedRooms, reportedRooms);
+      arraysEqualAsSet(
+        expectedRooms,
+        reportedRooms
+      );
+
 
     return {
       ...group,
-      has_imported: hasImported,
-      latest_imported_at: latestImportedAt,
-      reported_rooms: reportedRooms
+
+      has_imported:
+        hasImported,
+
+      latest_imported_at:
+        latestImportedAt,
+
+      reported_rooms:
+        reportedRooms
     };
+
   });
+
 }
 
 function buildTeacherReportStatusMap(groups){
