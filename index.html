@@ -32774,29 +32774,28 @@ let declarationRows = [];
 
 while(true){
 
-  let query =
-    supabaseClient
-      .from(
-        'midterm_report_declarations'
-      )
-      .select(`
-        academic_year,
-        term,
-        subject_code,
-        teacher_code,
-        class_level,
-        room,
-        report_status,
-        declared_at,
-        updated_at
-      `)
-      .eq(
-        'academic_year',
-        Number(year)
-      )
-      .eq(
-        'report_status',
-        'no_students'
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .rpc(
+        'admin_get_midterm_report_declarations_session',
+        {
+          p_token:
+            token,
+
+          p_academic_year:
+            Number(year),
+
+          p_term:
+            term
+              ? Number(term)
+              : null,
+
+          p_class_level:
+            classLevel || null
+        }
       )
       .range(
         declarationFrom,
@@ -32804,34 +32803,6 @@ while(true){
           pageSize -
           1
       );
-
-
-  if(term){
-
-    query =
-      query.eq(
-        'term',
-        Number(term)
-      );
-
-  }
-
-
-  if(classLevel){
-
-    query =
-      query.eq(
-        'class_level',
-        classLevel
-      );
-
-  }
-
-
-  const {
-    data,
-    error
-  } = await query;
 
 
   if(error){
