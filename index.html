@@ -13916,18 +13916,29 @@ async function loadMsReportSubmissionSetting(){
     }
 
 
+    const token =
+      String(
+        state.adminSessionToken ||
+        ''
+      ).trim();
+
+
+    if(!token){
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+    }
+
+
     const {
       data,
       error
-    } =
-      await supabaseClient
-        .from('app_settings')
-        .select('key, value')
-        .eq(
-          'key',
-          MS_REPORT_SETTING_KEY
-        )
-        .maybeSingle();
+    } = await supabaseClient.rpc(
+      'admin_get_exam_eligibility_setting_session',
+      {
+        p_token: token
+      }
+    );
 
 
     if(error){
@@ -13935,7 +13946,20 @@ async function loadMsReportSubmissionSetting(){
     }
 
 
-    if(!data){
+    if(
+      !data ||
+      data.ok !== true
+    ){
+      throw new Error(
+        data?.message ||
+        'โหลดสถานะรับรายงาน มส ไม่สำเร็จ'
+      );
+    }
+
+
+    if(
+      data.found !== true
+    ){
 
       state.msReportSubmissionSetting =
         null;
