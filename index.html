@@ -22524,19 +22524,44 @@ await refreshStudentMaster();
       'info'
     );
 
-    const {
-      data,
-      error
-    } = await supabaseClient.rpc(
-      'preview_student_grade_year_copy',
-      {
-        p_student_code: values.studentCode,
-        p_source_academic_year: values.sourceYear,
-        p_target_academic_year: values.targetYear,
-        p_source_class_level: values.sourceClass,
-        p_target_class_level: values.targetClass
-      }
-    );
+const token =
+  String(
+    state.adminSessionToken ||
+    ''
+  ).trim();
+
+if(!token){
+  throw new Error(
+    'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+  );
+}
+
+
+const {
+  data,
+  error
+} = await supabaseClient.rpc(
+  'admin_preview_student_grade_year_copy_session',
+  {
+    p_token:
+      token,
+
+    p_student_code:
+      values.studentCode,
+
+    p_source_academic_year:
+      values.sourceYear,
+
+    p_target_academic_year:
+      values.targetYear,
+
+    p_source_class_level:
+      values.sourceClass,
+
+    p_target_class_level:
+      values.targetClass
+  }
+);
 
     if(error){
       throw error;
