@@ -9299,97 +9299,160 @@ async function fetchEmptysecPage(query, from, to){
 }
 
 async function loadEmptysecRows(){
+
   try{
-    setStatus('emptysecListStatus', 'กำลังโหลดรายการคาบว่าง...', 'info');
 
-    const filters = getEmptysecFilterValues();
+    setStatus(
+      'emptysecListStatus',
+      'กำลังโหลดรายการคาบว่าง...',
+      'info'
+    );
 
-    let query = supabaseClient
-      .from('emptysec')
-      .select(`
-        id,
-        slot_code,
-        academic_year,
-        term,
-        class_level,
-        room,
-        class_room,
-        day_of_week,
-        day_no,
-        period_no,
-        note,
-        is_active,
-        created_at,
-        updated_at
-      `)
-      .order('academic_year', { ascending:false })
-      .order('term', { ascending:true })
-      .order('class_level', { ascending:true })
-      .order('room', { ascending:true })
-      .order('day_no', { ascending:true })
-      .order('period_no', { ascending:true });
 
-    if(filters.year){
-      query = query.eq('academic_year', filters.year);
+    const filters =
+      getEmptysecFilterValues();
+
+
+    const token =
+      String(
+        state.adminSessionToken ||
+        ''
+      ).trim();
+
+
+    if(!token){
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
     }
 
-    if(filters.term){
-      query = query.eq('term', filters.term);
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+        'admin_get_emptysec_rows_session',
+        {
+          p_token:
+            token,
+
+          p_academic_years:
+            filters.year
+              ? [Number(filters.year)]
+              : null,
+
+          p_terms:
+            filters.term
+              ? [Number(filters.term)]
+              : null,
+
+          p_class_level:
+            filters.classLevel ||
+            null,
+
+          p_room:
+            filters.room ||
+            null,
+
+          p_day_no:
+            filters.dayNo
+              ? Number(filters.dayNo)
+              : null
+        }
+      );
+
+
+    if(error){
+      throw error;
     }
 
-    if(filters.classLevel){
-      query = query.eq('class_level', filters.classLevel);
-    }
 
-    if(filters.room){
-      query = query.eq('room', filters.room);
-    }
+    let rows =
+      Array.isArray(data)
+        ? data
+        : [];
 
-    if(filters.dayNo){
-      query = query.eq('day_no', filters.dayNo);
-    }
-
-    const pageSize = 1000;
-    let from = 0;
-    let rows = [];
-
-    while(true){
-      const batch = await fetchEmptysecPage(query, from, from + pageSize - 1);
-      rows = rows.concat(batch);
-
-      if(batch.length < pageSize) break;
-      from += pageSize;
-    }
 
     if(filters.keyword){
-      rows = rows.filter(row => {
-        const text = [
-          row.slot_code,
-          row.class_level,
-          row.room,
-          row.class_room,
-          row.day_of_week,
-          row.period_no,
-          row.note
-        ].join(' ').toLowerCase();
 
-        return text.includes(filters.keyword);
-      });
+      rows =
+        rows.filter(row => {
+
+          const text = [
+            row.slot_code,
+            row.class_level,
+            row.room,
+            row.class_room,
+            row.day_of_week,
+            row.period_no,
+            row.note
+          ]
+          .join(' ')
+          .toLowerCase();
+
+
+          return text.includes(
+            filters.keyword
+          );
+
+        });
+
     }
 
-    const visibleIdSet = new Set(rows.map(row => String(row.id)));
-state.emptysecSelectedIds = (state.emptysecSelectedIds || [])
-  .filter(id => visibleIdSet.has(String(id)));
 
-    state.emptysecRows = rows;
+    const visibleIdSet =
+      new Set(
+        rows.map(
+          row => String(row.id)
+        )
+      );
+
+
+    state.emptysecSelectedIds =
+      (
+        state.emptysecSelectedIds ||
+        []
+      )
+      .filter(
+        id =>
+          visibleIdSet.has(
+            String(id)
+          )
+      );
+
+
+    state.emptysecRows =
+      rows;
+
+
     renderEmptysecRows();
+
 
   }catch(err){
+
     state.emptysecRows = [];
+
     renderEmptysecRows();
-    setStatus('emptysecListStatus', err.message || 'โหลดรายการคาบว่างไม่สำเร็จ', 'error');
-    showToast('โหลดข้อมูลไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+
+
+    setStatus(
+      'emptysecListStatus',
+      err.message ||
+      'โหลดรายการคาบว่างไม่สำเร็จ',
+      'error'
+    );
+
+
+    showToast(
+      'โหลดข้อมูลไม่สำเร็จ',
+      err.message ||
+      'เกิดข้อผิดพลาด',
+      'error'
+    );
+
   }
+
 }
 
 function renderEmptysecRows(){
@@ -10277,67 +10340,150 @@ function buildEmptysecPayloadFromImportRows(rows){
   }));
 }
 
-async function checkEmptysecImportDuplicatesInDatabase(rows){
-  const validRows = (rows || []).filter(row => !row.errors.length);
+async function checkEmptysecImportDuplicatesInDatabase(
+  rows
+){
+
+  const validRows =
+    (rows || [])
+      .filter(
+        row =>
+          !row.errors.length
+      );
+
 
   if(!validRows.length){
+
     return {
       duplicateRows: [],
       existingRows: []
     };
+
   }
 
-  const years = [...new Set(validRows.map(row => row.academic_year).filter(Boolean))];
-  const terms = [...new Set(validRows.map(row => row.term).filter(Boolean))];
 
-  let query = supabaseClient
-    .from('emptysec')
-    .select(`
-      id,
-      slot_code,
-      academic_year,
-      term,
-      class_level,
-      room,
-      class_room,
-      day_of_week,
-      day_no,
-      period_no,
-      note,
-      is_active
-    `);
+  const years = [
+    ...new Set(
+      validRows
+        .map(
+          row =>
+            Number(
+              row.academic_year
+            )
+        )
+        .filter(Boolean)
+    )
+  ];
 
-  if(years.length === 1){
-    query = query.eq('academic_year', years[0]);
-  }else{
-    query = query.in('academic_year', years);
+
+  const terms = [
+    ...new Set(
+      validRows
+        .map(
+          row =>
+            Number(
+              row.term
+            )
+        )
+        .filter(Boolean)
+    )
+  ];
+
+
+  const token =
+    String(
+      state.adminSessionToken ||
+      ''
+    ).trim();
+
+
+  if(!token){
+    throw new Error(
+      'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+    );
   }
 
-  if(terms.length === 1){
-    query = query.eq('term', terms[0]);
-  }else{
-    query = query.in('term', terms);
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      'admin_get_emptysec_rows_session',
+      {
+        p_token:
+          token,
+
+        p_academic_years:
+          years.length
+            ? years
+            : null,
+
+        p_terms:
+          terms.length
+            ? terms
+            : null,
+
+        p_class_level:
+          null,
+
+        p_room:
+          null,
+
+        p_day_no:
+          null
+      }
+    );
+
+
+  if(error){
+    throw error;
   }
 
-  const { data, error } = await query;
 
-  if(error) throw error;
+  const existingRows =
+    Array.isArray(data)
+      ? data
+      : [];
 
-  const existingRows = data || [];
-  const existingMap = new Map();
 
-  existingRows.forEach(row => {
-    existingMap.set(buildEmptysecUniqueKey(row), row);
-  });
+  const existingMap =
+    new Map();
 
-  const duplicateRows = validRows.filter(row => {
-    return existingMap.has(buildEmptysecUniqueKey(row));
-  });
+
+  existingRows.forEach(
+    row => {
+
+      existingMap.set(
+        buildEmptysecUniqueKey(
+          row
+        ),
+        row
+      );
+
+    }
+  );
+
+
+  const duplicateRows =
+    validRows.filter(
+      row => {
+
+        return existingMap.has(
+          buildEmptysecUniqueKey(
+            row
+          )
+        );
+
+      }
+    );
+
 
   return {
     duplicateRows,
     existingRows
   };
+
 }
 
 async function saveEmptysecImportRows(){
