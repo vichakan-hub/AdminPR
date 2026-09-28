@@ -29581,15 +29581,62 @@ async function saveOfferingEdit(){
 
     setStatus('editStatus', 'กำลังบันทึกการแก้ไข...', 'info');
 
-    const { error } = await supabaseClient
-      .from('subject_offerings')
-      .update({
-        credit,
-        section_code
-      })
-      .eq('id', state.editingId);
+const token =
+  String(
+    state.adminSessionToken ||
+    ''
+  ).trim();
 
-    if(error) throw error;
+
+if(!token){
+  throw new Error(
+    'ไม่พบ Admin Session Token กรุณาเข้าสู่ระบบใหม่'
+  );
+}
+
+
+const {
+  data: updateResult,
+  error: updateError
+} =
+  await supabaseClient.rpc(
+    'admin_update_subject_offering_session',
+    {
+      p_token:
+        token,
+
+      p_subject_offering_id:
+        state.editingId,
+
+      p_credit:
+        credit,
+
+      p_section_code:
+        section_code
+    }
+  );
+
+
+if(updateError){
+  throw updateError;
+}
+
+
+if(
+  !updateResult ||
+  updateResult.ok !== true
+){
+  throw new Error(
+    updateResult?.message ||
+    'ฐานข้อมูลไม่ยืนยันการแก้ไขรายการสอน'
+  );
+}
+
+
+console.log(
+  'admin_update_subject_offering_session RESULT',
+  updateResult
+);
 
     await loadOfferings();
     await loadReportingRows();
