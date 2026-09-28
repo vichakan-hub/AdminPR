@@ -9219,66 +9219,203 @@ function getEmptysecFormPayload(){
 }
 
 async function saveEmptysec(){
+
   try{
-    const { errors, payload } = getEmptysecFormPayload();
+
+    const {
+      errors,
+      payload
+    } =
+      getEmptysecFormPayload();
+
 
     if(errors.length){
-      setStatus('emptysecFormStatus', errors.join(' | '), 'error');
-      showToast('ยังบันทึกไม่ได้', errors[0], 'warning');
-      return;
-    }
 
-    setStatus('emptysecFormStatus', 'กำลังบันทึกคาบว่าง...', 'info');
-
-    if(state.emptysecEditingId){
-      const { error } = await supabaseClient
-        .from('emptysec')
-        .update(payload)
-        .eq('id', state.emptysecEditingId);
-
-      if(error) throw error;
-
-      showToast('บันทึกสำเร็จ', `แก้ไขคาบว่าง ${payload.slot_code} แล้ว`, 'success');
-      setStatus('emptysecFormStatus', 'บันทึกการแก้ไขคาบว่างเรียบร้อยแล้ว', 'success');
-    }else{
-      const { error } = await supabaseClient
-        .from('emptysec')
-        .insert(payload);
-
-      if(error) throw error;
-
-      showToast('บันทึกสำเร็จ', `เพิ่มคาบว่าง ${payload.slot_code} แล้ว`, 'success');
-      setStatus('emptysecFormStatus', 'เพิ่มคาบว่างเรียบร้อยแล้ว', 'success');
-    }
-
-    resetEmptysecForm();
-    await loadEmptysecRows();
-
-  }catch(err){
-    const msg = String(err?.message || '');
-
-    if(
-      err?.code === '23505' ||
-      msg.includes('duplicate key') ||
-      msg.includes('emptysec_academic_year_term_slot_code_key') ||
-      msg.includes('emptysec_unique_slot')
-    ){
       setStatus(
         'emptysecFormStatus',
-        'มีคาบว่างนี้อยู่แล้วในปีการศึกษา/ภาคเรียนเดียวกัน',
+        errors.join(' | '),
         'error'
       );
+
       showToast(
-        'ข้อมูลซ้ำ',
-        'คาบว่างนี้มีอยู่แล้วในปี/เทอมเดียวกัน',
-        'error'
+        'ยังบันทึกไม่ได้',
+        errors[0],
+        'warning'
       );
+
       return;
     }
 
-    setStatus('emptysecFormStatus', err.message || 'บันทึกคาบว่างไม่สำเร็จ', 'error');
-    showToast('บันทึกไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+
+    const token =
+      String(
+        state.adminSessionToken ||
+        ''
+      ).trim();
+
+
+    if(!token){
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+    }
+
+
+    setStatus(
+      'emptysecFormStatus',
+      'กำลังบันทึกคาบว่าง...',
+      'info'
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+        'admin_save_emptysec_session',
+        {
+          p_token:
+            token,
+
+          p_id:
+            state.emptysecEditingId ||
+            null,
+
+          p_academic_year:
+            Number(
+              payload.academic_year
+            ),
+
+          p_term:
+            Number(
+              payload.term
+            ),
+
+          p_class_level:
+            payload.class_level,
+
+          p_room:
+            String(
+              payload.room
+            ),
+
+          p_day_no:
+            Number(
+              payload.day_no
+            ),
+
+          p_period_no:
+            Number(
+              payload.period_no
+            ),
+
+          p_note:
+            payload.note ||
+            null,
+
+          p_is_active:
+            payload.is_active !== false
+        }
+      );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    const result =
+      Array.isArray(data)
+        ? data[0]
+        : data;
+
+
+    if(
+      !result ||
+      result.ok !== true
+    ){
+
+      const message =
+        result?.message ||
+        'บันทึกคาบว่างไม่สำเร็จ';
+
+
+      setStatus(
+        'emptysecFormStatus',
+        message,
+        'error'
+      );
+
+
+      showToast(
+        'บันทึกไม่สำเร็จ',
+        message,
+        'error'
+      );
+
+      return;
+    }
+
+
+    const wasEditing =
+      !!state.emptysecEditingId;
+
+
+    resetEmptysecForm();
+
+
+    setStatus(
+      'emptysecFormStatus',
+
+      wasEditing
+        ? 'บันทึกการแก้ไขคาบว่างเรียบร้อยแล้ว'
+        : 'เพิ่มคาบว่างเรียบร้อยแล้ว',
+
+      'success'
+    );
+
+
+    showToast(
+      'บันทึกสำเร็จ',
+
+      wasEditing
+        ? `แก้ไขคาบว่าง ${result.row?.slot_code || payload.slot_code || ''} แล้ว`
+        : `เพิ่มคาบว่าง ${result.row?.slot_code || payload.slot_code || ''} แล้ว`,
+
+      'success'
+    );
+
+
+    await loadEmptysecRows();
+
+
+  }catch(err){
+
+    const msg =
+      String(
+        err?.message ||
+        ''
+      );
+
+
+    setStatus(
+      'emptysecFormStatus',
+      msg ||
+      'บันทึกคาบว่างไม่สำเร็จ',
+      'error'
+    );
+
+
+    showToast(
+      'บันทึกไม่สำเร็จ',
+      msg ||
+      'เกิดข้อผิดพลาด',
+      'error'
+    );
+
   }
+
 }
 
 function getEmptysecFilterValues(){
@@ -9695,40 +9832,107 @@ function closeEmptysecDeleteModal(){
 }
 
 async function confirmDeleteEmptysec(){
+
   try{
-    const id = state.emptysecPendingDeleteId;
+
+    const id =
+      state.emptysecPendingDeleteId;
+
 
     if(!id){
-      setStatus('emptysecDeleteStatus', 'ไม่พบรายการที่ต้องการลบ', 'error');
+
+      setStatus(
+        'emptysecDeleteStatus',
+        'ไม่พบรายการที่ต้องการลบ',
+        'error'
+      );
+
       return;
     }
 
-    const row = (state.emptysecRows || []).find(x => String(x.id) === String(id));
+
+    const row =
+      (
+        state.emptysecRows ||
+        []
+      )
+      .find(
+        x =>
+          String(x.id) ===
+          String(id)
+      );
+
 
     if(!row){
-      setStatus('emptysecDeleteStatus', 'ไม่พบรายการที่ต้องการลบ', 'error');
+
+      setStatus(
+        'emptysecDeleteStatus',
+        'ไม่พบรายการที่ต้องการลบ',
+        'error'
+      );
+
       return;
     }
 
-    setStatus('emptysecDeleteStatus', 'กำลังลบรายการจองที่เกี่ยวข้อง...', 'info');
 
-    // 1) ลบรายการจองที่อ้างถึงคาบว่างนี้ก่อน
-    const { error: reservationDeleteError } = await supabaseClient
-      .from('free_period_reservations')
-      .delete()
-      .eq('slot_id', id);
+    const token =
+      String(
+        state.adminSessionToken ||
+        ''
+      ).trim();
 
-    if(reservationDeleteError) throw reservationDeleteError;
 
-    setStatus('emptysecDeleteStatus', 'ลบรายการจองแล้ว กำลังลบแม่แบบคาบว่าง...', 'info');
+    if(!token){
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+    }
 
-    // 2) ลบแม่แบบคาบว่าง
-    const { error: emptysecDeleteError } = await supabaseClient
-      .from('emptysec')
-      .delete()
-      .eq('id', id);
 
-    if(emptysecDeleteError) throw emptysecDeleteError;
+    setStatus(
+      'emptysecDeleteStatus',
+      'กำลังลบคาบว่างและรายการจองที่เกี่ยวข้อง...',
+      'info'
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+        'admin_delete_emptysec_session',
+        {
+          p_token:
+            token,
+
+          p_ids:
+            [id]
+        }
+      );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    const result =
+      Array.isArray(data)
+        ? data[0]
+        : data;
+
+
+    if(
+      !result ||
+      result.ok !== true
+    ){
+      throw new Error(
+        result?.message ||
+        'ลบคาบว่างไม่สำเร็จ'
+      );
+    }
+
 
     showToast(
       'ลบสำเร็จ',
@@ -9736,32 +9940,49 @@ async function confirmDeleteEmptysec(){
       'success'
     );
 
+
     setStatus(
       'emptysecListStatus',
       'ลบคาบว่างพร้อมรายการจองที่เกี่ยวข้องเรียบร้อยแล้ว',
       'success'
     );
 
-    if(String(state.emptysecEditingId || '') === String(id)){
+
+    if(
+      String(
+        state.emptysecEditingId ||
+        ''
+      ) ===
+      String(id)
+    ){
       resetEmptysecForm();
     }
 
+
     closeEmptysecDeleteModal();
+
     await loadEmptysecRows();
 
+
   }catch(err){
+
     setStatus(
       'emptysecDeleteStatus',
-      err.message || 'ลบคาบว่างไม่สำเร็จ',
+      err.message ||
+      'ลบคาบว่างไม่สำเร็จ',
       'error'
     );
+
 
     showToast(
       'ลบไม่สำเร็จ',
-      err.message || 'เกิดข้อผิดพลาด',
+      err.message ||
+      'เกิดข้อผิดพลาด',
       'error'
     );
+
   }
+
 }
 
 function getSelectedEmptysecRows(){
@@ -9810,77 +10031,147 @@ function closeEmptysecBulkDeleteModal(){
 }
 
 async function confirmBulkDeleteEmptysec(){
+
   try{
-    const rows = getSelectedEmptysecRows();
-    const ids = rows.map(row => String(row.id)).filter(Boolean);
+
+    const rows =
+      getSelectedEmptysecRows();
+
+
+    const ids =
+      rows
+        .map(
+          row =>
+            String(row.id)
+        )
+        .filter(Boolean);
+
 
     if(!ids.length){
-      setStatus('emptysecBulkDeleteStatus', 'ไม่พบรายการที่ต้องการลบ', 'error');
+
+      setStatus(
+        'emptysecBulkDeleteStatus',
+        'ไม่พบรายการที่ต้องการลบ',
+        'error'
+      );
+
       return;
     }
 
+
+    const token =
+      String(
+        state.adminSessionToken ||
+        ''
+      ).trim();
+
+
+    if(!token){
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+    }
+
+
     setStatus(
       'emptysecBulkDeleteStatus',
-      `กำลังลบรายการจองที่เกี่ยวข้อง ${ids.length} คาบว่าง...`,
+      `กำลังลบคาบว่าง ${ids.length} รายการ และรายการจองที่เกี่ยวข้อง...`,
       'info'
     );
 
-    // 1) ลบรายการจองที่อ้างถึงคาบว่างเหล่านี้ก่อน
-    const { error: reservationDeleteError } = await supabaseClient
-      .from('free_period_reservations')
-      .delete()
-      .in('slot_id', ids);
 
-    if(reservationDeleteError) throw reservationDeleteError;
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+        'admin_delete_emptysec_session',
+        {
+          p_token:
+            token,
 
-    setStatus(
-      'emptysecBulkDeleteStatus',
-      `ลบรายการจองที่เกี่ยวข้องแล้ว กำลังลบแม่แบบคาบว่าง ${ids.length} รายการ...`,
-      'info'
-    );
+          p_ids:
+            ids
+        }
+      );
 
-    // 2) ลบแม่แบบคาบว่าง
-    const { error: emptysecDeleteError } = await supabaseClient
-      .from('emptysec')
-      .delete()
-      .in('id', ids);
 
-    if(emptysecDeleteError) throw emptysecDeleteError;
+    if(error){
+      throw error;
+    }
+
+
+    const result =
+      Array.isArray(data)
+        ? data[0]
+        : data;
+
+
+    if(
+      !result ||
+      result.ok !== true
+    ){
+      throw new Error(
+        result?.message ||
+        'ลบคาบว่างที่เลือกไม่สำเร็จ'
+      );
+    }
+
 
     showToast(
       'ลบสำเร็จ',
-      `ลบคาบว่างที่เลือก ${ids.length} รายการ พร้อมรายการจองที่เกี่ยวข้องแล้ว`,
+      `ลบคาบว่าง ${result.deleted_slots ?? ids.length} รายการ พร้อมรายการจองที่เกี่ยวข้องแล้ว`,
       'success'
     );
+
 
     setStatus(
       'emptysecListStatus',
-      `ลบคาบว่างที่เลือก ${ids.length} รายการ พร้อมรายการจองที่เกี่ยวข้องแล้ว`,
+      `ลบคาบว่าง ${result.deleted_slots ?? ids.length} รายการ พร้อมรายการจองที่เกี่ยวข้องเรียบร้อยแล้ว`,
       'success'
     );
 
-    if(ids.includes(String(state.emptysecEditingId || ''))){
+
+    if(
+      ids.includes(
+        String(
+          state.emptysecEditingId ||
+          ''
+        )
+      )
+    ){
       resetEmptysecForm();
     }
 
-    state.emptysecSelectedIds = [];
+
+    state.emptysecSelectedIds =
+      [];
+
 
     closeEmptysecBulkDeleteModal();
+
     await loadEmptysecRows();
 
+
   }catch(err){
+
     setStatus(
       'emptysecBulkDeleteStatus',
-      err.message || 'ลบคาบว่างที่เลือกไม่สำเร็จ',
+      err.message ||
+      'ลบคาบว่างที่เลือกไม่สำเร็จ',
       'error'
     );
+
 
     showToast(
       'ลบไม่สำเร็จ',
-      err.message || 'เกิดข้อผิดพลาด',
+      err.message ||
+      'เกิดข้อผิดพลาด',
       'error'
     );
+
   }
+
 }
 
 function downloadEmptysecTemplate(){
@@ -10487,37 +10778,82 @@ async function checkEmptysecImportDuplicatesInDatabase(
 }
 
 async function saveEmptysecImportRows(){
+
   try{
-    const rows = state.emptysecImportRows || [];
+
+    const rows =
+      state.emptysecImportRows ||
+      [];
+
 
     if(!rows.length){
-      throw new Error('ยังไม่มีข้อมูลจากไฟล์สำหรับบันทึก');
+      throw new Error(
+        'ยังไม่มีข้อมูลจากไฟล์สำหรับบันทึก'
+      );
     }
 
-    const invalidRows = rows.filter(row => row.errors.length);
+
+    const invalidRows =
+      rows.filter(
+        row =>
+          row.errors.length
+      );
+
 
     if(invalidRows.length){
-      throw new Error(`ยังมีรายการผิดพลาด ${invalidRows.length} แถว กรุณาแก้ไขไฟล์ก่อนบันทึก`);
+
+      throw new Error(
+        `ยังมีรายการผิดพลาด ${invalidRows.length} แถว กรุณาแก้ไขไฟล์ก่อนบันทึก`
+      );
+
     }
 
-    setStatus('emptysecImportStatus', 'กำลังตรวจสอบข้อมูลซ้ำกับฐานข้อมูล...', 'info');
 
-    const { duplicateRows } = await checkEmptysecImportDuplicatesInDatabase(rows);
-
-    const duplicateKeys = new Set(
-      duplicateRows.map(row => buildEmptysecUniqueKey(row))
+    setStatus(
+      'emptysecImportStatus',
+      'กำลังตรวจสอบข้อมูลซ้ำกับฐานข้อมูล...',
+      'info'
     );
 
-    const rowsToInsert = rows.filter(row => {
-      return !duplicateKeys.has(buildEmptysecUniqueKey(row));
-    });
+
+    const {
+      duplicateRows
+    } =
+      await checkEmptysecImportDuplicatesInDatabase(
+        rows
+      );
+
+
+    const duplicateKeys =
+      new Set(
+        duplicateRows.map(
+          row =>
+            buildEmptysecUniqueKey(
+              row
+            )
+        )
+      );
+
+
+    const rowsToInsert =
+      rows.filter(
+        row =>
+          !duplicateKeys.has(
+            buildEmptysecUniqueKey(
+              row
+            )
+          )
+      );
+
 
     if(!rowsToInsert.length){
+
       setStatus(
         'emptysecImportStatus',
         `ไม่มีรายการใหม่สำหรับบันทึก พบข้อมูลซ้ำทั้งหมด ${duplicateRows.length} แถว`,
         'warning'
       );
+
 
       showToast(
         'ไม่มีรายการใหม่',
@@ -10525,65 +10861,152 @@ async function saveEmptysecImportRows(){
         'warning'
       );
 
-      markEmptysecImportDatabaseDuplicates(duplicateRows);
+
+      markEmptysecImportDatabaseDuplicates(
+        duplicateRows
+      );
+
+
       return;
     }
 
-    const payload = buildEmptysecPayloadFromImportRows(rowsToInsert);
+
+    const payload =
+      buildEmptysecPayloadFromImportRows(
+        rowsToInsert
+      );
+
+
+    const token =
+      String(
+        state.adminSessionToken ||
+        ''
+      ).trim();
+
+
+    if(!token){
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+    }
+
 
     setStatus(
       'emptysecImportStatus',
-      `กำลังบันทึก ${payload.length} รายการ และข้ามข้อมูลซ้ำ ${duplicateRows.length} รายการ...`,
+      `กำลังบันทึก ${payload.length} รายการ...`,
       'info'
     );
 
-    const { error } = await supabaseClient
-      .from('emptysec')
-      .insert(payload);
 
-    if(error) throw error;
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+        'admin_import_emptysec_session',
+        {
+          p_token:
+            token,
+
+          p_rows:
+            payload
+        }
+      );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    const result =
+      Array.isArray(data)
+        ? data[0]
+        : data;
+
+
+    if(
+      !result ||
+      result.ok !== true
+    ){
+      throw new Error(
+        result?.message ||
+        'นำเข้าคาบว่างไม่สำเร็จ'
+      );
+    }
+
+
+    const insertedCount =
+      Number(
+        result.inserted_count ||
+        0
+      );
+
+
+    const skippedServer =
+      Number(
+        result.skipped_count ||
+        0
+      );
+
+
+    const skippedTotal =
+      duplicateRows.length +
+      skippedServer;
+
 
     showToast(
       'บันทึกสำเร็จ',
-      `บันทึกคาบว่างใหม่ ${payload.length} รายการ${duplicateRows.length ? ` และข้ามข้อมูลซ้ำ ${duplicateRows.length} รายการ` : ''}`,
+
+      `บันทึกคาบว่างใหม่ ${insertedCount} รายการ` +
+      (
+        skippedTotal
+          ? ` และข้ามข้อมูลซ้ำ ${skippedTotal} รายการ`
+          : ''
+      ),
+
       'success'
     );
+
 
     setStatus(
       'emptysecImportStatus',
-      `บันทึกสำเร็จ ${payload.length} รายการ${duplicateRows.length ? ` | ข้ามข้อมูลซ้ำ ${duplicateRows.length} รายการ` : ''}`,
+
+      `บันทึกสำเร็จ ${insertedCount} รายการ` +
+      (
+        skippedTotal
+          ? ` | ข้ามข้อมูลซ้ำ ${skippedTotal} รายการ`
+          : ''
+      ),
+
       'success'
     );
 
+
     clearEmptysecImportPreview();
+
     await loadEmptysecRows();
 
+
   }catch(err){
-    const msg = String(err?.message || '');
 
-    if(
-      err?.code === '23505' ||
-      msg.includes('duplicate key') ||
-      msg.includes('emptysec_academic_year_term_slot_code_key') ||
-      msg.includes('emptysec_unique_slot')
-    ){
-      setStatus(
-        'emptysecImportStatus',
-        'พบข้อมูลซ้ำในฐานข้อมูลเดิม ไม่สามารถบันทึกซ้ำได้',
-        'error'
-      );
+    setStatus(
+      'emptysecImportStatus',
+      err.message ||
+      'บันทึกข้อมูลจากไฟล์ไม่สำเร็จ',
+      'error'
+    );
 
-      showToast(
-        'ข้อมูลซ้ำ',
-        'พบคาบว่างซ้ำกับฐานข้อมูลเดิม',
-        'error'
-      );
-      return;
-    }
 
-    setStatus('emptysecImportStatus', err.message || 'บันทึกข้อมูลจากไฟล์ไม่สำเร็จ', 'error');
-    showToast('บันทึกไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+    showToast(
+      'บันทึกไม่สำเร็จ',
+      err.message ||
+      'เกิดข้อผิดพลาด',
+      'error'
+    );
+
   }
+
 }
 
 function markEmptysecImportDatabaseDuplicates(duplicateRows){
