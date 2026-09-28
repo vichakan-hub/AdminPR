@@ -32031,11 +32031,56 @@ function getStudentStatusBadgeHtml(row){
 
     setStatus('formStatus', 'กำลังบันทึกรายการสอน...', 'info');
 
-    const { error } = await supabaseClient
-      .from('subject_offerings')
-      .insert(payload);
+const token =
+  String(
+    state.adminSessionToken ||
+    ''
+  ).trim();
 
-    if(error) throw error;
+
+if(!token){
+  throw new Error(
+    'ไม่พบ Admin Session Token กรุณาเข้าสู่ระบบใหม่'
+  );
+}
+
+
+const {
+  data: saveResult,
+  error: saveError
+} =
+  await supabaseClient.rpc(
+    'admin_create_subject_offerings_session',
+    {
+      p_token:
+        token,
+
+      p_rows:
+        payload
+    }
+  );
+
+
+if(saveError){
+  throw saveError;
+}
+
+
+if(
+  !saveResult ||
+  saveResult.ok !== true
+){
+  throw new Error(
+    saveResult?.message ||
+    'ฐานข้อมูลไม่ยืนยันการบันทึกรายการสอน'
+  );
+}
+
+
+console.log(
+  'admin_create_subject_offerings_session RESULT',
+  saveResult
+);
 
 setStatus('formStatus', `บันทึกสำเร็จ ${payload.length} รายการ`, 'success');
 showToast('บันทึกสำเร็จ', `ลงทะเบียนการสอนเรียบร้อย ${payload.length} รายการ`, 'success');
