@@ -16886,151 +16886,94 @@ async function loadMsReportingRows(){
     }
 
 
-    /* =====================================================
-       1. โหลด exam_eligibility_reports
-       ===================================================== */
+/* =====================================================
+   1. โหลด exam_eligibility_reports
+      ผ่าน Admin Session RPC
+   ===================================================== */
 
-    const pageSize =
-      1000;
-
-
-    let from =
-      0;
-
-
-    let reportRows =
-      [];
+const token =
+  String(
+    state.adminSessionToken ||
+    ''
+  ).trim();
 
 
-    while(true){
+if(!token){
 
-      let query =
-        supabaseClient
-          .from(
-            'exam_eligibility_reports'
-          )
-         .select(`
-  id,
-  academic_year,
-  term,
-  subject_offering_id,
-  subject_id,
-  teacher_id,
-  teacher_code,
-  teacher_name,
-  subject_code,
-  subject_name,
-  class_level,
-  room,
-  student_id,
-  student_code,
-  student_no,
-  student_name,
-  attendance_score,
-  attendance_max,
-  attendance_percent,
-exam_status,
-ms_resolution_status,
+  throw new Error(
+    'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+  );
 
-ms_resolved_at,
-ms_resolved_by,
-ms_resolution_note,
-
-  ms_resolution_cancelled_at,
-  ms_resolution_cancelled_by,
-  ms_resolution_cancel_note,
-
-  admin_status_changed_at,
-  admin_status_changed_by,
-  admin_status_change_note,
-  admin_previous_exam_status,
-
-  updated_at
-`)
-          .eq(
-            'academic_year',
-            year
-          )
-          .order(
-            'class_level',
-            {
-              ascending:true
-            }
-          )
-          .order(
-            'room',
-            {
-              ascending:true
-            }
-          )
-          .order(
-            'student_no',
-            {
-              ascending:true
-            }
-          )
-          .order(
-            'student_code',
-            {
-              ascending:true
-            }
-          )
-          .order(
-            'subject_code',
-            {
-              ascending:true
-            }
-          )
-          .range(
-            from,
-            from + pageSize - 1
-          );
+}
 
 
-      if(term){
+const pageSize =
+  1000;
 
-        query =
-          query.eq(
-            'term',
-            term
-          );
 
+let offset =
+  0;
+
+
+let reportRows =
+  [];
+
+
+while(true){
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.rpc(
+      'admin_get_exam_eligibility_reports_session',
+      {
+        p_token:
+          token,
+
+        p_academic_year:
+          year,
+
+        p_term:
+          term || null,
+
+        p_limit:
+          pageSize,
+
+        p_offset:
+          offset
       }
+    );
 
 
-      const {
-        data,
-        error
-      } =
-        await query;
+  if(error){
+    throw error;
+  }
 
 
-      if(error){
-        throw error;
-      }
+  const batch =
+    Array.isArray(data)
+      ? data
+      : [];
 
 
-      const batch =
-        data || [];
+  reportRows.push(
+    ...batch
+  );
 
 
-      reportRows.push(
-        ...batch
-      );
+  if(
+    batch.length <
+    pageSize
+  ){
+    break;
+  }
 
 
-      if(
-        batch.length <
-        pageSize
-      ){
-        break;
-      }
+  offset +=
+    pageSize;
 
-
-      from +=
-        pageSize;
-
-    }
+}
 
 
     /* =====================================================
