@@ -22639,18 +22639,17 @@ async function confirmGradeYearCopy(){
       );
     }
 
-    const changedByCode = normalizeTeacherCode(
-      getGradeManageCurrentUserCode() || ''
-    );
+  const token =
+  String(
+    state.adminSessionToken ||
+    ''
+  ).trim();
 
-    const changedByName =
-      getGradeManageCurrentUserName() || '';
-
-    if(!changedByCode.startsWith('G')){
-      throw new Error(
-        'อนุญาตให้เจ้าหน้าที่รหัส G ดำเนินการเท่านั้น'
-      );
-    }
+if(!token){
+  throw new Error(
+    'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+  );
+}
 
     state.gradeYearCopyBusy = true;
 
@@ -22673,22 +22672,34 @@ async function confirmGradeYearCopy(){
       'info'
     );
 
-    const {
-      data,
-      error
-    } = await supabaseClient.rpc(
-      'copy_student_grade_year',
-      {
-        p_student_code: values.studentCode,
-        p_source_academic_year: values.sourceYear,
-        p_target_academic_year: values.targetYear,
-        p_source_class_level: values.sourceClass,
-        p_target_class_level: values.targetClass,
-        p_changed_by_code: changedByCode,
-        p_changed_by_name: changedByName || null,
-        p_note: values.note || null
-      }
-    );
+const {
+  data,
+  error
+} = await supabaseClient.rpc(
+  'admin_copy_student_grade_year_session',
+  {
+    p_token:
+      token,
+
+    p_student_code:
+      values.studentCode,
+
+    p_source_academic_year:
+      values.sourceYear,
+
+    p_target_academic_year:
+      values.targetYear,
+
+    p_source_class_level:
+      values.sourceClass,
+
+    p_target_class_level:
+      values.targetClass,
+
+    p_note:
+      values.note || null
+  }
+);
 
     if(error){
       throw error;
