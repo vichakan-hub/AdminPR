@@ -26251,20 +26251,11 @@ async function applyRepeatGradeRecordStatus(){
     el('repeatStatusNoteInput')?.value || ''
   ).trim();
 
-  const currentUser = state.currentUser || {};
-
-  const changedByCode = normalizeTeacherCode(
-    currentUser.teacher_code || ''
-  );
-
-  const changedByName = normalizeName(
-    currentUser.full_name ||
-    [
-      currentUser.first_name,
-      currentUser.last_name
-    ].filter(Boolean).join(' ') ||
-    changedByCode
-  );
+const token =
+  String(
+    state.adminSessionToken ||
+    ''
+  ).trim();
 
   const applyBtn = el('repeatApplyStatusBtn');
 
@@ -26316,21 +26307,21 @@ async function applyRepeatGradeRecordStatus(){
     return;
   }
 
-  if(!changedByCode || !changedByCode.startsWith('G')){
-    setStatus(
-      'repeatActionStatus',
-      'ไม่พบข้อมูลเจ้าหน้าที่ผู้ดำเนินการ',
-      'error'
-    );
+if(!token){
+  setStatus(
+    'repeatActionStatus',
+    'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่',
+    'error'
+  );
 
-    showToast(
-      'ไม่มีสิทธิ์ดำเนินการ',
-      'เมนูนี้อนุญาตเฉพาะเจ้าหน้าที่รหัส G',
-      'error'
-    );
+  showToast(
+    'Session หมดอายุ',
+    'กรุณาเข้าสู่ระบบใหม่',
+    'error'
+  );
 
-    return;
-  }
+  return;
+}
 
   if(targetStatus === 'excluded_repeat_grade'){
     if(!repeatAcademicYear){
@@ -26434,40 +26425,38 @@ if(latestStudent){
       'info'
     );
 
-    const {
-      data,
-      error
-    } = await supabaseClient.rpc(
-      'apply_repeat_grade_record_status',
-      {
-        p_grade_result_ids: selectedIds,
+const {
+  data,
+  error
+} = await supabaseClient.rpc(
+  'admin_apply_repeat_grade_record_status_session',
+  {
+    p_token:
+      token,
 
-        p_student_code:
-          normalizeStudentSid(student.sid),
+    p_grade_result_ids:
+      selectedIds,
 
-        p_new_record_status:
-          targetStatus,
+    p_student_code:
+      normalizeStudentSid(student.sid),
 
-        p_repeat_academic_year:
-          targetStatus === 'excluded_repeat_grade'
-            ? repeatAcademicYear
-            : null,
+    p_new_record_status:
+      targetStatus,
 
-        p_repeat_class_level:
-          targetStatus === 'excluded_repeat_grade'
-            ? repeatClassLevel
-            : null,
+    p_repeat_academic_year:
+      targetStatus === 'excluded_repeat_grade'
+        ? repeatAcademicYear
+        : null,
 
-        p_note:
-          note || null,
+    p_repeat_class_level:
+      targetStatus === 'excluded_repeat_grade'
+        ? repeatClassLevel
+        : null,
 
-        p_changed_by_code:
-          changedByCode,
-
-        p_changed_by_name:
-          changedByName
-      }
-    );
+    p_note:
+      note || null
+  }
+);
 
     if(error){
       throw error;
