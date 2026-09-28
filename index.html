@@ -32306,19 +32306,159 @@ async function loadOfferings(){
       });
     });
 
-    tbody.querySelectorAll('[data-offering-delete]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if(!confirm('ยืนยันลบรายการสอนนี้ใช่หรือไม่')) return;
-        try{
-          const { error } = await supabaseClient.from('subject_offerings').delete().eq('id', btn.dataset.offeringDelete);
-          if(error) throw error;
-          await loadOfferings();
-          showToast('ลบสำเร็จ', 'ลบรายการลงทะเบียนการสอนเรียบร้อยแล้ว', 'success');
-        }catch(err){
-          showToast('ลบไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+tbody
+  .querySelectorAll(
+    '[data-offering-delete]'
+  )
+  .forEach(btn => {
+
+    btn.addEventListener(
+      'click',
+      async () => {
+
+        if(
+          !confirm(
+            'ยืนยันลบรายการสอนนี้ใช่หรือไม่'
+          )
+        ){
+          return;
         }
-      });
-    });
+
+
+        try{
+
+          const token =
+            String(
+              state.adminSessionToken ||
+              ''
+            ).trim();
+
+
+          if(!token){
+            throw new Error(
+              'ไม่พบ Admin Session Token กรุณาเข้าสู่ระบบใหม่'
+            );
+          }
+
+
+          const offeringId =
+            String(
+              btn.dataset.offeringDelete ||
+              ''
+            ).trim();
+
+
+          if(!offeringId){
+            throw new Error(
+              'ไม่พบรายการสอนที่ต้องการลบ'
+            );
+          }
+
+
+          const {
+            data: deleteResult,
+            error: deleteError
+          } =
+            await supabaseClient.rpc(
+              'admin_delete_subject_offering_session',
+              {
+                p_token:
+                  token,
+
+                p_subject_offering_id:
+                  offeringId
+              }
+            );
+
+
+          if(deleteError){
+            throw deleteError;
+          }
+
+
+          console.log(
+            'admin_delete_subject_offering_session RESULT',
+            deleteResult
+          );
+
+
+          /* =========================================
+             มีข้อมูลอ้างอิง -> DB ป้องกันการลบ
+             ========================================= */
+
+          if(
+            deleteResult?.blocked === true
+          ){
+
+            console.warn(
+              'SUBJECT OFFERING DELETE BLOCKED',
+              deleteResult.dependencies
+            );
+
+
+            showToast(
+              'ไม่สามารถลบรายการสอนได้',
+              deleteResult.message ||
+              'รายการสอนนี้มีข้อมูลผลการเรียนหรือรายงานอ้างอิงอยู่',
+              'warning'
+            );
+
+            return;
+          }
+
+
+          /* =========================================
+             DB ไม่ยืนยันการลบ
+             ========================================= */
+
+          if(
+            !deleteResult ||
+            deleteResult.ok !== true ||
+            Number(
+              deleteResult.deleted_count ||
+              0
+            ) !== 1
+          ){
+
+            throw new Error(
+              deleteResult?.message ||
+              'ฐานข้อมูลไม่ยืนยันการลบรายการสอน'
+            );
+
+          }
+
+
+          await loadOfferings();
+
+
+          showToast(
+            'ลบสำเร็จ',
+            'ลบรายการลงทะเบียนการสอนเรียบร้อยแล้ว',
+            'success'
+          );
+
+
+        }catch(err){
+
+          console.error(
+            'delete subject offering ERROR',
+            err
+          );
+
+
+          showToast(
+            'ลบไม่สำเร็จ',
+            err?.message ||
+            'เกิดข้อผิดพลาด',
+            'error'
+          );
+
+        }
+
+      }
+    );
+
+  });
 
     setStatus('listStatus', `พบ ${rows.length} รายการ`, 'success');
   }
