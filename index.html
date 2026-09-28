@@ -20249,42 +20249,75 @@ function bindSignerRowInputs(){
 
 async function loadReportSigners(){
   try{
-    const filters = getSignerFilterValues();
+    const filters =
+      getSignerFilterValues();
 
-    if(!filters.academicYear || !filters.term){
-      setStatus('signerStatus', 'กรุณาเลือกปีการศึกษาและภาคเรียน', 'warning');
+    if(
+      !filters.academicYear ||
+      !filters.term
+    ){
+      setStatus(
+        'signerStatus',
+        'กรุณาเลือกปีการศึกษาและภาคเรียน',
+        'warning'
+      );
       return;
     }
 
-    setStatus('signerStatus', 'กำลังโหลดรายชื่อผู้อนุมัติ...', 'info');
+    const token =
+      String(
+        state.adminSessionToken ||
+        ''
+      ).trim();
 
-    let query = supabaseClient
-      .from('academic_report_signers')
-.select(`
-  id,
-  academic_year,
-  term,
-  learning_area,
-  position_key,
-  position_title,
-  person_prefix,
-  person_name,
-  sort_order,
-  is_active
-`)
-      .eq('academic_year', filters.academicYear)
-      .eq('term', filters.term)
-      .order('sort_order', { ascending:true });
+    if(!token){
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+    }
 
-if(filters.learningArea && filters.learningArea !== 'ALL'){
-  query = query.in('learning_area', ['ALL', filters.learningArea]);
-}
+    setStatus(
+      'signerStatus',
+      'กำลังโหลดรายชื่อผู้อนุมัติ...',
+      'info'
+    );
 
-    const { data, error } = await query;
+    const {
+      data,
+      error
+    } = await supabaseClient.rpc(
+      'admin_get_academic_report_signers_session',
+      {
+        p_token:
+          token,
 
-    if(error) throw error;
+        p_academic_year:
+          Number(
+            filters.academicYear
+          ),
 
-    state.reportSignerRows = data || [];
+        p_term:
+          Number(
+            filters.term
+          ),
+
+        p_learning_area:
+          filters.learningArea &&
+          filters.learningArea !== 'ALL'
+            ? filters.learningArea
+            : null
+      }
+    );
+
+    if(error){
+      throw error;
+    }
+
+    state.reportSignerRows =
+      Array.isArray(data)
+        ? data
+        : [];
+
     renderSignerRows();
 
     setStatus(
@@ -20292,122 +20325,274 @@ if(filters.learningArea && filters.learningArea !== 'ALL'){
       state.reportSignerRows.length
         ? `โหลดรายชื่อผู้อนุมัติแล้ว ${state.reportSignerRows.length} รายการ`
         : 'ไม่พบรายการผู้อนุมัติ กรุณากดสร้าง/เติมรายการตั้งต้น',
-      state.reportSignerRows.length ? 'success' : 'warning'
+      state.reportSignerRows.length
+        ? 'success'
+        : 'warning'
     );
+
   }catch(err){
+
     state.reportSignerRows = [];
+
     renderSignerRows();
 
     setStatus(
       'signerStatus',
-      err.message || 'โหลดรายชื่อผู้อนุมัติไม่สำเร็จ',
+      err.message ||
+      'โหลดรายชื่อผู้อนุมัติไม่สำเร็จ',
       'error'
     );
 
     showToast(
       'โหลดไม่สำเร็จ',
-      err.message || 'เกิดข้อผิดพลาด',
+      err.message ||
+      'เกิดข้อผิดพลาด',
       'error'
     );
   }
 }
 
+
 async function seedReportSigners(){
   try{
-    const filters = getSignerFilterValues();
+    const filters =
+      getSignerFilterValues();
 
-    if(!filters.academicYear || !filters.term){
-      setStatus('signerStatus', 'กรุณาเลือกปีการศึกษาและภาคเรียนก่อน', 'warning');
+    if(
+      !filters.academicYear ||
+      !filters.term
+    ){
+      setStatus(
+        'signerStatus',
+        'กรุณาเลือกปีการศึกษาและภาคเรียนก่อน',
+        'warning'
+      );
       return;
     }
 
-    setStatus('signerStatus', 'กำลังสร้าง/เติมรายการตั้งต้น...', 'info');
+    const token =
+      String(
+        state.adminSessionToken ||
+        ''
+      ).trim();
 
-    const payload = REPORT_SIGNER_DEFAULTS.map(item => ({
-      academic_year: filters.academicYear,
-      term: filters.term,
-      learning_area: item.learning_area,
-      position_key: item.position_key,
-      position_title: item.position_title,
-      person_prefix: '',
-      person_name: '',
-      sort_order: item.sort_order,
-      is_active: true
-    }));
+    if(!token){
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+    }
 
-    const { error } = await supabaseClient
-      .from('academic_report_signers')
-      .upsert(payload, {
-        onConflict: 'academic_year,term,learning_area,position_key'
-      });
+    setStatus(
+      'signerStatus',
+      'กำลังสร้าง/เติมรายการตั้งต้น...',
+      'info'
+    );
 
-    if(error) throw error;
+    const {
+      data,
+      error
+    } = await supabaseClient.rpc(
+      'admin_seed_academic_report_signers_session',
+      {
+        p_token:
+          token,
+
+        p_academic_year:
+          Number(
+            filters.academicYear
+          ),
+
+        p_term:
+          Number(
+            filters.term
+          )
+      }
+    );
+
+    if(error){
+      throw error;
+    }
+
+    if(
+      data &&
+      data.ok === false
+    ){
+      throw new Error(
+        data.message ||
+        'สร้างรายการตั้งต้นไม่สำเร็จ'
+      );
+    }
 
     await loadReportSigners();
 
-    setStatus('signerStatus', 'สร้าง/เติมรายการตั้งต้นเรียบร้อยแล้ว', 'success');
-    showToast('สำเร็จ', 'สร้าง/เติมรายการผู้อนุมัติผลการเรียนแล้ว', 'success');
-  }catch(err){
     setStatus(
       'signerStatus',
-      err.message || 'สร้างรายการตั้งต้นไม่สำเร็จ',
+      'สร้าง/เติมรายการตั้งต้นเรียบร้อยแล้ว',
+      'success'
+    );
+
+    showToast(
+      'สำเร็จ',
+      'สร้าง/เติมรายการผู้อนุมัติผลการเรียนแล้ว',
+      'success'
+    );
+
+  }catch(err){
+
+    setStatus(
+      'signerStatus',
+      err.message ||
+      'สร้างรายการตั้งต้นไม่สำเร็จ',
       'error'
     );
 
     showToast(
       'ไม่สำเร็จ',
-      err.message || 'เกิดข้อผิดพลาด',
+      err.message ||
+      'เกิดข้อผิดพลาด',
       'error'
     );
   }
 }
 
+
 async function saveReportSigners(){
   try{
-    const rows = state.reportSignerRows || [];
+    const filters =
+      getSignerFilterValues();
+
+    const rows =
+      state.reportSignerRows ||
+      [];
 
     if(!rows.length){
-      setStatus('signerStatus', 'ยังไม่มีรายการสำหรับบันทึก', 'warning');
+      setStatus(
+        'signerStatus',
+        'ยังไม่มีรายการสำหรับบันทึก',
+        'warning'
+      );
       return;
     }
 
-    setStatus('signerStatus', 'กำลังบันทึกผู้อนุมัติผลการเรียน...', 'info');
+    if(
+      !filters.academicYear ||
+      !filters.term
+    ){
+      throw new Error(
+        'กรุณาเลือกปีการศึกษาและภาคเรียน'
+      );
+    }
 
-    const payload = rows.map(row => ({
-      id: row.id,
-      academic_year: row.academic_year,
-      term: row.term,
-      learning_area: row.learning_area,
-      position_key: row.position_key,
-      position_title: row.position_title,
-      person_prefix: String(row.person_prefix || '').trim() || null,
-      person_name: String(row.person_name || '').trim(),
-      sort_order: row.sort_order,
-      is_active: row.is_active !== false
-    }));
+    const token =
+      String(
+        state.adminSessionToken ||
+        ''
+      ).trim();
 
-    const { error } = await supabaseClient
-      .from('academic_report_signers')
-      .upsert(payload, {
-        onConflict: 'id'
-      });
+    if(!token){
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+    }
 
-    if(error) throw error;
+    setStatus(
+      'signerStatus',
+      'กำลังบันทึกผู้อนุมัติผลการเรียน...',
+      'info'
+    );
+
+    /*
+     * ส่งเฉพาะ field ที่ Browser
+     * มีสิทธิ์แก้จริง
+     */
+    const payload =
+      rows.map(row => ({
+        id:
+          row.id,
+
+        person_prefix:
+          String(
+            row.person_prefix ||
+            ''
+          ).trim() ||
+          null,
+
+        person_name:
+          String(
+            row.person_name ||
+            ''
+          ).trim(),
+
+        is_active:
+          row.is_active !== false
+      }));
+
+
+    const {
+      data,
+      error
+    } = await supabaseClient.rpc(
+      'admin_save_academic_report_signers_session',
+      {
+        p_token:
+          token,
+
+        p_academic_year:
+          Number(
+            filters.academicYear
+          ),
+
+        p_term:
+          Number(
+            filters.term
+          ),
+
+        p_rows:
+          payload
+      }
+    );
+
+    if(error){
+      throw error;
+    }
+
+    if(
+      data &&
+      data.ok === false
+    ){
+      throw new Error(
+        data.message ||
+        'บันทึกผู้อนุมัติไม่สำเร็จ'
+      );
+    }
 
     await loadReportSigners();
 
-    setStatus('signerStatus', 'บันทึกผู้อนุมัติผลการเรียนเรียบร้อยแล้ว', 'success');
-    showToast('บันทึกสำเร็จ', 'บันทึกผู้อนุมัติผลการเรียนเรียบร้อยแล้ว', 'success');
-  }catch(err){
     setStatus(
       'signerStatus',
-      err.message || 'บันทึกผู้อนุมัติผลการเรียนไม่สำเร็จ',
+      'บันทึกผู้อนุมัติผลการเรียนเรียบร้อยแล้ว',
+      'success'
+    );
+
+    showToast(
+      'บันทึกสำเร็จ',
+      'บันทึกผู้อนุมัติผลการเรียนเรียบร้อยแล้ว',
+      'success'
+    );
+
+  }catch(err){
+
+    setStatus(
+      'signerStatus',
+      err.message ||
+      'บันทึกผู้อนุมัติผลการเรียนไม่สำเร็จ',
       'error'
     );
 
     showToast(
       'บันทึกไม่สำเร็จ',
-      err.message || 'เกิดข้อผิดพลาด',
+      err.message ||
+      'เกิดข้อผิดพลาด',
       'error'
     );
   }
