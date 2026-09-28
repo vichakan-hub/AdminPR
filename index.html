@@ -28002,17 +28002,38 @@ async function logout(){
     state.subjects = (state.allSubjects || []).filter(s => s.is_active !== false);
   }
 
-  async function loadAcademicYears(){
-    const { data, error } = await supabaseClient
-      .from('academic_years')
-      .select('id, academic_year, term, label, is_active')
-      .eq('is_active', true)
-      .order('academic_year', { ascending:false })
-      .order('term', { ascending:true });
+async function loadAcademicYears(){
+  const token =
+    String(
+      state.adminSessionToken ||
+      ''
+    ).trim();
 
-    if(error && !String(error.message || '').toLowerCase().includes('relation')) throw error;
-    state.academicYears = data || [];
+  if(!token){
+    throw new Error(
+      'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+    );
   }
+
+  const {
+    data,
+    error
+  } = await supabaseClient.rpc(
+    'admin_get_academic_years_session',
+    {
+      p_token: token
+    }
+  );
+
+  if(error){
+    throw error;
+  }
+
+  state.academicYears =
+    Array.isArray(data)
+      ? data
+      : [];
+}
 
   async function loadSubjects(){
     const {data,error} = await supabaseClient
