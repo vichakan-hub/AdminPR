@@ -29444,33 +29444,42 @@ async function exportGradeRiskPdf(
            โลโก้โรงเรียน
            ================================================= */
 
-        if(schoolLogoDataUrl){
+if(schoolLogoDataUrl){
 
-          const logoSize =
-            20;
+  const logoProps =
+    doc.getImageProperties(
+      schoolLogoDataUrl
+    );
 
+  const logoWidth =
+    24;
 
-          const logoX =
-            (
-              pageWidth -
-              logoSize
-            ) / 2;
+  const logoHeight =
+    logoWidth *
+    (
+      logoProps.height /
+      logoProps.width
+    );
 
+  const logoX =
+    (
+      pageWidth -
+      logoWidth
+    ) / 2;
 
-          const logoY =
-            5;
+  const logoY =
+    5;
 
+  doc.addImage(
+    schoolLogoDataUrl,
+    'PNG',
+    logoX,
+    logoY,
+    logoWidth,
+    logoHeight
+  );
 
-          doc.addImage(
-            schoolLogoDataUrl,
-            'PNG',
-            logoX,
-            logoY,
-            logoSize,
-            logoSize
-          );
-
-        }
+}
 
 
         /* =================================================
