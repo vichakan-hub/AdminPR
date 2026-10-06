@@ -29444,6 +29444,10 @@ async function exportGradeRiskPdf(
            โลโก้โรงเรียน
            ================================================= */
 
+let titleY =
+  23;
+
+
 if(schoolLogoDataUrl){
 
   const logoProps =
@@ -29451,8 +29455,10 @@ if(schoolLogoDataUrl){
       schoolLogoDataUrl
     );
 
+
   const logoWidth =
     24;
+
 
   const logoHeight =
     logoWidth *
@@ -29461,18 +29467,17 @@ if(schoolLogoDataUrl){
       logoProps.width
     );
 
+
   const logoX =
     (
       pageWidth -
       logoWidth
     ) / 2;
 
+
   const logoY =
     5;
-  const titleY =
-  logoY +
-  logoHeight +
-  3;
+
 
   doc.addImage(
     schoolLogoDataUrl,
@@ -29482,6 +29487,12 @@ if(schoolLogoDataUrl){
     logoWidth,
     logoHeight
   );
+
+
+  titleY =
+    logoY +
+    logoHeight +
+    3;
 
 }
 
