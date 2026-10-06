@@ -29362,41 +29362,43 @@ async function exportGradeRiskPdf(
 
 
     /*
-     * สำคัญ
      * รอ Browser โหลด Sarabun
-     * เพื่อให้ Canvas วาดสระ/วรรณยุกต์ถูกต้อง
+     * เพื่อให้ Canvas วาดภาษาไทยถูกต้อง
      */
-await ensureSarabunCanvasReady();
-
-let schoolLogoDataUrl = null;
-
-try{
-
-  schoolLogoDataUrl =
-    await loadImageAsDataUrl(
-      './assets/school-logo-login-square.png'
-    );
-
-}catch(logoError){
-
-  console.warn(
-    'โหลดโลโก้โรงเรียนไม่สำเร็จ',
-    logoError
-  );
-
-}
+    await ensureSarabunCanvasReady();
 
 
     /* =====================================================
-       4. ขนาดกระดาษ
+       4. โหลดโลโก้โรงเรียน
+       ===================================================== */
+
+    let schoolLogoDataUrl =
+      null;
+
+
+    try{
+
+      schoolLogoDataUrl =
+        await loadImageAsDataUrl(
+          './assets/school-logo-login-square.png'
+        );
+
+    }catch(logoError){
+
+      console.warn(
+        'โหลดโลโก้โรงเรียนไม่สำเร็จ',
+        logoError
+      );
+
+    }
+
+
+    /* =====================================================
+       5. ขนาดกระดาษ
        ===================================================== */
 
     const pageWidth =
       doc.internal.pageSize.getWidth();
-
-
-    const pageHeight =
-      doc.internal.pageSize.getHeight();
 
 
     const marginLeft =
@@ -29414,7 +29416,7 @@ try{
 
 
     /* =====================================================
-       5. สร้างแต่ละชุด ชั้น/ห้อง
+       6. สร้างรายงานแยกตามชั้น / ห้อง
        ===================================================== */
 
     groups.forEach(
@@ -29424,10 +29426,10 @@ try{
       ) => {
 
 
-        /*
-         * ห้องใหม่
-         * เริ่มหน้าใหม่
-         */
+        /* =================================================
+           ห้องใหม่ = หน้าใหม่
+           ================================================= */
+
         if(index > 0){
 
           doc.addPage(
@@ -29438,44 +29440,41 @@ try{
         }
 
 
+        /* =================================================
+           โลโก้โรงเรียน
+           ================================================= */
+
+        if(schoolLogoDataUrl){
+
+          const logoSize =
+            16;
 
 
-/* =================================================
-   โลโก้โรงเรียน
-   ================================================= */
-
-if(schoolLogoDataUrl){
-
-  const logoSize =
-    18;
-
-  const logoX =
-    (
-      pageWidth -
-      logoSize
-    ) / 2;
-
-  const logoY =
-    6;
+          const logoX =
+            (
+              pageWidth -
+              logoSize
+            ) / 2;
 
 
-  doc.addImage(
-    schoolLogoDataUrl,
-    'PNG',
-    logoX,
-    logoY,
-    logoSize,
-    logoSize
-  );
+          const logoY =
+            5;
 
-}
 
+          doc.addImage(
+            schoolLogoDataUrl,
+            'PNG',
+            logoX,
+            logoY,
+            logoSize,
+            logoSize
+          );
+
+        }
 
 
         /* =================================================
            หัวเรื่อง
-           ใช้ Canvas ทั้งหมด
-           ป้องกันสระ/วรรณยุกต์ทับกัน
            ================================================= */
 
         drawThaiPdfText(
@@ -29487,13 +29486,13 @@ if(schoolLogoDataUrl){
               marginLeft,
 
             y:
-              8,
+              23,
 
             maxWidth:
               contentWidth,
 
             height:
-              9,
+              8,
 
             fontPx:
               40,
@@ -29524,13 +29523,13 @@ if(schoolLogoDataUrl){
               marginLeft,
 
             y:
-              16,
+              31,
 
             maxWidth:
               contentWidth,
 
             height:
-              8,
+              7.5,
 
             fontPx:
               36,
@@ -29549,7 +29548,7 @@ if(schoolLogoDataUrl){
 
 
         /* =================================================
-           ปี / เทอม / ชั้น
+           ปีการศึกษา / ภาคเรียน / ชั้น
            ================================================= */
 
         const subtitle =
@@ -29570,13 +29569,13 @@ if(schoolLogoDataUrl){
               marginLeft,
 
             y:
-              23.5,
+              38.5,
 
             maxWidth:
               contentWidth,
 
             height:
-              7,
+              6.5,
 
             fontPx:
               32,
@@ -29593,161 +29592,175 @@ if(schoolLogoDataUrl){
           }
         );
 
-/* =================================================
-   ข้อมูลเหนือตาราง
-   ครูที่ปรึกษา = ซ้าย
-   จำนวนนักเรียน = ขวา
-   ================================================= */
 
-const adviserNames =
-  (group.advisers || [])
-    .map(adviser => {
+        /* =================================================
+           ครูที่ปรึกษา
+           ================================================= */
 
-      const name =
-        String(
-          adviser.teacherName || ''
-        ).trim();
+        const adviserNames =
+          (group.advisers || [])
+            .map(adviser => {
 
-
-      if(!name){
-        return '';
-      }
+              const name =
+                String(
+                  adviser.teacherName || ''
+                ).trim();
 
 
-      return name.startsWith('ครู')
-        ? name
-        : `ครู${name}`;
-
-    })
-    .filter(Boolean);
+              if(!name){
+                return '';
+              }
 
 
-const adviserText =
-  `ครูที่ปรึกษา: ${
-    adviserNames.length
-      ? adviserNames.join(', ')
-      : '-'
-  }`;
+              return name.startsWith('ครู')
+                ? name
+                : `ครู${name}`;
+
+            })
+            .filter(Boolean);
 
 
-const leftInfoWidth =
-  contentWidth * 0.68;
+        const adviserText =
+          `ครูที่ปรึกษา: ${
+            adviserNames.length
+              ? adviserNames.join(', ')
+              : '-'
+          }`;
 
 
-const rightInfoWidth =
-  contentWidth -
-  leftInfoWidth;
+        /* =================================================
+           แบ่งพื้นที่ข้อมูลเหนือตาราง
+           ================================================= */
+
+        const leftInfoWidth =
+          contentWidth *
+          0.68;
 
 
-/* ซ้าย : ครูที่ปรึกษา */
-
-drawThaiPdfText(
-  doc,
-  adviserText,
-  {
-    x:
-      marginLeft,
-
-    y:
-      49,
-
-    maxWidth:
-      leftInfoWidth - 2,
-
-    height:
-      6,
-
-    fontPx:
-      27,
-
-    weight:
-      '400',
-
-    color:
-      '#17324a',
-
-    align:
-      'left'
-  }
-);
+        const rightInfoWidth =
+          contentWidth -
+          leftInfoWidth;
 
 
-/* ขวา : จำนวนนักเรียน */
+        /* =================================================
+           ซ้าย : ครูที่ปรึกษา
+           ================================================= */
 
-drawThaiPdfText(
-  doc,
-  `จำนวนนักเรียนที่ต้องติดตาม ${group.rows.length} คน`,
-  {
-    x:
-      marginLeft +
-      leftInfoWidth,
+        drawThaiPdfText(
+          doc,
+          adviserText,
+          {
 
-    y:
-      37,
+            x:
+              marginLeft,
 
-    maxWidth:
-      rightInfoWidth,
+            y:
+              49,
 
-    height:
-      6,
+            maxWidth:
+              leftInfoWidth - 2,
 
-    fontPx:
-      27,
+            height:
+              6,
 
-    weight:
-      '400',
+            fontPx:
+              27,
 
-    color:
-      '#17324a',
+            weight:
+              '400',
 
-    align:
-      'right'
-  }
-);
+            color:
+              '#17324a',
 
+            align:
+              'left'
 
-/* =================================================
-   ตาราง
-   ================================================= */
-
-const tableFinalY =
-  drawGradeRiskStudentTable(
-    doc,
-    group,
-    {
-      startY: 58,
-      marginLeft,
-      marginRight
-    }
-  );
+          }
+        );
 
 
-drawGradeRiskAdviserSignatures(
-  doc,
-  group,
-  {
-    startY:
-      tableFinalY,
+        /* =================================================
+           ขวา : จำนวนนักเรียน
+           ================================================= */
 
-    marginLeft,
-    marginRight
-  }
-);
- 
+        drawThaiPdfText(
+          doc,
+          `จำนวนนักเรียนที่ต้องติดตาม ${group.rows.length} คน`,
+          {
 
-       
+            x:
+              marginLeft +
+              leftInfoWidth,
+
+            y:
+              49,
+
+            maxWidth:
+              rightInfoWidth,
+
+            height:
+              6,
+
+            fontPx:
+              27,
+
+            weight:
+              '400',
+
+            color:
+              '#17324a',
+
+            align:
+              'right'
+
+          }
+        );
 
 
- 
+        /* =================================================
+           ตารางรายชื่อนักเรียน
+           ================================================= */
 
-  
+        const tableFinalY =
+          drawGradeRiskStudentTable(
+            doc,
+            group,
+            {
+
+              startY:
+                58,
+
+              marginLeft,
+              marginRight
+
+            }
+          );
+
+
+        /* =================================================
+           ลายเซ็นครูที่ปรึกษา
+           ================================================= */
+
+        drawGradeRiskAdviserSignatures(
+          doc,
+          group,
+          {
+
+            startY:
+              tableFinalY,
+
+            marginLeft,
+            marginRight
+
+          }
+        );
 
       }
     );
 
 
     /* =====================================================
-       6. ชื่อไฟล์
+       7. ชื่อไฟล์
        ===================================================== */
 
     const filename =
@@ -29761,7 +29774,7 @@ drawGradeRiskAdviserSignatures(
 
 
     /* =====================================================
-       7. บันทึก PDF
+       8. ดาวน์โหลด PDF
        ===================================================== */
 
     doc.save(
