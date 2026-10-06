@@ -1627,6 +1627,258 @@ body.app-booting #appView{
 }
 
 /* =========================================================
+   Grade Risk Page: ติดตาม 0 ร มส มผ
+   ========================================================= */
+
+#gradeRiskPage .report-toolbar{
+  display:grid;
+  grid-template-columns:repeat(5, minmax(150px, 1fr));
+  gap:10px 12px;
+  margin-bottom:14px;
+}
+
+#gradeRiskPage .field{
+  min-width:0;
+}
+
+#gradeRiskPage .std{
+  width:100%;
+}
+
+#gradeRiskPage table{
+  min-width:1240px;
+  table-layout:fixed;
+}
+
+
+/* =========================================================
+   ความกว้างคอลัมน์หลัก
+   ========================================================= */
+
+#gradeRiskPage tbody td:nth-child(1){
+  width:70px;
+}
+
+#gradeRiskPage tbody td:nth-child(2){
+  width:250px;
+}
+
+#gradeRiskPage tbody td:nth-child(3){
+  width:90px;
+}
+
+#gradeRiskPage tbody td:nth-child(4){
+  width:100px;
+}
+
+#gradeRiskPage tbody td:nth-child(5),
+#gradeRiskPage tbody td:nth-child(6),
+#gradeRiskPage tbody td:nth-child(7),
+#gradeRiskPage tbody td:nth-child(8),
+#gradeRiskPage tbody td:nth-child(9){
+  width:70px;
+}
+
+#gradeRiskPage tbody td:nth-child(10){
+  width:90px;
+}
+
+#gradeRiskPage tbody td:nth-child(11){
+  width:120px;
+}
+
+#gradeRiskPage tbody td:nth-child(12){
+  width:140px;
+}
+
+
+/* =========================================================
+   หัวตารางแถวแรก
+   ========================================================= */
+
+#gradeRiskPage thead tr:first-child th:nth-child(1){
+  width:70px;
+}
+
+#gradeRiskPage thead tr:first-child th:nth-child(2){
+  width:250px;
+}
+
+#gradeRiskPage thead tr:first-child th:nth-child(3){
+  width:90px;
+}
+
+#gradeRiskPage thead tr:first-child th:nth-child(4){
+  width:100px;
+}
+
+#gradeRiskPage thead tr:first-child th:nth-child(6){
+  width:90px;
+}
+
+#gradeRiskPage thead tr:first-child th:nth-child(7){
+  width:120px;
+}
+
+#gradeRiskPage thead tr:first-child th:nth-child(8){
+  width:140px;
+}
+
+
+/* 0 / ร / มส / มผ / รวม */
+
+#gradeRiskPage thead tr:nth-child(2) th{
+  width:70px;
+  text-align:center;
+}
+
+
+/* นักเรียนให้ตัดบรรทัดได้ */
+
+#gradeRiskPage tbody td:nth-child(2){
+  white-space:normal;
+  word-break:break-word;
+}
+
+
+/* คอลัมน์ตัวเลขไม่ให้ขึ้นบรรทัดใหม่ */
+
+#gradeRiskPage tbody td:not(:nth-child(2)){
+  white-space:nowrap;
+}
+
+.grade-risk-resolved{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:32px;
+  height:28px;
+  padding:0 8px;
+  border-radius:8px;
+  font-weight:800;
+  color:#64748b;
+}
+
+.grade-risk-resolved.has-value{
+  background:#dcfce7;
+  color:#15803d;
+}
+
+.grade-risk-count{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:28px;
+  height:28px;
+  padding:0 7px;
+  border-radius:8px;
+  font-weight:700;
+  color:#64748b;
+}
+
+.grade-risk-count.danger{
+  background:#fee2e2;
+  color:#b91c1c;
+}
+
+.grade-risk-count.warning{
+  background:#fef3c7;
+  color:#92400e;
+}
+
+/* =========================================================
+   Risk Level
+   ========================================================= */
+
+.grade-risk-level{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:88px;
+  padding:5px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+  white-space:nowrap;
+}
+
+.grade-risk-level.urgent{
+  background:#fee2e2;
+  color:#b91c1c;
+}
+
+.grade-risk-level.follow{
+  background:#ffedd5;
+  color:#c2410c;
+}
+
+.grade-risk-level.watch{
+  background:#fef3c7;
+  color:#92400e;
+}
+
+.grade-risk-level.done{
+  background:#dcfce7;
+  color:#15803d;
+}
+
+
+/* =========================================================
+   Progress
+   ========================================================= */
+
+.grade-risk-progress{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  min-width:120px;
+}
+
+.grade-risk-progress-track{
+  flex:1;
+  height:8px;
+  overflow:hidden;
+  border-radius:999px;
+  background:#e5e7eb;
+}
+
+.grade-risk-progress-bar{
+  height:100%;
+  border-radius:999px;
+  background:#16a34a;
+  transition:width .25s ease;
+}
+
+.grade-risk-progress-text{
+  width:auto;
+  min-width:32px;
+  text-align:left;
+  font-size:12px;
+  font-weight:700;
+  white-space:nowrap;
+}
+
+
+@media (max-width:1180px){
+
+  #gradeRiskPage .report-toolbar{
+    grid-template-columns:1fr 1fr;
+  }
+
+}
+
+
+@media (max-width:720px){
+
+  #gradeRiskPage .report-toolbar{
+    grid-template-columns:1fr;
+  }
+
+}
+
+
+
+/* =========================================================
    Grade Transfer Page: ผลการเรียนเทียบโอนรายบุคคล
    ========================================================= */
 
@@ -1660,6 +1912,10 @@ body.app-booting #appView{
 }
 
 #pageGradeManage.grade-repeat-mode > :not(h2):not(.sub):not(.grade-manage-page-tabs):not(#gradeRepeatPage){
+  display:none !important;
+}
+
+#pageGradeManage.grade-risk-mode > :not(h2):not(.sub):not(.grade-manage-page-tabs):not(#gradeRiskPage){
   display:none !important;
 }
 
@@ -5566,6 +5822,10 @@ body.app-booting #appView{
   <button id="gradeManageSubRepeatBtn" class="grade-manage-sub-btn" type="button">
     ♻️ จัดการนักเรียนซ้ำชั้น
   </button>
+
+  <button id="gradeManageSubRiskBtn" class="grade-manage-sub-btn" type="button">
+  🚨 ติดตาม 0 ร มส มผ
+</button>
 </div>
 
 <!-- =========================================================
@@ -5955,6 +6215,287 @@ body.app-booting #appView{
         </tr>
       </tbody>
     </table>
+  </div>
+
+</section>
+
+<!-- =========================================================
+     ติดตาม 0 ร มส มผ
+     ========================================================= -->
+<section id="gradeRiskPage" class="hidden">
+
+  <div class="grade-manage-summary">
+    <div class="grade-manage-summary-title">
+      🚨 นักเรียนที่ควรติดตาม 0 ร มส มผ
+    </div>
+
+    <div class="small">
+      แสดงนักเรียนที่มีผลการเรียน 0 / ร / มส / มผ
+      พร้อมจัดกลุ่มเป็นรายบุคคลและเรียงตามจำนวนวิชาที่ต้องติดตาม
+    </div>
+  </div>
+
+
+  <!-- =========================
+       FILTER
+       ========================= -->
+  <div class="report-toolbar">
+
+    <div class="field">
+      <span class="label-in-form">ปีการศึกษา</span>
+
+      <select id="gradeRiskYearFilter" class="std">
+        <option value="">ทั้งหมด</option>
+        <option value="2569">2569</option>
+        <option value="2568">2568</option>
+        <option value="2567">2567</option>
+        <option value="2566">2566</option>
+        <option value="2565">2565</option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">ภาคเรียน</span>
+
+      <select id="gradeRiskTermFilter" class="std">
+        <option value="">ทั้งหมด</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">ชั้น</span>
+
+      <select id="gradeRiskClassFilter" class="std">
+        <option value="">ทั้งหมด</option>
+        <option value="ม.1">ม.1</option>
+        <option value="ม.2">ม.2</option>
+        <option value="ม.3">ม.3</option>
+        <option value="ม.4">ม.4</option>
+        <option value="ม.5">ม.5</option>
+        <option value="ม.6">ม.6</option>
+      </select>
+    </div>
+
+
+    <div class="field">
+      <span class="label-in-form">ห้อง</span>
+
+      <select id="gradeRiskRoomFilter" class="std">
+        <option value="">ทั้งหมด</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+      </select>
+    </div>
+
+    <div class="field">
+  <span class="label-in-form">สถานะ</span>
+
+  <select
+    id="gradeRiskStatusFilter"
+    class="std"
+  >
+    <option value="">
+      ทั้งหมด
+    </option>
+
+    <option value="incomplete">
+      ยังไม่แก้ / แก้ไม่ครบ
+    </option>
+
+    <option value="complete">
+      แก้ครบแล้ว
+    </option>
+  </select>
+</div>
+
+  </div>
+
+
+  <!-- =========================
+       SUMMARY / ACTION
+       ========================= -->
+  <div class="grade-manage-active-filter">
+
+    <div class="grade-manage-filter-left">
+
+      <div class="grade-manage-pill">
+        นักเรียนที่แสดง:
+        <span id="gradeRiskStudentCount" style="margin-left:6px;">
+          0
+        </span>
+      </div>
+
+      <div class="grade-manage-pill">
+        รายการที่ต้องติดตาม:
+        <span id="gradeRiskRecordCount" style="margin-left:6px;">
+          0
+        </span>
+      </div>
+
+    </div>
+
+
+<div class="actions" style="margin:0;">
+
+  <button
+    id="gradeRiskPrintBtn"
+    class="btn-success"
+    type="button"
+  >
+    🖨️ พิมพ์รายงาน
+  </button>
+
+  <button
+    id="gradeRiskClearFilterBtn"
+    class="btn-secondary"
+    type="button"
+  >
+    ล้างตัวกรอง
+  </button>
+
+  <button
+    id="gradeRiskReloadBtn"
+    class="btn-primary"
+    type="button"
+  >
+    โหลดข้อมูล
+  </button>
+
+</div>
+
+  </div>
+
+
+  <div
+    id="gradeRiskStatus"
+    class="status info"
+  >
+    เลือกเงื่อนไขแล้วกดโหลดข้อมูล
+  </div>
+
+
+  <!-- =========================
+       TABLE
+       ========================= -->
+  <div class="table-wrap">
+
+    <table id="gradeRiskTable">
+
+<thead>
+
+  <tr>
+
+    <th rowspan="2" class="text-center">
+      เลขที่
+    </th>
+
+    <th rowspan="2">
+      นักเรียน
+    </th>
+
+    <th rowspan="2" class="text-center">
+      ชั้น
+    </th>
+
+    <th rowspan="2" class="text-center">
+      จำนวนทั้งหมด
+    </th>
+
+    <th colspan="5" class="text-center">
+      ยังไม่ได้แก้
+    </th>
+
+    <th rowspan="2" class="text-center">
+      แก้แล้ว
+    </th>
+
+    <th rowspan="2" class="text-center">
+      ระดับ
+    </th>
+
+    <th rowspan="2" class="text-center">
+      ความคืบหน้า
+    </th>
+
+  </tr>
+
+
+  <tr>
+
+    <th class="text-center">
+      0
+    </th>
+
+    <th class="text-center">
+      ร
+    </th>
+
+    <th class="text-center">
+      มส
+    </th>
+
+    <th class="text-center">
+      มผ
+    </th>
+
+    <th class="text-center">
+      รวม
+    </th>
+
+  </tr>
+
+</thead>
+
+
+      <tbody id="gradeRiskTbody">
+
+        <tr class="filter-empty-row">
+
+          <td colspan="12">
+
+            <div class="filter-empty-state">
+
+              <div class="filter-empty-card">
+
+                <div class="filter-empty-icon">
+                  🚨
+                </div>
+
+                <div class="filter-empty-title">
+                  ยังไม่ได้โหลดข้อมูล
+                </div>
+
+                <div class="filter-empty-text">
+                  เลือกปีการศึกษา ภาคเรียน ชั้น หรือห้อง
+                  แล้วกดโหลดข้อมูล
+                </div>
+
+                <div class="filter-empty-hint">
+                  ติดตาม 0 / ร / มส / มผ รายบุคคล
+                </div>
+
+              </div>
+
+            </div>
+
+          </td>
+
+        </tr>
+
+      </tbody>
+
+    </table>
+
   </div>
 
 </section>
@@ -8394,6 +8935,9 @@ gradeStudentSyncPreview: null,
 gradeStudentSyncRunning: false,
 
 gradeManageSubPage: 'edit',
+
+gradeRiskRows: [],
+gradeRiskLoading: false,
 
 transferStudent: null,
 transferRows: [],
@@ -11250,6 +11794,14 @@ function getExpectedClassLevel(entryAcademicYear, entryLevel, selectedAcademicYe
   }
 
   function setActivePage(page){
+      try{
+    sessionStorage.setItem(
+      'adminPRActivePage',
+      String(page || 'home')
+    );
+  }catch(error){
+    console.warn('SAVE ACTIVE PAGE SKIPPED', error);
+  }
     const isHome = page === 'home';
     const isSubjects = page === 'subjects';
     const isTeachers = page === 'teachers';
@@ -23777,7 +24329,11 @@ function initGradeManagePage(){
   state.gradeManageRows = [];
   state.gradeManageEditingId = null;
 
-  setGradeManageSubPage('edit');
+  setGradeManageSubPage(
+  ['edit', 'transfer', 'repeat', 'risk'].includes(state.gradeManageSubPage)
+    ? state.gradeManageSubPage
+    : 'edit'
+);
   resetTransferState(false);
 
   renderGradeManageFilterPrompt();
@@ -23794,40 +24350,77 @@ function setGradeManageSubPage(page){
   const isEdit = page === 'edit';
   const isTransfer = page === 'transfer';
   const isRepeat = page === 'repeat';
+  const isRisk = page === 'risk';
 
   const pageNode = el('pageGradeManage');
   const transferPage = el('gradeTransferPage');
   const repeatPage = el('gradeRepeatPage');
+  const riskPage = el('gradeRiskPage');
 
   if(pageNode){
-    pageNode.classList.toggle('grade-transfer-mode', isTransfer);
-    pageNode.classList.toggle('grade-repeat-mode', isRepeat);
+    pageNode.classList.toggle(
+      'grade-transfer-mode',
+      isTransfer
+    );
+
+    pageNode.classList.toggle(
+      'grade-repeat-mode',
+      isRepeat
+    );
+
+    pageNode.classList.toggle(
+      'grade-risk-mode',
+      isRisk
+    );
   }
 
   if(transferPage){
-    transferPage.classList.toggle('hidden', !isTransfer);
+    transferPage.classList.toggle(
+      'hidden',
+      !isTransfer
+    );
   }
 
   if(repeatPage){
-    repeatPage.classList.toggle('hidden', !isRepeat);
+    repeatPage.classList.toggle(
+      'hidden',
+      !isRepeat
+    );
+  }
+
+  if(riskPage){
+    riskPage.classList.toggle(
+      'hidden',
+      !isRisk
+    );
   }
 
   if(el('gradeManageSubEditBtn')){
-    el('gradeManageSubEditBtn').className = isEdit
-      ? 'grade-manage-sub-btn active'
-      : 'grade-manage-sub-btn';
+    el('gradeManageSubEditBtn').className =
+      isEdit
+        ? 'grade-manage-sub-btn active'
+        : 'grade-manage-sub-btn';
   }
 
   if(el('gradeManageSubTransferBtn')){
-    el('gradeManageSubTransferBtn').className = isTransfer
-      ? 'grade-manage-sub-btn active'
-      : 'grade-manage-sub-btn';
+    el('gradeManageSubTransferBtn').className =
+      isTransfer
+        ? 'grade-manage-sub-btn active'
+        : 'grade-manage-sub-btn';
   }
 
   if(el('gradeManageSubRepeatBtn')){
-    el('gradeManageSubRepeatBtn').className = isRepeat
-      ? 'grade-manage-sub-btn active'
-      : 'grade-manage-sub-btn';
+    el('gradeManageSubRepeatBtn').className =
+      isRepeat
+        ? 'grade-manage-sub-btn active'
+        : 'grade-manage-sub-btn';
+  }
+
+  if(el('gradeManageSubRiskBtn')){
+    el('gradeManageSubRiskBtn').className =
+      isRisk
+        ? 'grade-manage-sub-btn active'
+        : 'grade-manage-sub-btn';
   }
 }
 
@@ -27284,6 +27877,2395 @@ const {
     }
   }
 }
+
+function getFilteredGradeRiskRows(){
+
+const rows =
+  Array.isArray(state.gradeRiskRows)
+    ? state.gradeRiskRows.filter(
+        row =>
+          String(
+            row.student_status || ''
+          ).trim() !== 'ลาออก'
+      )
+    : [];
+
+  const status =
+    String(
+      el('gradeRiskStatusFilter')?.value || ''
+    ).trim();
+
+
+  if(status === 'incomplete'){
+
+    return rows.filter(
+      row =>
+        Number(
+          row.unresolved_records || 0
+        ) > 0
+    );
+
+  }
+
+
+  if(status === 'complete'){
+
+    return rows.filter(
+      row =>
+        Number(
+          row.unresolved_records || 0
+        ) === 0
+    );
+
+  }
+
+
+  return rows;
+}
+
+function getGradeRiskPrintGroups(){
+
+  const rows =
+    getFilteredGradeRiskRows();
+
+
+  const groupMap =
+    new Map();
+
+
+  rows.forEach(row => {
+
+    const classLevel =
+      String(
+        row.current_class_level || ''
+      ).trim();
+
+    const room =
+      String(
+        row.current_room || ''
+      ).trim();
+
+
+    if(!classLevel || !room){
+      return;
+    }
+
+
+    const key =
+      `${classLevel}__${room}`;
+
+
+    if(!groupMap.has(key)){
+
+      groupMap.set(
+        key,
+        {
+          classLevel,
+          room,
+          rows:[]
+        }
+      );
+
+    }
+
+
+    groupMap.get(key).rows.push(row);
+
+  });
+
+
+  const groups =
+    Array.from(
+      groupMap.values()
+    );
+
+
+  // เรียง ชั้น ม.1 → ม.6
+  // และห้อง 1 → 8
+  groups.sort(
+    (a, b) => {
+
+      const classA =
+        Number(
+          String(a.classLevel)
+            .replace(/\D/g, '')
+        ) || 0;
+
+      const classB =
+        Number(
+          String(b.classLevel)
+            .replace(/\D/g, '')
+        ) || 0;
+
+
+      if(classA !== classB){
+        return classA - classB;
+      }
+
+
+      const roomA =
+        Number(a.room);
+
+      const roomB =
+        Number(b.room);
+
+
+      if(
+        Number.isFinite(roomA) &&
+        Number.isFinite(roomB)
+      ){
+        return roomA - roomB;
+      }
+
+
+      return String(a.room)
+        .localeCompare(
+          String(b.room),
+          'th'
+        );
+
+    }
+  );
+
+
+  // เรียงนักเรียนภายในห้องตามเลขที่
+  groups.forEach(group => {
+
+    group.rows.sort(
+      (a, b) => {
+
+        const noA =
+          Number(
+            a.current_no
+          );
+
+        const noB =
+          Number(
+            b.current_no
+          );
+
+
+        if(
+          Number.isFinite(noA) &&
+          Number.isFinite(noB)
+        ){
+          return noA - noB;
+        }
+
+
+        return String(
+          a.student_name || ''
+        ).localeCompare(
+          String(
+            b.student_name || ''
+          ),
+          'th'
+        );
+
+      }
+    );
+
+  });
+
+
+  return groups;
+}
+
+function getGradeRiskGroupAdvisers(
+  group,
+  academicYear,
+  term
+){
+
+  const adviserRows =
+    (state.teacherAdvisers || [])
+      .filter(row =>
+        row.is_active !== false
+      )
+      .filter(row =>
+        String(row.academic_year) ===
+        String(academicYear)
+      )
+      .filter(row =>
+        String(row.term) ===
+        String(term)
+      )
+      .filter(row =>
+        String(row.class_level || '').trim() ===
+        String(group.classLevel || '').trim()
+      )
+      .filter(row =>
+        String(row.room || '').trim() ===
+        String(group.room || '').trim()
+      );
+
+
+  adviserRows.sort(
+    (a, b) => {
+
+      const roleA =
+        String(
+          a.adviser_role || ''
+        ).trim();
+
+      const roleB =
+        String(
+          b.adviser_role || ''
+        ).trim();
+
+
+      if(
+        roleA === 'หลัก' &&
+        roleB !== 'หลัก'
+      ){
+        return -1;
+      }
+
+
+      if(
+        roleB === 'หลัก' &&
+        roleA !== 'หลัก'
+      ){
+        return 1;
+      }
+
+
+      return 0;
+    }
+  );
+
+
+  const advisers = [];
+
+  const usedTeacherIds =
+    new Set();
+
+
+  adviserRows.forEach(row => {
+
+    const teacher =
+      getTeacherById(
+        row.teacher_id
+      );
+
+
+    if(!teacher){
+      return;
+    }
+
+
+    const teacherId =
+      String(
+        teacher.id || ''
+      );
+
+
+    if(
+      usedTeacherIds.has(
+        teacherId
+      )
+    ){
+      return;
+    }
+
+
+    usedTeacherIds.add(
+      teacherId
+    );
+
+
+advisers.push({
+
+  teacherId:
+    teacher.id,
+
+  teacherCode:
+    teacher.teacher_code || '',
+
+  teacherPrefix:
+    String(
+      teacher.prefix || ''
+    ).trim(),
+
+  teacherName:
+    teacher.full_name || '',
+
+  adviserRole:
+    row.adviser_role || ''
+
+});
+
+  });
+
+
+  return advisers;
+}
+
+async function ensureSarabunCanvasReady(){
+
+  if(
+    !document.fonts ||
+    !document.fonts.load
+  ){
+    return;
+  }
+
+
+  await Promise.all([
+
+    document.fonts.load(
+      '400 24px "Sarabun"',
+      'ภาษาไทย'
+    ),
+
+    document.fonts.load(
+      '700 24px "Sarabun"',
+      'ภาษาไทย'
+    )
+
+  ]);
+
+
+  /*
+   * รอ FontFaceSet พร้อมจริง
+   */
+  await document.fonts.ready;
+
+
+  /*
+   * รอจน browser ยืนยันว่า Sarabun พร้อม
+   */
+  for(
+    let i = 0;
+    i < 20;
+    i++
+  ){
+
+    const regularReady =
+      document.fonts.check(
+        '400 24px "Sarabun"',
+        'ภาษาไทย'
+      );
+
+
+    const boldReady =
+      document.fonts.check(
+        '700 24px "Sarabun"',
+        'ภาษาไทย'
+      );
+
+
+    if(
+      regularReady &&
+      boldReady
+    ){
+      break;
+    }
+
+
+    await new Promise(
+      resolve =>
+        setTimeout(
+          resolve,
+          50
+        )
+    );
+
+  }
+
+
+  /*
+   * Warm-up Canvas
+   * ให้ browser render Sarabun จริง 1 ครั้ง
+   */
+  const canvas =
+    document.createElement(
+      'canvas'
+    );
+
+
+  canvas.width =
+    400;
+
+  canvas.height =
+    100;
+
+
+  const ctx =
+    canvas.getContext(
+      '2d'
+    );
+
+
+  ctx.font =
+    '400 24px "Sarabun", sans-serif';
+
+  ctx.fillText(
+    'ทดสอบภาษาไทย น้ำ ปั้น นักเรียน',
+    10,
+    40
+  );
+
+
+  ctx.font =
+    '700 24px "Sarabun", sans-serif';
+
+  ctx.fillText(
+    'ทดสอบภาษาไทย น้ำ ปั้น นักเรียน',
+    10,
+    80
+  );
+
+
+  /*
+   * รอ browser อีก 2 frame
+   */
+  await new Promise(
+    resolve =>
+      requestAnimationFrame(
+        () =>
+          requestAnimationFrame(
+            resolve
+          )
+      )
+  );
+
+}
+
+function drawGradeRiskStudentTable(
+  doc,
+  group,
+  {
+    startY,
+    marginLeft,
+    marginRight
+  }
+){
+
+  const rows =
+    Array.isArray(group.rows)
+      ? group.rows
+      : [];
+
+
+  const body =
+    rows.map(row => {
+
+      const total =
+        Number(
+          row.total_risk_records || 0
+        );
+
+      const grade0 =
+        Number(
+          row.unresolved_grade_0_records || 0
+        );
+
+      const gradeR =
+        Number(
+          row.unresolved_grade_r_records || 0
+        );
+
+      const gradeMs =
+        Number(
+          row.unresolved_grade_ms_records || 0
+        );
+
+      const gradeMp =
+        Number(
+          row.unresolved_grade_mp_records || 0
+        );
+
+      const unresolved =
+        Number(
+          row.unresolved_records || 0
+        );
+
+      const resolved =
+        Number(
+          row.resolved_records || 0
+        );
+
+
+      return [
+
+        row.current_no ?? '-',
+
+        row.student_name || '-',
+
+        `${group.classLevel}/${group.room}`,
+
+        total || '-',
+
+        grade0 || '-',
+
+        gradeR || '-',
+
+        gradeMs || '-',
+
+        gradeMp || '-',
+
+        unresolved || '-',
+
+        resolved || '-',
+
+        row.risk_level || '-',
+
+        `${resolved}/${total}`,
+
+        '',
+
+        ''
+
+      ];
+
+    });
+
+
+  doc.autoTable({
+
+    startY,
+
+
+    /* =================================================
+       หัวตาราง
+       ================================================= */
+
+    head:[
+
+      [
+
+        {
+          content:'เลขที่',
+          rowSpan:2
+        },
+
+        {
+          content:'นักเรียน',
+          rowSpan:2
+        },
+
+        {
+          content:'ชั้น',
+          rowSpan:2
+        },
+
+        {
+          content:'ทั้งหมด',
+          rowSpan:2
+        },
+
+        {
+          content:'ยังไม่ได้แก้',
+          colSpan:5
+        },
+
+        {
+          content:'แก้แล้ว',
+          rowSpan:2
+        },
+
+        {
+          content:'ระดับ',
+          rowSpan:2
+        },
+
+        {
+          content:'ความคืบ\nหน้า',
+          rowSpan:2
+        },
+
+        {
+          content:'ผู้ปกครอง\nรับทราบ',
+          rowSpan:2
+        },
+
+        {
+          content:'หมายเหตุ',
+          rowSpan:2
+        }
+
+      ],
+
+      [
+
+        '0',
+        'ร',
+        'มส',
+        'มผ',
+        'รวม'
+
+      ]
+
+    ],
+
+
+    body,
+
+
+    theme:
+      'grid',
+
+
+    showHead:
+      'everyPage',
+
+
+    rowPageBreak:
+      'avoid',
+
+
+    margin:{
+
+      left:
+        marginLeft,
+
+      right:
+        marginRight,
+
+      top:
+        12,
+
+      bottom:
+        15
+
+    },
+
+
+    /* =================================================
+       รูปแบบทั่วไป
+       ================================================= */
+
+   styles:{
+
+  font:
+    'Sarabun',
+
+  fontStyle:
+    'normal',
+
+  fontSize:
+    8.2,
+
+  textColor:[
+    35,
+    50,
+    70
+  ],
+
+  lineColor:[
+    175,
+    188,
+    202
+  ],
+
+  lineWidth:
+    0.2,
+
+  valign:
+    'middle',
+
+  halign:
+    'center',
+
+  cellPadding:{
+    top:1.2,
+    right:0.8,
+    bottom:1.2,
+    left:0.8
+  },
+
+  minCellHeight:
+    9,
+
+  overflow:
+    'linebreak'
+
+},
+
+
+    /* =================================================
+       หัวตาราง
+       ================================================= */
+
+headStyles:{
+
+  fillColor:[
+    232,
+    240,
+    250
+  ],
+
+  textColor:[
+    23,
+    50,
+    74
+  ],
+
+  fontStyle:
+    'bold',
+
+  halign:
+    'center',
+
+  valign:
+    'middle',
+
+  minCellHeight:
+    9
+
+},
+
+
+    /* =================================================
+       ความกว้างคอลัมน์
+       รวม 186 mm
+       ================================================= */
+
+    columnStyles:{
+
+      // เลขที่
+      0:{
+        cellWidth:9,
+        halign:'center'
+      },
+
+// นักเรียน
+1:{
+  cellWidth:38,
+  halign:'left'
+},
+
+2:{
+  cellWidth:11,
+  halign:'center'
+},
+
+3:{
+  cellWidth:11,
+  halign:'center'
+},
+
+9:{
+  cellWidth:10,
+  halign:'center'
+},
+
+// ...
+
+// ระดับ
+10:{
+  cellWidth:16,
+  halign:'center'
+},
+
+// ความคืบหน้า
+11:{
+  cellWidth:13,
+  halign:'center'
+},
+
+// ผู้ปกครองรับทราบ
+12:{
+  cellWidth:14,
+  halign:'center'
+},
+
+// หมายเหตุ
+13:{
+  cellWidth:22,
+  halign:'left'
+}
+
+    },
+
+
+    /* =================================================
+       เก็บข้อความภาษาไทย
+       ================================================= */
+
+    didParseCell(data){
+
+      let rawText = '';
+
+
+      if(
+        Array.isArray(
+          data.cell.text
+        )
+      ){
+
+        rawText =
+          data.cell.text.join('\n');
+
+      }else{
+
+        rawText =
+          String(
+            data.cell.raw ?? ''
+          );
+
+      }
+
+
+      const hasThai =
+        /[\u0E00-\u0E7F]/.test(
+          rawText
+        );
+
+
+      if(!hasThai){
+        return;
+      }
+
+
+      data.cell._thaiCanvasText =
+        rawText;
+
+
+      data.cell.text =
+        [''];
+
+    },
+
+
+    /* =================================================
+       วาดข้อความภาษาไทยด้วย Canvas
+       รองรับ 2 บรรทัด
+       ================================================= */
+
+    didDrawCell(data){
+
+      if(
+        !data.cell._thaiCanvasText
+      ){
+        return;
+      }
+
+
+      const text =
+        String(
+          data.cell._thaiCanvasText
+        );
+
+
+      const lines =
+        text
+          .split('\n')
+          .filter(
+            line =>
+              String(line).length > 0
+          );
+
+
+      if(!lines.length){
+        return;
+      }
+
+
+      const isHead =
+        data.section ===
+        'head';
+
+
+      const columnIndex =
+        data.column.index;
+
+
+      const padding =
+        0.8;
+
+
+      const availableWidth =
+        Math.max(
+          1,
+          data.cell.width -
+          (
+            padding * 2
+          )
+        );
+
+
+      let align =
+        'center';
+
+
+      if(
+        !isHead &&
+        columnIndex === 1
+      ){
+
+        align =
+          'left';
+
+      }
+
+
+      /*
+       * หัวตาราง 2 บรรทัด
+       */
+      if(
+        isHead &&
+        lines.length > 1
+      ){
+
+        const lineHeight =
+          4.8;
+
+
+        const totalHeight =
+          lines.length *
+          lineHeight;
+
+
+        const firstY =
+          data.cell.y +
+          (
+            data.cell.height -
+            totalHeight
+          ) / 2;
+
+
+        lines.forEach(
+          (
+            line,
+            index
+          ) => {
+
+            drawThaiPdfText(
+              doc,
+              line,
+              {
+
+                x:
+                  data.cell.x +
+                  padding,
+
+                y:
+                  firstY +
+                  (
+                    index *
+                    lineHeight
+                  ),
+
+                maxWidth:
+                  availableWidth,
+
+                height:
+                  5.2,
+
+                fontPx:
+                  40,
+
+                weight:
+                  '700',
+
+                color:
+                  '#233246',
+
+                align:
+                  'center'
+
+              }
+            );
+
+          }
+        );
+
+
+        return;
+
+      }
+
+
+      /*
+       * ข้อความปกติ 1 บรรทัด
+       */
+
+const textHeight = 5.4;
+
+
+drawThaiPdfText(
+  doc,
+  lines[0],
+  {
+
+    x:
+      data.cell.x +
+      padding,
+
+    y:
+      data.cell.y +
+      (
+        data.cell.height -
+        textHeight
+      ) / 2,
+
+    maxWidth:
+      availableWidth,
+
+    height:
+      textHeight,
+
+    fontPx:
+      35,
+
+    weight:
+      isHead
+        ? '700'
+        : '400',
+
+    color:
+      '#233246',
+
+    align
+
+  }
+);
+
+    }
+
+  });
+
+
+  return (
+    doc.lastAutoTable
+      ?.finalY ||
+    startY
+  );
+
+}
+
+function drawGradeRiskAdviserSignatures(
+  doc,
+  group,
+  {
+    startY,
+    marginLeft,
+    marginRight
+  }
+){
+
+  const advisers =
+    (group.advisers || [])
+      .filter(adviser =>
+        String(
+          adviser.teacherName || ''
+        ).trim()
+      );
+
+
+  if(!advisers.length){
+    return startY;
+  }
+
+
+  const pageWidth =
+    doc.internal.pageSize.getWidth();
+
+
+  const pageHeight =
+    doc.internal.pageSize.getHeight();
+
+
+  const contentWidth =
+    pageWidth -
+    marginLeft -
+    marginRight;
+
+
+  /*
+   * สูงสุด 3 คนต่อแถว
+   */
+  const perRow =
+    Math.min(
+      3,
+      advisers.length
+    );
+
+
+  const rowCount =
+    Math.ceil(
+      advisers.length /
+      perRow
+    );
+
+
+  const rowHeight =
+    25;
+
+
+  const requiredHeight =
+    rowCount *
+    rowHeight;
+
+
+  let cursorY =
+    startY + 10;
+
+
+  /*
+   * ถ้าพื้นที่ใต้ตารางไม่พอ
+   * เปิดหน้าใหม่สำหรับลายเซ็น
+   */
+  if(
+    cursorY +
+    requiredHeight >
+    pageHeight - 15
+  ){
+
+    doc.addPage(
+      'a4',
+      'portrait'
+    );
+
+
+    drawThaiPdfText(
+      doc,
+      `ชั้น ${group.classLevel}/${group.room}`,
+      {
+        x:
+          marginLeft,
+
+        y:
+          10,
+
+        maxWidth:
+          contentWidth,
+
+        height:
+          6,
+
+        fontPx:
+          30,
+
+        weight:
+          '700',
+
+        color:
+          '#17324a',
+
+        align:
+          'center'
+      }
+    );
+
+
+    cursorY =
+      23;
+
+  }
+
+
+  for(
+    let rowIndex = 0;
+    rowIndex < rowCount;
+    rowIndex++
+  ){
+
+    const rowAdvisers =
+      advisers.slice(
+        rowIndex * perRow,
+        (
+          rowIndex *
+          perRow
+        ) + perRow
+      );
+
+
+    const columnWidth =
+      contentWidth /
+      rowAdvisers.length;
+
+
+    rowAdvisers.forEach(
+      (
+        adviser,
+        columnIndex
+      ) => {
+
+        const prefix =
+          String(
+            adviser.teacherPrefix || ''
+          ).trim();
+
+
+        const teacherName =
+          String(
+            adviser.teacherName || ''
+          ).trim();
+
+
+        /*
+         * นาย / นาง / นางสาว
+         * เขียนติดกับชื่อ
+         *
+         * คำนำหน้าอื่น เช่น Mr.
+         * หรือ ว่าที่ร้อยตรี
+         * เว้นวรรคก่อนชื่อ
+         */
+        const noSpacePrefixes =
+          [
+            'นาย',
+            'นาง',
+            'นางสาว'
+          ];
+
+
+        const fullName =
+          prefix
+            ? (
+                noSpacePrefixes.includes(
+                  prefix
+                )
+                  ? `${prefix}${teacherName}`
+                  : `${prefix} ${teacherName}`
+              )
+            : teacherName;
+
+
+        const x =
+          marginLeft +
+          (
+            columnIndex *
+            columnWidth
+          );
+
+
+        /*
+         * บรรทัดลงชื่อ
+         */
+        drawThaiPdfText(
+          doc,
+          'ลงชื่อ .................................................................',
+          {
+            x,
+
+            y:
+              cursorY,
+
+            maxWidth:
+              columnWidth - 3,
+
+            height:
+              5.5,
+
+            fontPx:
+              35,
+
+            weight:
+              '400',
+
+            color:
+              '#17324a',
+
+            align:
+              'center'
+          }
+        );
+
+
+        /*
+         * ชื่อพร้อมคำนำหน้า
+         */
+        drawThaiPdfText(
+          doc,
+          `(${fullName})`,
+          {
+            x,
+
+            y:
+              cursorY + 4.8,
+
+            maxWidth:
+              columnWidth - 3,
+
+            height:
+              5.5,
+
+            fontPx:
+              37,
+
+            weight:
+              '400',
+
+            color:
+              '#17324a',
+
+            align:
+              'center'
+          }
+        );
+
+
+        /*
+         * ตำแหน่ง
+         */
+        drawThaiPdfText(
+          doc,
+          'ครูที่ปรึกษา',
+          {
+            x,
+
+            y:
+              cursorY + 9.5,
+
+            maxWidth:
+              columnWidth - 4,
+
+            height:
+              5.5,
+
+            fontPx:
+              35,
+
+            weight:
+              '400',
+
+            color:
+              '#17324a',
+
+            align:
+              'center'
+          }
+        );
+
+      }
+    );
+
+
+    cursorY +=
+      rowHeight;
+
+  }
+
+
+  return cursorY;
+}
+
+async function loadImageAsDataUrl(src){
+
+  return await new Promise(
+    (resolve, reject) => {
+
+      const img =
+        new Image();
+
+      img.onload = () => {
+
+        const canvas =
+          document.createElement('canvas');
+
+        canvas.width =
+          img.naturalWidth || img.width;
+
+        canvas.height =
+          img.naturalHeight || img.height;
+
+        const ctx =
+          canvas.getContext('2d');
+
+        ctx.drawImage(
+          img,
+          0,
+          0
+        );
+
+        resolve(
+          canvas.toDataURL('image/png')
+        );
+
+      };
+
+      img.onerror = () => {
+        reject(
+          new Error(
+            `ไม่สามารถโหลดรูปภาพได้: ${src}`
+          )
+        );
+      };
+
+      img.src = src;
+
+    }
+  );
+
+}
+
+async function exportGradeRiskPdf(
+  groups,
+  academicYear,
+  term
+){
+
+  try{
+
+    /* =====================================================
+       1. ตรวจ jsPDF
+       ===================================================== */
+
+    if(
+      !window.jspdf ||
+      !window.jspdf.jsPDF
+    ){
+
+      throw new Error(
+        'ไม่พบ jsPDF กรุณาตรวจสอบการโหลด library'
+      );
+
+    }
+
+
+    const {
+      jsPDF
+    } = window.jspdf;
+
+
+    /* =====================================================
+       2. สร้าง PDF A4 แนวตั้ง
+       ===================================================== */
+
+    const doc =
+      new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+
+    if(
+      typeof doc.autoTable !==
+      'function'
+    ){
+
+      throw new Error(
+        'ไม่พบ jsPDF AutoTable'
+      );
+
+    }
+
+
+    showToast(
+      'กำลังสร้าง PDF',
+      'กำลังจัดทำรายงานติดตามผลการเรียน...',
+      'info'
+    );
+
+
+    /* =====================================================
+       3. เตรียมฟอนต์ Sarabun
+       ===================================================== */
+
+    await prepareMidtermPdfThaiFont(
+      doc
+    );
+
+
+    /*
+     * สำคัญ
+     * รอ Browser โหลด Sarabun
+     * เพื่อให้ Canvas วาดสระ/วรรณยุกต์ถูกต้อง
+     */
+await ensureSarabunCanvasReady();
+
+let schoolLogoDataUrl = null;
+
+try{
+
+  schoolLogoDataUrl =
+    await loadImageAsDataUrl(
+      './assets/school-logo-login-square.png'
+    );
+
+}catch(logoError){
+
+  console.warn(
+    'โหลดโลโก้โรงเรียนไม่สำเร็จ',
+    logoError
+  );
+
+}
+
+
+    /* =====================================================
+       4. ขนาดกระดาษ
+       ===================================================== */
+
+    const pageWidth =
+      doc.internal.pageSize.getWidth();
+
+
+    const pageHeight =
+      doc.internal.pageSize.getHeight();
+
+
+    const marginLeft =
+      12;
+
+
+    const marginRight =
+      12;
+
+
+    const contentWidth =
+      pageWidth -
+      marginLeft -
+      marginRight;
+
+
+    /* =====================================================
+       5. สร้างแต่ละชุด ชั้น/ห้อง
+       ===================================================== */
+
+    groups.forEach(
+      (
+        group,
+        index
+      ) => {
+
+
+        /*
+         * ห้องใหม่
+         * เริ่มหน้าใหม่
+         */
+        if(index > 0){
+
+          doc.addPage(
+            'a4',
+            'portrait'
+          );
+
+        }
+
+        const logoY =
+  6;
+
+
+/* =================================================
+   โลโก้โรงเรียน
+   ================================================= */
+
+if(schoolLogoDataUrl){
+
+  doc.addImage(
+    schoolLogoDataUrl,
+    'PNG',
+    logoX,
+    logoY,
+    logoSize,
+    logoSize
+  );
+
+}
+
+
+
+        /* =================================================
+           หัวเรื่อง
+           ใช้ Canvas ทั้งหมด
+           ป้องกันสระ/วรรณยุกต์ทับกัน
+           ================================================= */
+
+        drawThaiPdfText(
+          doc,
+          'แบบติดตามนักเรียนที่มีผลการเรียน 0 ร มส และ มผ',
+          {
+
+            x:
+              marginLeft,
+
+            y:
+              8,
+
+            maxWidth:
+              contentWidth,
+
+            height:
+              9,
+
+            fontPx:
+              40,
+
+            weight:
+              '700',
+
+            color:
+              '#17324a',
+
+            align:
+              'center'
+
+          }
+        );
+
+
+        /* =================================================
+           ชื่อโรงเรียน
+           ================================================= */
+
+        drawThaiPdfText(
+          doc,
+          'โรงเรียนท่าใหม่ “พูลสวัสดิ์ราษฎร์นุกูล”',
+          {
+
+            x:
+              marginLeft,
+
+            y:
+              16,
+
+            maxWidth:
+              contentWidth,
+
+            height:
+              8,
+
+            fontPx:
+              36,
+
+            weight:
+              '700',
+
+            color:
+              '#17324a',
+
+            align:
+              'center'
+
+          }
+        );
+
+
+        /* =================================================
+           ปี / เทอม / ชั้น
+           ================================================= */
+
+        const subtitle =
+          [
+            `ปีการศึกษา ${academicYear}`,
+            `ภาคเรียนที่ ${term}`,
+            `ชั้น ${group.classLevel}/${group.room}`
+          ]
+          .join('   ');
+
+
+        drawThaiPdfText(
+          doc,
+          subtitle,
+          {
+
+            x:
+              marginLeft,
+
+            y:
+              23.5,
+
+            maxWidth:
+              contentWidth,
+
+            height:
+              7,
+
+            fontPx:
+              32,
+
+            weight:
+              '400',
+
+            color:
+              '#556478',
+
+            align:
+              'center'
+
+          }
+        );
+
+/* =================================================
+   ข้อมูลเหนือตาราง
+   ครูที่ปรึกษา = ซ้าย
+   จำนวนนักเรียน = ขวา
+   ================================================= */
+
+const adviserNames =
+  (group.advisers || [])
+    .map(adviser => {
+
+      const name =
+        String(
+          adviser.teacherName || ''
+        ).trim();
+
+
+      if(!name){
+        return '';
+      }
+
+
+      return name.startsWith('ครู')
+        ? name
+        : `ครู${name}`;
+
+    })
+    .filter(Boolean);
+
+
+const adviserText =
+  `ครูที่ปรึกษา: ${
+    adviserNames.length
+      ? adviserNames.join(', ')
+      : '-'
+  }`;
+
+
+const leftInfoWidth =
+  contentWidth * 0.68;
+
+
+const rightInfoWidth =
+  contentWidth -
+  leftInfoWidth;
+
+
+/* ซ้าย : ครูที่ปรึกษา */
+
+drawThaiPdfText(
+  doc,
+  adviserText,
+  {
+    x:
+      marginLeft,
+
+    y:
+      49,
+
+    maxWidth:
+      leftInfoWidth - 2,
+
+    height:
+      6,
+
+    fontPx:
+      27,
+
+    weight:
+      '400',
+
+    color:
+      '#17324a',
+
+    align:
+      'left'
+  }
+);
+
+
+/* ขวา : จำนวนนักเรียน */
+
+drawThaiPdfText(
+  doc,
+  `จำนวนนักเรียนที่ต้องติดตาม ${group.rows.length} คน`,
+  {
+    x:
+      marginLeft +
+      leftInfoWidth,
+
+    y:
+      37,
+
+    maxWidth:
+      rightInfoWidth,
+
+    height:
+      6,
+
+    fontPx:
+      27,
+
+    weight:
+      '400',
+
+    color:
+      '#17324a',
+
+    align:
+      'right'
+  }
+);
+
+
+/* =================================================
+   ตาราง
+   ================================================= */
+
+const tableFinalY =
+  drawGradeRiskStudentTable(
+    doc,
+    group,
+    {
+      startY: 58,
+      marginLeft,
+      marginRight
+    }
+  );
+
+
+drawGradeRiskAdviserSignatures(
+  doc,
+  group,
+  {
+    startY:
+      tableFinalY,
+
+    marginLeft,
+    marginRight
+  }
+);
+ 
+
+       
+
+
+ 
+
+  
+
+      }
+    );
+
+
+    /* =====================================================
+       6. ชื่อไฟล์
+       ===================================================== */
+
+    const filename =
+      [
+        'grade_risk',
+        academicYear,
+        `term${term}`
+      ]
+      .join('_') +
+      '.pdf';
+
+
+    /* =====================================================
+       7. บันทึก PDF
+       ===================================================== */
+
+    doc.save(
+      filename
+    );
+
+
+    showToast(
+      'สร้างรายงานสำเร็จ',
+      `สร้างรายงาน ${groups.length} ชุดชั้น/ห้องเรียบร้อยแล้ว`,
+      'success'
+    );
+
+
+  }catch(err){
+
+    console.error(
+      'exportGradeRiskPdf error:',
+      err
+    );
+
+
+    showToast(
+      'สร้างรายงานไม่สำเร็จ',
+      err?.message ||
+        'เกิดข้อผิดพลาดในการสร้าง PDF',
+      'error'
+    );
+
+  }
+
+}
+
+function updateGradeRiskSummary(){
+
+  const rows =
+    getFilteredGradeRiskRows();
+
+
+  if(el('gradeRiskStudentCount')){
+    el('gradeRiskStudentCount').textContent =
+      String(rows.length);
+  }
+
+
+  const totalRecords =
+    rows.reduce(
+      (sum, row) =>
+        sum +
+        Number(
+          row.unresolved_records || 0
+        ),
+      0
+    );
+
+
+  if(el('gradeRiskRecordCount')){
+    el('gradeRiskRecordCount').textContent =
+      String(totalRecords);
+  }
+
+}
+
+function renderGradeRiskRows(){
+
+  const tbody =
+    el('gradeRiskTbody');
+
+  if(!tbody){
+    return;
+  }
+
+
+const rows =
+  getFilteredGradeRiskRows();
+
+
+  if(!rows.length){
+
+    tbody.innerHTML = `
+      <tr class="filter-empty-row">
+        <td colspan="12">
+          <div class="filter-empty-state">
+            <div class="filter-empty-card">
+
+              <div class="filter-empty-icon">
+                ✅
+              </div>
+
+              <div class="filter-empty-title">
+                ไม่พบข้อมูลที่ต้องติดตาม
+              </div>
+
+              <div class="filter-empty-text">
+                ไม่พบนักเรียนที่มีผลการเรียน
+                0 / ร / มส / มผ
+                ตามเงื่อนไขที่เลือก
+              </div>
+
+            </div>
+          </div>
+        </td>
+      </tr>
+    `;
+
+    return;
+  }
+
+
+  tbody.innerHTML =
+    rows.map(row => {
+
+      const totalRisk =
+        Number(
+          row.total_risk_records || 0
+        );
+
+      const grade0 =
+        Number(
+          row.unresolved_grade_0_records || 0
+        );
+
+      const gradeR =
+        Number(
+          row.unresolved_grade_r_records || 0
+        );
+
+      const gradeMs =
+        Number(
+          row.unresolved_grade_ms_records || 0
+        );
+
+      const gradeMp =
+        Number(
+          row.unresolved_grade_mp_records || 0
+        );
+
+      const unresolved =
+        Number(
+          row.unresolved_records || 0
+        );
+
+      const resolved =
+        Number(
+          row.resolved_records || 0
+        );
+
+
+      const progress =
+        totalRisk > 0
+          ? Math.round(
+              (
+                resolved /
+                totalRisk
+              ) * 100
+            )
+          : 0;
+
+
+      const riskLevel =
+        String(
+          row.risk_level || ''
+        ).trim();
+
+
+let riskLevelClass =
+  'grade-risk-level';
+
+if(riskLevel === 'เร่งด่วน'){
+  riskLevelClass +=
+    ' urgent';
+}
+else if(riskLevel === 'ควรติดตาม'){
+  riskLevelClass +=
+    ' follow';
+}
+else if(riskLevel === 'เฝ้าระวัง'){
+  riskLevelClass +=
+    ' watch';
+}
+else if(riskLevel === 'แก้ครบแล้ว'){
+  riskLevelClass +=
+    ' done';
+}
+
+
+      return `
+        <tr>
+
+          <!-- เลขที่ -->
+          <td class="text-center">
+            ${escapeHtml(
+              String(
+                row.current_no ?? '-'
+              )
+            )}
+          </td>
+
+
+          <!-- นักเรียน -->
+          <td>
+
+            <div>
+              ${escapeHtml(
+                row.student_name || '-'
+              )}
+            </div>
+
+            <div class="grade-manage-meta">
+              ${escapeHtml(
+                row.student_code || '-'
+              )}
+            </div>
+
+          </td>
+
+
+          <!-- ชั้น -->
+          <td class="text-center">
+
+            ${escapeHtml(
+              row.current_class_level || '-'
+            )}
+            /
+            ${escapeHtml(
+              String(
+                row.current_room || '-'
+              )
+            )}
+
+          </td>
+
+
+          <!-- จำนวนทั้งหมด -->
+          <td class="text-center">
+            <strong>
+              ${totalRisk}
+            </strong>
+          </td>
+
+
+<!-- ยังไม่ได้แก้ : 0 -->
+<td class="text-center">
+  <span class="${grade0 > 0 ? 'grade-risk-count danger' : 'grade-risk-count'}">
+    ${grade0 > 0 ? grade0 : '-'}
+  </span>
+</td>
+
+<!-- ยังไม่ได้แก้ : ร -->
+<td class="text-center">
+  <span class="${gradeR > 0 ? 'grade-risk-count warning' : 'grade-risk-count'}">
+    ${gradeR > 0 ? gradeR : '-'}
+  </span>
+</td>
+
+<!-- ยังไม่ได้แก้ : มส -->
+<td class="text-center">
+  <span class="${gradeMs > 0 ? 'grade-risk-count danger' : 'grade-risk-count'}">
+    ${gradeMs > 0 ? gradeMs : '-'}
+  </span>
+</td>
+
+<!-- ยังไม่ได้แก้ : มผ -->
+<td class="text-center">
+  <span class="${gradeMp > 0 ? 'grade-risk-count warning' : 'grade-risk-count'}">
+    ${gradeMp > 0 ? gradeMp : '-'}
+  </span>
+</td>
+
+
+          <!-- ยังไม่ได้แก้ : รวม -->
+          <td class="text-center">
+            <strong>
+              ${unresolved > 0 ? unresolved : '-'}
+            </strong>
+          </td>
+
+
+<!-- แก้แล้ว -->
+<td class="text-center">
+  <span class="${resolved > 0 ? 'grade-risk-resolved has-value' : 'grade-risk-resolved'}">
+    ${resolved > 0 ? resolved : '-'}
+  </span>
+</td>
+
+
+<!-- ระดับ -->
+<td class="text-center">
+
+  <span class="${riskLevelClass}">
+    ${escapeHtml(
+      riskLevel || '-'
+    )}
+  </span>
+
+</td>
+
+
+<!-- ร้อยละความคืบหน้า -->
+<td>
+
+  <div class="grade-risk-progress">
+
+    <div class="grade-risk-progress-track">
+
+      <div
+        class="grade-risk-progress-bar"
+        style="width:${progress}%;">
+      </div>
+
+    </div>
+
+    <div class="grade-risk-progress-text">
+       ${resolved}/${totalRisk}
+    </div>
+
+  </div>
+
+</td>
+
+        </tr>
+      `;
+
+    }).join('');
+
+}
+
+
+async function loadGradeRiskRows(){
+
+  if(state.gradeRiskLoading){
+    return;
+  }
+
+  const token =
+    String(
+      state.adminSessionToken || ''
+    ).trim();
+
+  if(!token){
+    showToast(
+      'โหลดข้อมูลไม่สำเร็จ',
+      'ไม่พบ Admin Session Token กรุณาเข้าสู่ระบบใหม่',
+      'error'
+    );
+
+    return;
+  }
+
+
+  const loadBtn =
+    el('gradeRiskReloadBtn');
+
+  try{
+
+    state.gradeRiskLoading = true;
+
+    if(loadBtn){
+      loadBtn.disabled = true;
+      loadBtn.textContent = 'กำลังโหลด...';
+    }
+
+
+    setStatus(
+      'gradeRiskStatus',
+      'กำลังโหลดข้อมูลนักเรียนที่ต้องติดตาม...',
+      'info'
+    );
+
+
+    const yearValue =
+      String(
+        el('gradeRiskYearFilter')?.value || ''
+      ).trim();
+
+    const termValue =
+      String(
+        el('gradeRiskTermFilter')?.value || ''
+      ).trim();
+
+    const classValue =
+      String(
+        el('gradeRiskClassFilter')?.value || ''
+      ).trim();
+
+    const roomValue =
+      String(
+        el('gradeRiskRoomFilter')?.value || ''
+      ).trim();
+
+
+    const { data, error } =
+      await supabaseClient.rpc(
+        'admin_get_risk_students_session',
+        {
+
+          p_token:
+            token,
+
+          p_academic_year:
+            yearValue
+              ? Number(yearValue)
+              : null,
+
+          p_term:
+            termValue
+              ? Number(termValue)
+              : null,
+
+          p_class_level:
+            classValue || null,
+
+          p_room:
+            roomValue || null
+
+        }
+      );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    state.gradeRiskRows =
+      Array.isArray(data)
+        ? data
+        : [];
+
+       
+renderGradeRiskRows();
+updateGradeRiskSummary();
+
+
+const visibleRows =
+  getFilteredGradeRiskRows();
+
+
+const totalRecords =
+  visibleRows.reduce(
+    (sum, row) =>
+      sum +
+      Number(
+        row.unresolved_records || 0
+      ),
+    0
+  );
+
+
+setStatus(
+  'gradeRiskStatus',
+  visibleRows.length
+    ? `พบ ${visibleRows.length} คน • ${totalRecords} รายการที่ต้องติดตาม`
+    : 'ไม่พบข้อมูลตามเงื่อนไขที่เลือก',
+  visibleRows.length
+    ? 'success'
+    : 'info'
+);
+
+
+    console.log(
+      'GRADE RISK ROWS:',
+      state.gradeRiskRows
+    );
+
+
+  }catch(err){
+
+    console.error(
+      'loadGradeRiskRows error:',
+      err
+    );
+
+
+    state.gradeRiskRows = [];
+
+
+    if(el('gradeRiskStudentCount')){
+      el('gradeRiskStudentCount').textContent = '0';
+    }
+
+
+    if(el('gradeRiskRecordCount')){
+      el('gradeRiskRecordCount').textContent = '0';
+    }
+
+
+    setStatus(
+      'gradeRiskStatus',
+      err?.message ||
+        'โหลดข้อมูลนักเรียนที่ต้องติดตามไม่สำเร็จ',
+      'error'
+    );
+
+
+    showToast(
+      'โหลดข้อมูลไม่สำเร็จ',
+      err?.message ||
+        'เกิดข้อผิดพลาดในการโหลดข้อมูล',
+      'error'
+    );
+
+
+  }finally{
+
+    state.gradeRiskLoading = false;
+
+
+    if(loadBtn){
+      loadBtn.disabled = false;
+      loadBtn.textContent = 'โหลดข้อมูล';
+    }
+
+  }
+
+}
     
 function bindGradeTransferEvents(){
   const editBtn = el('gradeManageSubEditBtn');
@@ -27306,6 +30288,280 @@ if(repeatBtn){
   repeatBtn.addEventListener('click', () => {
     setGradeManageSubPage('repeat');
   });
+}
+
+const riskBtn = el('gradeManageSubRiskBtn');
+
+if(riskBtn){
+  riskBtn.addEventListener('click', () => {
+    setGradeManageSubPage('risk');
+  });
+}
+
+const riskReloadBtn = el('gradeRiskReloadBtn');
+
+if(riskReloadBtn){
+  riskReloadBtn.addEventListener(
+    'click',
+    loadGradeRiskRows
+  );
+}
+
+const riskPrintBtn =
+  el('gradeRiskPrintBtn');
+
+if(riskPrintBtn){
+
+riskPrintBtn.addEventListener(
+  'click',
+  async () => {
+
+      const yearValue =
+        String(
+          el('gradeRiskYearFilter')?.value || ''
+        ).trim();
+
+      const termValue =
+        String(
+          el('gradeRiskTermFilter')?.value || ''
+        ).trim();
+
+
+      // ต้องเลือกปีการศึกษา
+      if(!yearValue){
+
+        showToast(
+          'ยังพิมพ์รายงานไม่ได้',
+          'กรุณาเลือกปีการศึกษา',
+          'warning'
+        );
+
+        return;
+      }
+
+
+      // ต้องเลือกภาคเรียน
+      if(!termValue){
+
+        showToast(
+          'ยังพิมพ์รายงานไม่ได้',
+          'กรุณาเลือกภาคเรียน',
+          'warning'
+        );
+
+        return;
+      }
+
+
+      const rows =
+        getFilteredGradeRiskRows();
+
+
+      // ต้องมีข้อมูลตามตัวกรอง
+      if(!rows.length){
+
+        showToast(
+          'ไม่มีข้อมูลสำหรับพิมพ์',
+          'ไม่พบนักเรียนตามเงื่อนไขที่เลือก',
+          'warning'
+        );
+
+        return;
+      }
+
+
+const groups =
+  getGradeRiskPrintGroups();
+
+
+groups.forEach(group => {
+
+  group.advisers =
+    getGradeRiskGroupAdvisers(
+      group,
+      yearValue,
+      termValue
+    );
+
+});
+
+
+if(!groups.length){
+
+  showToast(
+    'ไม่มีข้อมูลสำหรับพิมพ์',
+    'ไม่พบข้อมูลชั้น/ห้องสำหรับสร้างรายงาน',
+    'warning'
+  );
+
+  return;
+}
+
+
+showToast(
+  'พร้อมสร้างรายงาน',
+  `พบ ${rows.length} คน • ${groups.length} ชุดชั้น/ห้อง`,
+  'success'
+);
+
+
+console.log(
+  'GRADE RISK PRINT GROUPS:',
+  groups
+);
+
+try{
+
+  await exportGradeRiskPdf(
+    groups,
+    yearValue,
+    termValue
+  );
+
+}catch(err){
+
+  console.error(
+    'exportGradeRiskPdf error:',
+    err
+  );
+
+  showToast(
+    'สร้างรายงานไม่สำเร็จ',
+    err?.message ||
+      'เกิดข้อผิดพลาดในการสร้าง PDF',
+    'error'
+  );
+
+}
+
+    }
+  );
+
+}
+
+const riskStatusFilter =
+  el('gradeRiskStatusFilter');
+
+if(riskStatusFilter){
+
+riskStatusFilter.addEventListener(
+  'change',
+  () => {
+
+    renderGradeRiskRows();
+    updateGradeRiskSummary();
+
+
+    const visibleRows =
+      getFilteredGradeRiskRows();
+
+
+    const totalRecords =
+      visibleRows.reduce(
+        (sum, row) =>
+          sum +
+          Number(
+            row.unresolved_records || 0
+          ),
+        0
+      );
+
+
+    setStatus(
+      'gradeRiskStatus',
+      visibleRows.length
+        ? `พบ ${visibleRows.length} คน • ${totalRecords} รายการที่ต้องติดตาม`
+        : 'ไม่พบข้อมูลตามสถานะที่เลือก',
+      visibleRows.length
+        ? 'success'
+        : 'info'
+    );
+
+  }
+);
+
+}
+
+const riskClearFilterBtn = el('gradeRiskClearFilterBtn');
+
+if(riskClearFilterBtn){
+  riskClearFilterBtn.addEventListener(
+    'click',
+    () => {
+
+      if(el('gradeRiskYearFilter')){
+        el('gradeRiskYearFilter').value = '';
+      }
+
+      if(el('gradeRiskTermFilter')){
+        el('gradeRiskTermFilter').value = '';
+      }
+
+      if(el('gradeRiskClassFilter')){
+        el('gradeRiskClassFilter').value = '';
+      }
+
+      if(el('gradeRiskRoomFilter')){
+        el('gradeRiskRoomFilter').value = '';
+      }
+
+      if(el('gradeRiskStatusFilter')){
+  el('gradeRiskStatusFilter').value = '';
+}
+
+
+      state.gradeRiskRows = [];
+
+
+      if(el('gradeRiskStudentCount')){
+        el('gradeRiskStudentCount').textContent = '0';
+      }
+
+      if(el('gradeRiskRecordCount')){
+        el('gradeRiskRecordCount').textContent = '0';
+      }
+
+
+      if(el('gradeRiskTbody')){
+        el('gradeRiskTbody').innerHTML = `
+          <tr class="filter-empty-row">
+            <td colspan="12">
+              <div class="filter-empty-state">
+                <div class="filter-empty-card">
+
+                  <div class="filter-empty-icon">
+                    🚨
+                  </div>
+
+                  <div class="filter-empty-title">
+                    ยังไม่ได้โหลดข้อมูล
+                  </div>
+
+                  <div class="filter-empty-text">
+                    เลือกปีการศึกษา ภาคเรียน ชั้น หรือห้อง
+                    แล้วกดโหลดข้อมูล
+                  </div>
+
+                  <div class="filter-empty-hint">
+                    ติดตาม 0 / ร / มส / มผ รายบุคคล
+                  </div>
+
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+
+
+      setStatus(
+        'gradeRiskStatus',
+        'เลือกเงื่อนไขแล้วกดโหลดข้อมูล',
+        'info'
+      );
+
+    }
+  );
 }
 
   const repeatFindBtn = el('repeatFindStudentBtn');
@@ -28144,10 +31400,16 @@ async function login(){
       'success'
     );
 
+sessionStorage.setItem(
+  'adminPRActivePage',
+  'home'
+);
 
-    await initApp();
+setActivePage('home');
 
-    setActivePage('home');
+await initApp();
+
+    
 
 
   }catch(err){
@@ -28194,6 +31456,10 @@ function clearAdminSessionStorage(){
     sessionStorage.removeItem(
       ADMIN_EXPIRES_SESSION_KEY
     );
+
+    sessionStorage.removeItem(
+  'adminPRActivePage'
+);
 
   }catch(error){
 
@@ -28598,7 +31864,9 @@ async function loadAcademicYears(){
 async function loadTeachers(){
   const {data,error} = await supabaseClient
     .from('teachers')
-    .select('id, teacher_code, first_name, last_name, full_name, is_active, last_login_at, created_at, updated_at')
+   .select(
+  'id, teacher_code, prefix, first_name, last_name, full_name, is_active, last_login_at, created_at, updated_at'
+)
     .order('teacher_code',{ascending:true});
 
     if(error) throw error;
@@ -29568,6 +32836,25 @@ async function saveStudentEdit(){
 }
 
 async function saveOfferingEdit(){
+
+  const saveBtn =
+    el('confirmEditBtn');
+
+  const originalSaveBtnText =
+    saveBtn?.textContent || 'บันทึก';
+
+    const cancelBtn =
+  el('cancelEditBtn');
+
+
+  /*
+   * ป้องกันการกดซ้ำ
+   */
+  if(saveBtn?.disabled){
+    return;
+  }
+
+
   try{
     if(!state.editingId){
       setStatus('editStatus', 'ไม่พบรายการสอนที่ต้องการแก้ไข', 'error');
@@ -29586,7 +32873,28 @@ async function saveOfferingEdit(){
       return;
     }
 
-    setStatus('editStatus', 'กำลังบันทึกการแก้ไข...', 'info');
+    /*
+ * ปิดปุ่มระหว่างบันทึก
+ * ป้องกันการส่ง RPC ซ้ำ
+ */
+if(saveBtn){
+
+  saveBtn.disabled = true;
+
+  saveBtn.textContent =
+    'กำลังบันทึก...';
+
+}
+
+if(cancelBtn){
+  cancelBtn.disabled = true;
+}
+
+    setStatus(
+  'editStatus',
+  'กำลังบันทึกข้อมูล หากมีการเปลี่ยนหน่วยกิต ระบบจะคำนวณ GPA / GPAX ใหม่ กรุณารอสักครู่...',
+  'info'
+);
 
 const token =
   String(
@@ -29650,10 +32958,54 @@ console.log(
 
     state.editingId = null;
     el('editModal').classList.remove('show');
-    showToast('บันทึกสำเร็จ', 'แก้ไขรายการสอนเรียบร้อยแล้ว', 'success');
+    if(
+  updateResult.credit_changed === true &&
+  updateResult.gpax_refreshed === true
+){
+  showToast(
+    'บันทึกสำเร็จ',
+    'แก้ไขหน่วยกิตและคำนวณ GPA / GPAX ใหม่เรียบร้อยแล้ว',
+    'success'
+  );
+}else{
+  showToast(
+    'บันทึกสำเร็จ',
+    'แก้ไขรายการสอนเรียบร้อยแล้ว',
+    'success'
+  );
+}
   }catch(err){
-    setStatus('editStatus', err.message || 'บันทึกการแก้ไขรายการสอนไม่สำเร็จ', 'error');
-    showToast('บันทึกไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+
+    setStatus(
+      'editStatus',
+      err.message || 'บันทึกการแก้ไขรายการสอนไม่สำเร็จ',
+      'error'
+    );
+
+    showToast(
+      'บันทึกไม่สำเร็จ',
+      err.message || 'เกิดข้อผิดพลาด',
+      'error'
+    );
+
+  }finally{
+
+    /*
+     * เปิดปุ่มกลับเสมอ
+     * ไม่ว่าจะสำเร็จหรือเกิด Error
+     */
+    if(saveBtn){
+
+      saveBtn.disabled = false;
+
+      saveBtn.textContent =
+        originalSaveBtnText;
+
+    }
+    if(cancelBtn){
+  cancelBtn.disabled = false;
+}
+
   }
 }
 
@@ -35313,6 +38665,25 @@ async function exportMidtermSummaryPdf(){
       doc
     );
 
+    if(
+  document.fonts &&
+  document.fonts.load
+){
+
+  await Promise.all([
+
+    document.fonts.load(
+      '400 24px Sarabun'
+    ),
+
+    document.fonts.load(
+      '700 24px Sarabun'
+    )
+
+  ]);
+
+}
+
 
     /* =====================================================
        4. Filter / ชื่อไฟล์
@@ -39924,10 +43295,32 @@ setReportPreviewFilter('all');
   updateEmptysecAutoFields();
 
 try{
-  if(await restoreSession()){
-    await initApp();
-    setActivePage('home');
-  }else{
+if(await restoreSession()){
+
+  await initApp();
+
+  const savedPage =
+    sessionStorage.getItem('adminPRActivePage') ||
+    'home';
+
+  const allowedPages = [
+    'home',
+    'subjects',
+    'teachers',
+    'students',
+    'teaching',
+    'emptysec',
+    'reporting',
+    'gradeManage'
+  ];
+
+  setActivePage(
+    allowedPages.includes(savedPage)
+      ? savedPage
+      : 'home'
+  );
+
+}else{
     el('loginView').classList.remove('hidden');
     el('appView').classList.add('hidden');
   }
