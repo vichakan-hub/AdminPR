@@ -29754,6 +29754,75 @@ y:
         );
 
  }
+
+    else{
+
+  /* =================================================
+     หน้า 2 เป็นต้นไป
+     ================================================= */
+
+  drawThaiPdfText(
+    doc,
+    `หน้า ${page.pageNumber}`,
+    {
+      x:
+        marginLeft,
+
+      y:
+        20,
+
+      maxWidth:
+        contentWidth,
+
+      height:
+        6,
+
+      fontPx:
+        30,
+
+      weight:
+        '700',
+
+      color:
+        '#17324a',
+
+      align:
+        'center'
+    }
+  );
+
+
+  drawThaiPdfText(
+    doc,
+    `ปีการศึกษา ${academicYear}   ภาคเรียนที่ ${term}   ชั้น ${group.classLevel}/${group.room} (ต่อ)`,
+    {
+      x:
+        marginLeft,
+
+      y:
+        27,
+
+      maxWidth:
+        contentWidth,
+
+      height:
+        6,
+
+      fontPx:
+        28,
+
+      weight:
+        '400',
+
+      color:
+        '#556478',
+
+      align:
+        'center'
+    }
+  );
+
+}
         /* =================================================
            ครูที่ปรึกษา
            ================================================= */
