@@ -29292,6 +29292,103 @@ async function loadImageAsDataUrl(src){
 
 }
 
+    function paginateGradeRiskRows(
+  rows
+){
+
+  const sourceRows =
+    Array.isArray(rows)
+      ? rows
+      : [];
+
+
+  const pages =
+    [];
+
+
+  /* =========================================
+     หน้าแรก สูงสุด 20 คน
+     ========================================= */
+
+  const firstPageRows =
+    sourceRows.slice(
+      0,
+      20
+    );
+
+
+  if(firstPageRows.length){
+
+    pages.push({
+      pageNumber:
+        1,
+
+      rows:
+        firstPageRows,
+
+      isFirstPage:
+        true,
+
+      isLastPage:
+        sourceRows.length <= 20
+    });
+
+  }
+
+
+  /* =========================================
+     หน้าที่ 2 เป็นต้นไป สูงสุด 25 คนต่อหน้า
+     ========================================= */
+
+  let startIndex =
+    20;
+
+
+  let pageNumber =
+    2;
+
+
+  while(
+    startIndex <
+    sourceRows.length
+  ){
+
+    const pageRows =
+      sourceRows.slice(
+        startIndex,
+        startIndex + 25
+      );
+
+
+    pages.push({
+      pageNumber,
+
+      rows:
+        pageRows,
+
+      isFirstPage:
+        false,
+
+      isLastPage:
+        startIndex + 25 >=
+        sourceRows.length
+    });
+
+
+    startIndex +=
+      25;
+
+
+    pageNumber +=
+      1;
+
+  }
+
+
+  return pages;
+
+}
+
 async function exportGradeRiskPdf(
   groups,
   academicYear,
@@ -29414,16 +29511,50 @@ async function exportGradeRiskPdf(
       marginLeft -
       marginRight;
 
+    const reportPages =
+  groups.flatMap(
+    originalGroup => {
+
+      const pages =
+        paginateGradeRiskRows(
+          originalGroup.rows
+        );
+
+
+      return pages.map(
+        page => ({
+
+          group: {
+            ...originalGroup,
+
+            rows:
+              page.rows,
+
+            totalStudentCount:
+              originalGroup.rows.length
+          },
+
+          page
+
+        })
+      );
+
+    }
+  );
+
 
     /* =====================================================
        6. สร้างรายงานแยกตามชั้น / ห้อง
        ===================================================== */
 
-    groups.forEach(
-      (
-        group,
-        index
-      ) => {
+reportPages.forEach(
+  (
+    {
+      group,
+      page
+    },
+    index
+  ) => {
 
 
         /* =================================================
@@ -29709,7 +29840,7 @@ y:
 
         drawThaiPdfText(
           doc,
-          `จำนวนนักเรียนที่ต้องติดตาม ${group.rows.length} คน`,
+          `จำนวนนักเรียนที่ต้องติดตาม ${group.totalStudentCount} คน`,
           {
 
             x:
@@ -29765,19 +29896,21 @@ y:
            ลายเซ็นครูที่ปรึกษา
            ================================================= */
 
-        drawGradeRiskAdviserSignatures(
-          doc,
-          group,
-          {
+if(page.isLastPage){
 
-            startY:
-              tableFinalY,
+  drawGradeRiskAdviserSignatures(
+    doc,
+    group,
+    {
+      startY:
+        tableFinalY,
 
-            marginLeft,
-            marginRight
+      marginLeft,
+      marginRight
+    }
+  );
 
-          }
-        );
+}
 
       }
     );
