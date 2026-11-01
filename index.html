@@ -366,6 +366,37 @@
     margin-bottom:14px;
   }
 
+  /* =========================================
+   MAIN MENU - SINGLE ROW
+   ========================================= */
+
+.menu-card .actions{
+  display:flex;
+  flex-wrap:nowrap;
+  gap:6px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding-bottom:4px;
+}
+
+.menu-card .menu-btn{
+  flex:0 0 auto;
+  white-space:nowrap;
+  padding:0 10px;
+  font-size:14px;
+  height:44px;
+}
+
+/* ซ่อน scrollbar แต่ยังเลื่อนได้ */
+.menu-card .actions::-webkit-scrollbar{
+  height:4px;
+}
+
+.menu-card .actions::-webkit-scrollbar-thumb{
+  background:#cbd5e1;
+  border-radius:10px;
+}
+
   .actions{
     display:flex;
     gap:10px;
@@ -3776,6 +3807,7 @@ body.app-booting #appView{
           <button id="menuEmptysecBtn" class="menu-btn btn-secondary">🕒 จัดการคาบว่าง</button>
           <button id="menuReportingBtn" class="menu-btn btn-secondary">📊 รายงานผลการเรียน</button>
           <button id="menuGradeManageBtn" class="menu-btn btn-secondary">🧾 จัดการผลการเรียน</button>
+          <button id="menuAppSettingsBtn" class="menu-btn btn-secondary">⚙️ ตั้งค่าระบบ</button>
         </div>
       </section>
 
@@ -5334,14 +5366,14 @@ body.app-booting #appView{
       style="margin:0;"
     >
 
-        <!-- เปิด / ปิดรับรายงาน มส -->
-  <button
-    id="msReportToggleLockBtn"
-    class="btn-warning"
-    type="button"
-  >
-    🔒 ปิดรับรายงาน มส
-  </button>
+<!-- ตั้งค่าการรายงาน มส -->
+<button
+  id="msReportSettingOpenBtn"
+  class="btn-secondary"
+  type="button"
+>
+  ⚙️ ตั้งค่าการรายงาน มส
+</button>
 
 <button
   id="msReportExportPdfBtn"
@@ -5370,6 +5402,257 @@ body.app-booting #appView{
     </div>
 
   </div>
+
+
+
+
+
+<!-- =========================================
+     REPORT MS : PERIOD SETTINGS MODAL
+     ========================================= -->
+
+<div
+  id="msReportSettingModal"
+  class="modal-backdrop"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="msReportSettingModalTitle"
+>
+
+  <div class="modal">
+
+    <!-- Modal Header -->
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:12px;
+    ">
+
+      <h3
+        id="msReportSettingModalTitle"
+        style="margin:0;"
+      >
+        ⚙️ ตั้งค่าการรายงาน มส
+      </h3>
+
+      <button
+        id="msReportSettingCloseBtn"
+        class="btn-secondary"
+        type="button"
+        aria-label="ปิดหน้าต่าง"
+        style="padding:0 14px;"
+      >
+        ✕
+      </button>
+
+    </div>
+
+    <div class="sub">
+      กำหนดปีการศึกษาและภาคเรียนที่อนุญาต
+      ให้ครูผู้สอนใช้รายงาน มส
+      โดยใช้การตั้งค่าเดียวกับ App Settings
+    </div>
+
+    <!-- Year and Term -->
+    <div style="
+      display:grid;
+      grid-template-columns:repeat(
+        auto-fit,
+        minmax(180px,1fr)
+      );
+      gap:12px;
+      margin-top:18px;
+    ">
+
+      <div class="field">
+
+        <label
+          class="label-in-form"
+          for="msReportSettingYearInput"
+        >
+          ปีการศึกษา
+        </label>
+
+        <input
+          id="msReportSettingYearInput"
+          class="std"
+          type="number"
+          min="2500"
+          max="2700"
+          step="1"
+          disabled
+        >
+
+      </div>
+
+      <div class="field">
+
+        <label
+          class="label-in-form"
+          for="msReportSettingTermInput"
+        >
+          ภาคเรียน
+        </label>
+
+        <select
+          id="msReportSettingTermInput"
+          class="std"
+          disabled
+        >
+          <option value="">เลือกภาคเรียน</option>
+          <option value="1">ภาคเรียนที่ 1</option>
+          <option value="2">ภาคเรียนที่ 2</option>
+        </select>
+
+      </div>
+
+    </div>
+
+    <!-- =========================================
+     REPORT MS : เปิด / ปิดรับรายงาน
+     ========================================= -->
+
+<div class="teacher-summary-box" style="margin-top:16px;">
+
+  <div style="
+    font-size:16px;
+    font-weight:800;
+    margin-bottom:6px;
+  ">
+    🔐 สถานะการรับรายงาน มส
+  </div>
+
+  <div class="small" style="margin-bottom:12px;">
+    ควบคุมการเปิดหรือปิดรับรายงาน มส
+    จากครูผู้สอนตามปีการศึกษาและภาคเรียนที่กำหนด
+  </div>
+
+  <div class="actions">
+
+    <button
+      id="msReportToggleLockBtn"
+      class="btn-warning"
+      type="button"
+      disabled
+    >
+      กำลังตรวจสอบสถานะ...
+    </button>
+
+  </div>
+
+</div>
+
+<!-- =========================================
+     REPORT MS : การแสดงเมนูใน TeacherPR
+     ========================================= -->
+
+<div
+  class="teacher-summary-box"
+  style="margin-top:16px;"
+>
+
+  <div style="
+    font-size:16px;
+    font-weight:800;
+    margin-bottom:6px;
+  ">
+    👁️ การแสดงเมนูใน TeacherPR
+  </div>
+
+  <div class="small" style="margin-bottom:12px;">
+    กำหนดให้ครูสามารถมองเห็นและเข้าถึง
+    เมนูรายงานนักเรียนไม่มีสิทธิ์สอบ
+  </div>
+
+  <label style="
+    display:flex;
+    align-items:center;
+    gap:12px;
+    cursor:pointer;
+    padding:10px 0;
+  ">
+
+    <input
+      id="msReportVisibilitySwitch"
+      type="checkbox"
+      disabled
+      style="
+        width:22px;
+        height:22px;
+        accent-color:#2563eb;
+        cursor:pointer;
+      "
+    >
+
+    <span style="font-weight:700;">
+      แสดงเมนูรายงานนักเรียนไม่มีสิทธิ์สอบ
+    </span>
+
+  </label>
+
+  <div
+    id="msReportVisibilityStatus"
+    class="status info"
+  >
+    กำลังรอโหลดการตั้งค่า...
+  </div>
+
+  <div class="actions" style="margin-top:12px;">
+
+    <button
+      id="msReportVisibilitySaveBtn"
+      class="btn-primary"
+      type="button"
+      disabled
+    >
+      💾 บันทึกการแสดงเมนู
+    </button>
+
+  </div>
+
+</div>
+
+    <!-- Status -->
+    <div
+      id="msReportSettingPeriodStatus"
+      class="status info"
+    >
+      ยังไม่ได้โหลดการตั้งค่า
+    </div>
+
+    <!-- Actions -->
+    <div
+      class="actions"
+      style="
+        margin-top:18px;
+        justify-content:flex-end;
+      "
+    >
+
+      <button
+        id="msReportSettingCancelBtn"
+        class="btn-secondary"
+        type="button"
+      >
+        ยกเลิก
+      </button>
+
+      <button
+        id="msReportSettingSavePeriodBtn"
+        class="btn-primary"
+        type="button"
+        disabled
+      >
+        💾 บันทึกการตั้งค่า
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
 
 
   <!-- =====================================================
@@ -6673,6 +6956,250 @@ body.app-booting #appView{
       </tbody>
     </table>
   </div>
+</section>
+
+<!-- =========================================
+     APP SETTINGS PAGE
+     ========================================= -->
+
+<section id="pageAppSettings" class="card hidden">
+
+  <h2>⚙️ ตั้งค่าระบบ</h2>
+
+  <div class="sub">
+    จัดการการตั้งค่าระบบ TeacherPR
+    และการเปิด/ปิดการทำงานของระบบที่เกี่ยวข้อง
+  </div>
+
+  <!-- รายการที่ 1 : รายงาน มส -->
+
+  <div class="teacher-summary-box">
+
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:12px;
+    ">
+
+      <div>
+        <div style="font-size:19px;font-weight:800;">
+          🚫 การรายงาน มส
+        </div>
+
+        <div class="small">
+          Key: teacher_exam_eligibility_settings
+        </div>
+      </div>
+
+      <span
+        id="appSettingMsLockBadge"
+        class="badge"
+      >
+        ยังไม่โหลดสถานะ
+      </span>
+
+    </div>
+
+    <div class="preview-meta" style="margin-top:18px;">
+
+      <div class="item">
+        <div class="k">ปีการศึกษา</div>
+        <div id="appSettingMsYear" class="v">-</div>
+      </div>
+
+      <div class="item">
+        <div class="k">ภาคเรียน</div>
+        <div id="appSettingMsTerm" class="v">-</div>
+      </div>
+
+      <div class="item">
+        <div class="k">สถานะการรับรายงาน</div>
+        <div id="appSettingMsLockText" class="v">-</div>
+      </div>
+
+      <div class="item">
+        <div class="k">แก้ไขล่าสุด</div>
+        <div id="appSettingMsUpdatedAt" class="v">-</div>
+      </div>
+
+    </div>
+
+    <!-- =========================================
+     ตั้งค่าปีการศึกษาและภาคเรียน รายงาน มส
+     ========================================= -->
+
+<div class="teacher-summary-box"
+     style="margin-top:16px;background:#ffffff;">
+
+  <div style="
+    font-size:17px;
+    font-weight:800;
+    margin-bottom:6px;
+  ">
+    📅 กำหนดปีการศึกษาและภาคเรียน
+  </div>
+
+  <div class="small" style="margin-bottom:14px;">
+    กำหนดปีการศึกษาและภาคเรียนที่อนุญาต
+    ให้ครูใช้ในการรายงาน มส
+  </div>
+
+  <div style="
+    display:grid;
+    grid-template-columns:
+      repeat(auto-fit,minmax(180px,1fr));
+    gap:12px;
+  ">
+
+    <div class="field">
+      <label class="label-in-form"
+             for="appSettingMsYearInput">
+        ปีการศึกษา
+      </label>
+
+      <input
+        id="appSettingMsYearInput"
+        class="std"
+        type="number"
+        min="2500"
+        max="2700"
+        step="1"
+        placeholder="เช่น 2569"
+        disabled
+      >
+    </div>
+
+    <div class="field">
+      <label class="label-in-form"
+             for="appSettingMsTermInput">
+        ภาคเรียน
+      </label>
+
+      <select
+        id="appSettingMsTermInput"
+        class="std"
+        disabled
+      >
+        <option value="">เลือกภาคเรียน</option>
+        <option value="1">ภาคเรียนที่ 1</option>
+        <option value="2">ภาคเรียนที่ 2</option>
+      </select>
+    </div>
+
+  </div>
+
+  <div class="actions" style="margin-top:12px;">
+    <button
+      id="appSettingMsSavePeriodBtn"
+      type="button"
+      class="btn-primary"
+      disabled
+    >
+      💾 บันทึกปีการศึกษาและภาคเรียน
+    </button>
+  </div>
+
+  <div id="appSettingMsPeriodStatus"
+       class="status info">
+    ยังไม่ได้โหลดการตั้งค่า
+  </div>
+
+</div>
+
+    <div class="actions" style="margin-top:14px;">
+
+      <button
+        id="appSettingMsToggleLockBtn"
+        class="btn-primary"
+        type="button"
+        disabled
+      >
+        เปิด/ปิดรับรายงาน มส
+      </button>
+
+      <button
+        id="appSettingMsReloadBtn"
+        class="btn-secondary"
+        type="button"
+        disabled
+      >
+        🔄 โหลดสถานะใหม่
+      </button>
+
+    </div>
+
+    <div
+      id="appSettingMsStatus"
+      class="status info"
+    >
+      ยังไม่ได้โหลดข้อมูลการตั้งค่า
+    </div>
+
+    <!-- =========================================
+     APP SETTINGS : รายงาน มส Visibility
+     ========================================= -->
+
+<div class="teacher-summary-box"
+     style="margin-top:16px;background:#ffffff;">
+
+  <div style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+  ">
+
+    <div>
+      <div style="font-size:17px;font-weight:800;">
+        👁️ การแสดงเมนูรายงาน มส
+      </div>
+
+      <div class="small">
+        Key: teacher_exam_eligibility_visibility
+      </div>
+    </div>
+
+    <span
+      id="appSettingMsVisibilityBadge"
+      class="badge"
+    >
+      ยังไม่โหลดสถานะ
+    </span>
+
+  </div>
+
+  <div class="small" style="margin-top:12px;">
+    ควบคุมการแสดงเมนูรายงานนักเรียนไม่มีสิทธิ์สอบ
+    ใน TeacherPR โดยไม่กระทบการตั้งค่าเปิด/ปิดรับรายงาน
+  </div>
+
+  <div class="actions" style="margin-top:14px;">
+
+    <button
+      id="appSettingMsVisibilityToggleBtn"
+      class="btn-secondary"
+      type="button"
+      disabled
+    >
+      กำลังรอโหลดสถานะ...
+    </button>
+
+  </div>
+
+  <div
+    id="appSettingMsVisibilityStatus"
+    class="status info"
+  >
+    ยังไม่ได้โหลดสถานะการแสดงเมนู
+  </div>
+
+</div>
+
+  </div>
+
 </section>
 
       <section id="pageSubjects" class="card hidden">
@@ -8963,6 +9490,19 @@ msResolveSaving: false,
 // สถานะเปิด / ปิดรับรายงาน มส
 msReportSubmissionSetting: null,
 msReportSettingLoading: false,
+
+// =========================================
+// การแสดง / ซ่อนเมนูรายงานไม่มีสิทธิ์สอบ
+// =========================================
+
+// ค่าที่โหลดจาก Supabase
+msReportVisibilitySetting: null,
+
+// กำลังโหลดข้อมูล
+msReportVisibilityLoading: false,
+
+// กำลังบันทึกข้อมูล
+msReportVisibilitySaving: false,
 
 reportSubPage: 'tracking',
 reportSignerRows: [],
@@ -11793,8 +12333,9 @@ function getExpectedClassLevel(entryAcademicYear, entryLevel, selectedAcademicYe
     if(node) node.textContent = `การแสดงชั้นปัจจุบันอ้างอิงปีการศึกษา ${year} ที่เลือกในตารางรายการนักเรียน`;
   }
 
-  function setActivePage(page){
-      try{
+function setActivePage(page){
+
+  try{
     sessionStorage.setItem(
       'adminPRActivePage',
       String(page || 'home')
@@ -11802,33 +12343,57 @@ function getExpectedClassLevel(entryAcademicYear, entryLevel, selectedAcademicYe
   }catch(error){
     console.warn('SAVE ACTIVE PAGE SKIPPED', error);
   }
-    const isHome = page === 'home';
-    const isSubjects = page === 'subjects';
-    const isTeachers = page === 'teachers';
-    const isStudents = page === 'students';
-    const isTeaching = page === 'teaching';
-    const isEmptysec = page === 'emptysec';
-    const isReporting = page === 'reporting';
-    const isGradeManage = page === 'gradeManage';
 
-    el('pageHome').classList.toggle('hidden', !isHome);
-    el('pageSubjects').classList.toggle('hidden', !isSubjects);
-    el('pageTeachers').classList.toggle('hidden', !isTeachers);
-    el('pageStudents').classList.toggle('hidden', !isStudents);
-    el('pageTeaching').classList.toggle('hidden', !isTeaching);
-    el('pageEmptysec').classList.toggle('hidden', !isEmptysec);
-    el('pageReporting').classList.toggle('hidden', !isReporting);
-    el('pageGradeManage').classList.toggle('hidden', !isGradeManage);
+  const isHome = page === 'home';
+  const isSubjects = page === 'subjects';
+  const isTeachers = page === 'teachers';
+  const isStudents = page === 'students';
+  const isTeaching = page === 'teaching';
+  const isEmptysec = page === 'emptysec';
+  const isReporting = page === 'reporting';
+  const isGradeManage = page === 'gradeManage';
+  const isAppSettings = page === 'appSettings';
 
-    el('menuHomeBtn').className = isHome ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
-    el('menuSubjectsBtn').className = isSubjects ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
-    el('menuTeachersBtn').className = isTeachers ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
-    el('menuStudentsBtn').className = isStudents ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
-    el('menuTeachingBtn').className = isTeaching ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
-    el('menuEmptysecBtn').className = isEmptysec ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
-    el('menuReportingBtn').className = isReporting ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
-    el('menuGradeManageBtn').className = isGradeManage ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
-  }
+  // แสดง/ซ่อนหน้าต่าง ๆ
+  el('pageHome').classList.toggle('hidden', !isHome);
+  el('pageSubjects').classList.toggle('hidden', !isSubjects);
+  el('pageTeachers').classList.toggle('hidden', !isTeachers);
+  el('pageStudents').classList.toggle('hidden', !isStudents);
+  el('pageTeaching').classList.toggle('hidden', !isTeaching);
+  el('pageEmptysec').classList.toggle('hidden', !isEmptysec);
+  el('pageReporting').classList.toggle('hidden', !isReporting);
+  el('pageGradeManage').classList.toggle('hidden', !isGradeManage);
+  el('pageAppSettings').classList.toggle('hidden', !isAppSettings);
+
+  // เปลี่ยนสีปุ่มเมนูที่กำลังใช้งาน
+  el('menuHomeBtn').className =
+    isHome ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
+
+  el('menuSubjectsBtn').className =
+    isSubjects ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
+
+  el('menuTeachersBtn').className =
+    isTeachers ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
+
+  el('menuStudentsBtn').className =
+    isStudents ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
+
+  el('menuTeachingBtn').className =
+    isTeaching ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
+
+  el('menuEmptysecBtn').className =
+    isEmptysec ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
+
+  el('menuReportingBtn').className =
+    isReporting ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
+
+  el('menuGradeManageBtn').className =
+    isGradeManage ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
+
+  el('menuAppSettingsBtn').className =
+    isAppSettings ? 'menu-btn btn-primary' : 'menu-btn btn-secondary';
+
+}
 
   function setTeacherSubPage(page){
     state.teacherSubPage = page;
@@ -14938,12 +15503,515 @@ function normalizeMsReportSetting(raw){
 
 }
 
+// =====================================================
+// APP SETTINGS : แสดงสถานะ Visibility ของรายงาน มส
+// =====================================================
 
-/* =========================================================
-   แสดงสถานะบนปุ่ม
-   ========================================================= */
+function renderAppSettingMsVisibility(){
+
+  const badge =
+    el('appSettingMsVisibilityBadge');
+
+  const button =
+    el('appSettingMsVisibilityToggleBtn');
+
+  const visible =
+    state.msReportVisibilitySetting?.visible;
+
+  const isValid =
+    typeof visible === 'boolean';
+
+  // แสดง Badge
+  if(badge){
+
+    badge.className = !isValid
+      ? 'badge'
+      : visible
+        ? 'badge green'
+        : 'badge red';
+
+    badge.textContent = !isValid
+      ? 'ยังไม่โหลดสถานะ'
+      : visible
+        ? '👁️ กำลังแสดงเมนู'
+        : '🙈 ซ่อนเมนูแล้ว';
+
+  }
+
+  // แสดงปุ่มตามสถานะ
+  if(button){
+
+    button.className = !isValid
+      ? 'btn-secondary'
+      : visible
+        ? 'btn-warning'
+        : 'btn-success';
+
+    button.textContent = !isValid
+      ? '⚠️ ยังไม่พบการตั้งค่า'
+      : visible
+        ? '🙈 ซ่อนเมนูใน TeacherPR'
+        : '👁️ แสดงเมนูใน TeacherPR';
+
+// เปิดปุ่มเมื่อมีสถานะที่ถูกต้อง
+// และไม่ได้อยู่ระหว่างบันทึก
+button.disabled =
+  !isValid ||
+  Boolean(state.msReportVisibilitySaving);
+
+  }
+
+  // ข้อความสถานะ
+  setStatus(
+    'appSettingMsVisibilityStatus',
+    !isValid
+      ? 'ยังไม่สามารถอ่านสถานะจาก Supabase ได้'
+      : visible
+        ? 'ขณะนี้ TeacherPR อนุญาตให้เข้าถึงรายงาน'
+        : 'ขณะนี้ TeacherPR ปิดการเข้าถึงรายงาน',
+    !isValid ? 'warn' : 'success'
+  );
+
+}
+
+// =====================================================
+// APP SETTINGS : เปิด/ปิดการแสดงเมนูรายงาน มส
+// =====================================================
+
+async function toggleAppSettingMsVisibility(){
+
+  if(state.msReportVisibilitySaving){
+    return;
+  }
+
+  const currentVisible =
+    state.msReportVisibilitySetting?.visible;
+
+  if(typeof currentVisible !== 'boolean'){
+
+    showToast(
+      'ไม่สามารถเปลี่ยนสถานะได้',
+      'กรุณาโหลดสถานะจาก Supabase ก่อน',
+      'warn'
+    );
+
+    return;
+  }
+
+  const nextVisible = !currentVisible;
+
+  const confirmMessage = nextVisible
+    ? 'ต้องการแสดงเมนูรายงานนักเรียนไม่มีสิทธิ์สอบใน TeacherPR ใช่หรือไม่?'
+    : 'ต้องการซ่อนเมนูและปิดการเข้าถึงรายงานนักเรียนไม่มีสิทธิ์สอบใน TeacherPR ใช่หรือไม่?';
+
+  if(!window.confirm(confirmMessage)){
+    return;
+  }
+
+  const token = String(
+    state.adminSessionToken || ''
+  ).trim();
+
+  if(!token){
+
+    showToast(
+      'Session ไม่ถูกต้อง',
+      'กรุณาเข้าสู่ระบบใหม่',
+      'error'
+    );
+
+    return;
+  }
+
+  const button =
+    el('appSettingMsVisibilityToggleBtn');
+
+  state.msReportVisibilitySaving = true;
+
+  if(button){
+    button.disabled = true;
+    button.textContent = 'กำลังบันทึก...';
+  }
+
+  try{
+
+    const { data, error } =
+      await supabaseClient.rpc(
+        'admin_set_exam_eligibility_visibility_session',
+        {
+          p_token: token,
+          p_expected_visible: currentVisible,
+          p_visible: nextVisible
+        }
+      );
+
+    if(error){
+      throw error;
+    }
+
+    if(
+      data?.ok !== true ||
+      data?.visible !== nextVisible
+    ){
+      throw new Error(
+        data?.message ||
+        'บันทึกสถานะการแสดงเมนูไม่สำเร็จ'
+      );
+    }
+
+    // อัปเดต State ที่ใช้ร่วมกับ Modal
+    state.msReportVisibilitySetting = {
+      visible: nextVisible
+    };
+
+    showToast(
+      nextVisible
+        ? 'แสดงเมนูใน TeacherPR แล้ว'
+        : 'ซ่อนเมนูใน TeacherPR แล้ว',
+      'บันทึกการตั้งค่าลง Supabase สำเร็จ',
+      'success'
+    );
+
+  }catch(error){
+
+    console.error(
+      'toggleAppSettingMsVisibility ERROR',
+      error
+    );
+
+    showToast(
+      'เปลี่ยนสถานะไม่สำเร็จ',
+      error.message || 'เกิดข้อผิดพลาด',
+      'error'
+    );
+
+    // อ่านค่าจริงกลับมาเมื่อเกิดข้อผิดพลาด
+    await loadMsReportVisibilitySetting();
+
+  }finally{
+
+    state.msReportVisibilitySaving = false;
+
+    // อัปเดต Badge และปุ่มในหน้าตั้งค่าระบบ
+    renderAppSettingMsVisibility();
+
+  }
+
+}
+
+
+// =========================================
+// APP SETTINGS : แสดงสถานะรายงาน มส
+// =========================================
+
+function renderAppSettingMs(){
+
+  const setting = state.msReportSubmissionSetting;
+
+  // =========================================
+// APP SETTINGS : ปีการศึกษาและภาคเรียน
+// =========================================
+
+const yearInput = el('appSettingMsYearInput');
+const termInput = el('appSettingMsTermInput');
+const periodSaveBtn = el('appSettingMsSavePeriodBtn');
+
+// ปีการศึกษา
+if(yearInput){
+
+  yearInput.value =
+    setting?.academic_year != null
+      ? String(setting.academic_year)
+      : '';
+
+  yearInput.disabled = !setting;
+
+}
+
+// ภาคเรียน
+if(termInput){
+
+  termInput.value =
+    setting?.term != null
+      ? String(setting.term)
+      : '';
+
+  termInput.disabled = !setting;
+
+}
+
+// =========================================
+// APP SETTINGS : ตรวจสอบปุ่มบันทึกปี/เทอม
+// =========================================
+
+const updatePeriodSaveButton = () => {
+
+  if(!periodSaveBtn) return;
+
+  const current = state.msReportSubmissionSetting;
+
+  const yearRaw = String(
+    yearInput?.value || ''
+  ).trim();
+
+  const year = Number(yearRaw);
+  const term = Number(termInput?.value);
+
+  // ตรวจสอบข้อมูล
+  const isValid =
+    yearRaw !== '' &&
+    Number.isInteger(year) &&
+    year >= 2500 &&
+    year <= 2700 &&
+    [1, 2].includes(term);
+
+  // ตรวจสอบว่ามีการเปลี่ยนแปลง
+  const hasChanged = current && (
+    year !== Number(current.academic_year) ||
+    term !== Number(current.term)
+  );
+
+  // เปิดปุ่มเมื่อข้อมูลถูกต้องและมีการเปลี่ยนแปลง
+  periodSaveBtn.disabled =
+    !current ||
+    !isValid ||
+    !hasChanged ||
+    Boolean(state.msReportPeriodSaving);
+
+};
+
+// ตรวจสอบทันทีเมื่อแก้ปีการศึกษา
+if(yearInput){
+  yearInput.oninput = updatePeriodSaveButton;
+}
+
+// ตรวจสอบทันทีเมื่อเปลี่ยนภาคเรียน
+if(termInput){
+  termInput.onchange = updatePeriodSaveButton;
+}
+
+// ตรวจสอบสถานะเริ่มต้น
+updatePeriodSaveButton();
+
+// สถานะ
+setStatus(
+  'appSettingMsPeriodStatus',
+  setting
+    ? 'โหลดปีการศึกษาและภาคเรียนแล้ว (ยังไม่เปิดการบันทึก)'
+    : 'ยังไม่พบข้อมูลปีการศึกษาและภาคเรียน',
+  'info'
+);
+
+  const setText = (id, value) => {
+    const node = el(id);
+    if(node) node.textContent = value;
+  };
+
+  const badge = el('appSettingMsLockBadge');
+
+  // =========================================
+// APP SETTINGS : จัดการปุ่มรายงาน มส
+// =========================================
+
+const toggleBtn = el('appSettingMsToggleLockBtn');
+const reloadBtn = el('appSettingMsReloadBtn');
+
+// ปุ่มโหลดข้อมูลใหม่
+if(reloadBtn){
+  reloadBtn.disabled = false;
+}
+
+// ปุ่มเปิด / ปิดรับรายงาน มส
+if(toggleBtn){
+
+  if(!setting){
+
+    toggleBtn.disabled = true;
+    toggleBtn.className = 'btn-secondary';
+    toggleBtn.textContent = '⚠️ ยังไม่พบการตั้งค่า';
+    toggleBtn.title = 'กรุณาโหลดข้อมูลจาก Supabase ก่อน';
+
+  }else{
+
+    const isLocked = setting.lock === true;
+
+    toggleBtn.disabled = false;
+
+    if(isLocked){
+
+      toggleBtn.className = 'btn-success';
+      toggleBtn.textContent = '🔓 เปิดรับรายงาน มส';
+
+    }else{
+
+      toggleBtn.className = 'btn-warning';
+      toggleBtn.textContent = '🔒 ปิดรับรายงาน มส';
+
+    }
+
+    toggleBtn.title =
+      `ภาคเรียน ${setting.term}/${setting.academic_year}`;
+
+  }
+
+}
+
+  if(!setting){
+
+    setText('appSettingMsYear', '-');
+    setText('appSettingMsTerm', '-');
+    setText('appSettingMsLockText', '-');
+    setText('appSettingMsUpdatedAt', '-');
+
+    if(badge){
+      badge.className = 'badge';
+      badge.textContent = 'ยังไม่โหลดสถานะ';
+    }
+
+    setStatus(
+      'appSettingMsStatus',
+      'ยังไม่มีข้อมูลการตั้งค่าจาก Supabase',
+      'info'
+    );
+
+    return;
+  }
+
+  // ปีการศึกษาและภาคเรียน
+  setText(
+    'appSettingMsYear',
+    setting.academic_year ?? '-'
+  );
+
+  setText(
+    'appSettingMsTerm',
+    setting.term ?? '-'
+  );
+
+  // สถานะล็อก
+  const isLocked = setting.lock === true;
+
+  setText(
+    'appSettingMsLockText',
+    isLocked ? 'ปิดรับรายงาน' : 'เปิดรับรายงาน'
+  );
+
+  if(badge){
+
+    badge.className = isLocked
+      ? 'badge red'
+      : 'badge green';
+
+    badge.textContent = isLocked
+      ? '🔒 ปิดรับรายงาน'
+      : '🔓 เปิดรับรายงาน';
+
+  }
+
+  // ยังไม่อ่าน updated_at จาก RPC
+  setText('appSettingMsUpdatedAt', '-');
+
+  setStatus(
+    'appSettingMsStatus',
+    'แสดงสถานะรายงาน มส จาก Supabase แล้ว',
+    'success'
+  );
+
+}
+
+
+// =========================================
+// ฟังก์ชันเดิมของหน้าติดตามรายงาน มส
+// =========================================
 
 function renderMsReportSubmissionSetting(){
+
+  // อัปเดตหน้า App Settings ด้วย
+  renderAppSettingMs();
+
+    // =========================================
+  // REPORT MS MODAL : ปีการศึกษาและภาคเรียน
+  // =========================================
+
+  const msSetting = state.msReportSubmissionSetting;
+
+  const msYearInput = el('msReportSettingYearInput');
+  const msTermInput = el('msReportSettingTermInput');
+  const msSavePeriodBtn = el('msReportSettingSavePeriodBtn');
+
+  // แสดงปีการศึกษาจาก Supabase
+  if(msYearInput){
+    msYearInput.value =
+      msSetting?.academic_year != null
+        ? String(msSetting.academic_year)
+        : '';
+
+    msYearInput.disabled = !msSetting;
+  }
+
+  // แสดงภาคเรียนจาก Supabase
+  if(msTermInput){
+    msTermInput.value =
+      msSetting?.term != null
+        ? String(msSetting.term)
+        : '';
+
+    msTermInput.disabled = !msSetting;
+  }
+
+  // ตรวจสอบการเปลี่ยนปีและภาคเรียน
+  const updateMsModalSaveButton = () => {
+
+    if(!msSavePeriodBtn) return;
+
+    const current = state.msReportSubmissionSetting;
+
+    const yearRaw = String(
+      msYearInput?.value ?? ''
+    ).trim();
+
+    const year = Number(yearRaw);
+    const term = Number(msTermInput?.value);
+
+    const valid =
+      yearRaw !== '' &&
+      Number.isInteger(year) &&
+      year >= 2500 &&
+      year <= 2700 &&
+      [1, 2].includes(term);
+
+    const changed = Boolean(current) && (
+      year !== Number(current.academic_year) ||
+      term !== Number(current.term)
+    );
+
+    msSavePeriodBtn.disabled =
+      !current ||
+      !valid ||
+      !changed ||
+      Boolean(state.msReportPeriodSaving);
+
+  };
+
+  // ตรวจสอบเมื่อแก้ไขค่า
+  if(msYearInput){
+    msYearInput.oninput = updateMsModalSaveButton;
+  }
+
+  if(msTermInput){
+    msTermInput.onchange = updateMsModalSaveButton;
+  }
+
+  updateMsModalSaveButton();
+
+  // แสดงสถานะ
+  setStatus(
+    'msReportSettingPeriodStatus',
+    msSetting
+      ? 'โหลดการตั้งค่าปีการศึกษาและภาคเรียนแล้ว'
+      : 'ยังไม่พบข้อมูลการตั้งค่าจาก Supabase',
+    msSetting ? 'success' : 'info'
+  );
 
   const button =
     el('msReportToggleLockBtn');
@@ -15152,6 +16220,607 @@ async function loadMsReportSubmissionSetting(){
 
     state.msReportSettingLoading =
       false;
+
+  }
+
+}
+
+/* =========================================================
+   REPORT MS : โหลดสถานะการแสดงเมนูใน TeacherPR
+   ========================================================= */
+
+async function loadMsReportVisibilitySetting(){
+
+  if(state.msReportVisibilityLoading){
+    return state.msReportVisibilitySetting;
+  }
+
+  const visibilitySwitch =
+    el('msReportVisibilitySwitch');
+
+  const saveBtn =
+    el('msReportVisibilitySaveBtn');
+
+  try{
+
+    state.msReportVisibilityLoading = true;
+
+    // ปิดการแก้ไขระหว่างโหลด
+    if(visibilitySwitch){
+      visibilitySwitch.disabled = true;
+    }
+
+    if(saveBtn){
+      saveBtn.disabled = true;
+    }
+
+    setStatus(
+      'msReportVisibilityStatus',
+      'กำลังโหลดสถานะการแสดงเมนู...',
+      'info'
+    );
+
+    const token = String(
+      state.adminSessionToken || ''
+    ).trim();
+
+    if(!token){
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+    }
+
+    // อ่านค่าจริงจาก Supabase
+    const { data, error } =
+      await supabaseClient.rpc(
+        'admin_get_exam_eligibility_visibility_session',
+        {
+          p_token: token
+        }
+      );
+
+    if(error){
+      throw error;
+    }
+
+    if(
+      data?.ok !== true ||
+      data?.found !== true ||
+      typeof data?.value?.visible !== 'boolean'
+    ){
+      throw new Error(
+        'ไม่พบการตั้งค่าการแสดงเมนูที่ถูกต้อง'
+      );
+    }
+
+    // เก็บค่าล่าสุด
+    state.msReportVisibilitySetting = {
+      visible: data.value.visible
+    };
+
+// อัปเดต Checkbox
+if(visibilitySwitch){
+
+  visibilitySwitch.checked =
+    data.value.visible;
+
+  // เปิดให้ Admin เปลี่ยนสถานะ
+  visibilitySwitch.disabled = false;
+
+  // ตรวจจับการเปลี่ยนแปลง
+  visibilitySwitch.onchange = () => {
+
+    const originalVisible =
+      state.msReportVisibilitySetting?.visible;
+
+    const changed =
+      typeof originalVisible === 'boolean' &&
+      visibilitySwitch.checked !== originalVisible;
+
+    // เปิดปุ่มบันทึกเมื่อค่าเปลี่ยนเท่านั้น
+    if(saveBtn){
+      saveBtn.disabled =
+        !changed ||
+        state.msReportVisibilitySaving ||
+        state.msReportVisibilityLoading;
+    }
+
+    // แสดงสถานะบน Modal
+    if(changed){
+
+      setStatus(
+        'msReportVisibilityStatus',
+        visibilitySwitch.checked
+          ? 'รอบันทึก: แสดงเมนูใน TeacherPR'
+          : 'รอบันทึก: ซ่อนเมนูใน TeacherPR',
+        'info'
+      );
+
+    }else{
+
+      setStatus(
+        'msReportVisibilityStatus',
+        originalVisible
+          ? 'ขณะนี้แสดงเมนูใน TeacherPR'
+          : 'ขณะนี้ซ่อนเมนูใน TeacherPR',
+        'success'
+      );
+
+    }
+
+  };
+
+}
+
+    setStatus(
+      'msReportVisibilityStatus',
+      data.value.visible
+        ? 'ขณะนี้แสดงเมนูใน TeacherPR'
+        : 'ขณะนี้ซ่อนเมนูใน TeacherPR',
+      'success'
+    );
+
+    return state.msReportVisibilitySetting;
+
+  }catch(error){
+
+    console.error(
+      'loadMsReportVisibilitySetting error:',
+      error
+    );
+
+    state.msReportVisibilitySetting = null;
+
+    if(visibilitySwitch){
+      visibilitySwitch.checked = false;
+      visibilitySwitch.disabled = true;
+    }
+
+    if(saveBtn){
+      saveBtn.disabled = true;
+    }
+
+    setStatus(
+      'msReportVisibilityStatus',
+      error.message || 'โหลดการตั้งค่าไม่สำเร็จ',
+      'error'
+    );
+
+    return null;
+
+  }finally{
+
+    state.msReportVisibilityLoading = false;
+
+  }
+
+}
+
+/* =========================================================
+   REPORT MS : บันทึกสถานะการแสดงเมนูใน TeacherPR
+   ========================================================= */
+
+async function saveMsReportVisibilitySetting(){
+
+  if(
+    state.msReportVisibilityLoading ||
+    state.msReportVisibilitySaving
+  ){
+    return;
+  }
+
+  const visibilitySwitch =
+    el('msReportVisibilitySwitch');
+
+  const saveBtn =
+    el('msReportVisibilitySaveBtn');
+
+  const oldVisible =
+    state.msReportVisibilitySetting?.visible;
+
+  if(
+    !visibilitySwitch ||
+    !saveBtn ||
+    typeof oldVisible !== 'boolean'
+  ){
+    showToast(
+      'ยังบันทึกไม่ได้',
+      'กรุณาโหลดการตั้งค่าจาก Supabase ก่อน',
+      'warning'
+    );
+    return;
+  }
+
+  const newVisible = visibilitySwitch.checked;
+
+  // ไม่มีการเปลี่ยนแปลง
+  if(newVisible === oldVisible){
+    saveBtn.disabled = true;
+    return;
+  }
+
+  // ยืนยันก่อนบันทึก
+  const confirmed = window.confirm(
+    newVisible
+      ? 'ยืนยันแสดงเมนูรายงานนักเรียนไม่มีสิทธิ์สอบใน TeacherPR?'
+      : 'ยืนยันซ่อนเมนูรายงานนักเรียนไม่มีสิทธิ์สอบใน TeacherPR?'
+  );
+
+  if(!confirmed){
+    return;
+  }
+
+  let writeConfirmed = false;
+
+  try{
+
+    state.msReportVisibilitySaving = true;
+
+    visibilitySwitch.disabled = true;
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'กำลังบันทึก...';
+
+    setStatus(
+      'msReportVisibilityStatus',
+      'กำลังบันทึกสถานะลง Supabase...',
+      'info'
+    );
+
+    const token = String(
+      state.adminSessionToken || ''
+    ).trim();
+
+    if(!token){
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+    }
+
+    // บันทึกผ่าน RPC
+    const { data, error } =
+      await supabaseClient.rpc(
+        'admin_set_exam_eligibility_visibility_session',
+        {
+          p_token: token,
+          p_expected_visible: oldVisible,
+          p_visible: newVisible
+        }
+      );
+
+    if(error){
+      throw error;
+    }
+
+    if(
+      data?.ok !== true ||
+      data?.visible !== newVisible ||
+      data?.value?.visible !== newVisible
+    ){
+      throw new Error(
+        'Supabase ไม่ยืนยันผลการบันทึก'
+      );
+    }
+
+    writeConfirmed = true;
+
+    // อ่านค่ากลับจาก Supabase
+    const latest =
+      await loadMsReportVisibilitySetting();
+
+    if(
+      !latest ||
+      latest.visible !== newVisible
+    ){
+      throw new Error(
+        'บันทึกแล้ว แต่ยังตรวจสอบค่าล่าสุดไม่ได้'
+      );
+    }
+
+    setStatus(
+      'msReportVisibilityStatus',
+      newVisible
+        ? 'บันทึกสำเร็จ: แสดงเมนูใน TeacherPR'
+        : 'บันทึกสำเร็จ: ซ่อนเมนูใน TeacherPR',
+      'success'
+    );
+
+    showToast(
+      'บันทึกสำเร็จ',
+      newVisible
+        ? 'กำหนดให้แสดงเมนูแล้ว'
+        : 'กำหนดให้ซ่อนเมนูแล้ว',
+      'success'
+    );
+
+  }catch(error){
+
+    console.error(
+      'saveMsReportVisibilitySetting error:',
+      error
+    );
+
+    if(!writeConfirmed){
+
+      // โหลดค่าจริงกลับมาเมื่อบันทึกไม่สำเร็จ
+      await loadMsReportVisibilitySetting();
+
+      setStatus(
+        'msReportVisibilityStatus',
+        'บันทึกไม่สำเร็จ: ' + error.message,
+        'error'
+      );
+
+      showToast(
+        'บันทึกไม่สำเร็จ',
+        error.message,
+        'error'
+      );
+
+    }else{
+
+      setStatus(
+        'msReportVisibilityStatus',
+        'บันทึกแล้ว แต่ตรวจสอบค่าล่าสุดไม่ได้ กรุณาโหลดใหม่',
+        'warn'
+      );
+
+      showToast(
+        'กรุณาตรวจสอบอีกครั้ง',
+        error.message,
+        'warning'
+      );
+
+    }
+
+  }finally{
+
+    state.msReportVisibilitySaving = false;
+
+    saveBtn.textContent =
+      '💾 บันทึกการแสดงเมนู';
+
+    const currentVisible =
+      state.msReportVisibilitySetting?.visible;
+
+    visibilitySwitch.disabled =
+      typeof currentVisible !== 'boolean';
+
+    saveBtn.disabled =
+      typeof currentVisible !== 'boolean' ||
+      visibilitySwitch.checked === currentVisible;
+
+  }
+
+}
+
+/* =========================================================
+   APP SETTINGS : บันทึกปีการศึกษาและภาคเรียน รายงาน มส
+   ========================================================= */
+
+async function saveAppSettingMsPeriod(source = 'app'){
+
+  if(
+    state.msReportSettingLoading ||
+    state.msReportPeriodSaving
+  ){
+    return;
+  }
+
+  const current = state.msReportSubmissionSetting;
+
+  if(!current){
+    showToast(
+      'ยังบันทึกไม่ได้',
+      'กรุณาโหลดการตั้งค่าจาก Supabase ก่อน',
+      'warning'
+    );
+    return;
+  }
+
+// ตรวจสอบว่าบันทึกจากหน้าใด
+const isModal = source === 'modal';
+
+// ช่องปีการศึกษา
+const yearInput = el(
+  isModal
+    ? 'msReportSettingYearInput'
+    : 'appSettingMsYearInput'
+);
+
+// ช่องภาคเรียน
+const termInput = el(
+  isModal
+    ? 'msReportSettingTermInput'
+    : 'appSettingMsTermInput'
+);
+
+// ปุ่มบันทึก
+const saveBtn = el(
+  isModal
+    ? 'msReportSettingSavePeriodBtn'
+    : 'appSettingMsSavePeriodBtn'
+);
+
+// เลือกพื้นที่แสดงสถานะตามหน้าที่บันทึก
+const periodStatusId = source === 'modal'
+  ? 'msReportSettingPeriodStatus'
+  : 'appSettingMsPeriodStatus';
+
+  const year = Number(yearInput?.value);
+  const term = Number(termInput?.value);
+
+  // ตรวจสอบปีการศึกษา
+  if(
+    !yearInput?.value.trim() ||
+    !Number.isInteger(year) ||
+    year < 2500 ||
+    year > 2700
+  ){
+    showToast(
+      'ปีการศึกษาไม่ถูกต้อง',
+      'กรุณากรอกปีการศึกษา พ.ศ. 2500–2700',
+      'warning'
+    );
+    return;
+  }
+
+  // ตรวจสอบภาคเรียน
+  if(![1, 2].includes(term)){
+    showToast(
+      'ภาคเรียนไม่ถูกต้อง',
+      'กรุณาเลือกภาคเรียนที่ 1 หรือ 2',
+      'warning'
+    );
+    return;
+  }
+
+  const oldYear = Number(current.academic_year);
+  const oldTerm = Number(current.term);
+
+  // ไม่ต้องบันทึกหากค่าเหมือนเดิม
+  if(year === oldYear && term === oldTerm){
+    showToast(
+      'ไม่มีการเปลี่ยนแปลง',
+      'ปีการศึกษาและภาคเรียนตรงกับค่าปัจจุบัน',
+      'info'
+    );
+    return;
+  }
+
+  // ยืนยันก่อนบันทึก
+  const confirmed = window.confirm(
+    `ยืนยันเปลี่ยนรอบรายงาน มส?\n\n` +
+    `จาก: ภาคเรียน ${oldTerm}/${oldYear}\n` +
+    `เป็น: ภาคเรียน ${term}/${year}\n\n` +
+    `ระบบจะกำหนดให้ครูเลือกได้เฉพาะปี/เทอมใหม่ ` +
+    `ในส่วนที่รองรับการตั้งค่านี้\n\n` +
+    `สถานะเปิด/ปิดรับรายงานเดิมจะไม่เปลี่ยน`
+  );
+
+  if(!confirmed){
+    return;
+  }
+
+  try{
+
+    state.msReportPeriodSaving = true;
+
+    if(saveBtn){
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'กำลังบันทึก...';
+    }
+
+    setStatus(
+      periodStatusId,
+      'กำลังบันทึกปีการศึกษาและภาคเรียน...',
+      'info'
+    );
+
+    const token = String(
+      state.adminSessionToken || ''
+    ).trim();
+
+    if(!token){
+      throw new Error(
+        'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+    }
+
+    // บันทึกผ่าน Admin Session RPC
+    const { data, error } = await supabaseClient.rpc(
+      'admin_set_exam_eligibility_period_session',
+      {
+        p_token: token,
+        p_expected_academic_year: oldYear,
+        p_expected_term: oldTerm,
+        p_academic_year: year,
+        p_term: term
+      }
+    );
+
+    if(error){
+      throw error;
+    }
+
+    if(!data || data.ok !== true || !data.value){
+      throw new Error(
+        'ฐานข้อมูลไม่ยืนยันการบันทึก'
+      );
+    }
+
+    // อัปเดตสถานะร่วมกัน
+    state.msReportSubmissionSetting =
+      normalizeMsReportSetting(data.value);
+
+    renderMsReportSubmissionSetting();
+
+    // =========================================
+// ตรวจสอบค่าจริงหลังบันทึกจาก Supabase
+// =========================================
+
+const verifiedSetting =
+  await loadMsReportSubmissionSetting();
+
+const isVerified =
+  verifiedSetting &&
+  Number(verifiedSetting.academic_year) === year &&
+  Number(verifiedSetting.term) === term;
+
+if(!isVerified){
+
+  showToast(
+    'ยังยืนยันผลบันทึกไม่ได้',
+    'RPC ตอบกลับสำเร็จ แต่ค่าที่โหลดกลับไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง',
+    'warning'
+  );
+
+  return;
+
+}
+
+    showToast(
+      'บันทึกสำเร็จ',
+      `กำหนดรอบรายงาน มส เป็น ${term}/${year} แล้ว`,
+      'success'
+    );
+
+    setStatus(
+      periodStatusId,
+      `บันทึกภาคเรียน ${term}/${year} สำเร็จแล้ว`,
+      'success'
+    );
+
+  }catch(error){
+
+    console.error(
+      'saveAppSettingMsPeriod error:',
+      error
+    );
+
+    showToast(
+      'บันทึกไม่สำเร็จ',
+      error.message || 'เกิดข้อผิดพลาด',
+      'error'
+    );
+
+    // โหลดค่าจริงกลับมาเมื่อบันทึกไม่สำเร็จ
+    await loadMsReportSubmissionSetting();
+
+    setStatus(
+      periodStatusId,
+      'บันทึกไม่สำเร็จ กรุณาตรวจสอบค่าล่าสุด',
+      'error'
+    );
+
+  }finally{
+
+    state.msReportPeriodSaving = false;
+
+if(saveBtn){
+  saveBtn.textContent = source === 'modal'
+    ? '💾 บันทึกการตั้งค่า'
+    : '💾 บันทึกปีการศึกษาและภาคเรียน';
+}
 
   }
 
@@ -29000,8 +30669,8 @@ function drawGradeRiskAdviserSignatures(
     rowHeight;
 
 
-let cursorY =
-  startY + 14;
+  let cursorY =
+    startY + 10;
 
 
   /*
@@ -29011,7 +30680,7 @@ let cursorY =
   if(
     cursorY +
     requiredHeight >
-    pageHeight - 1
+    pageHeight - 15
   ){
 
     doc.addPage(
@@ -29292,103 +30961,6 @@ async function loadImageAsDataUrl(src){
 
 }
 
-    function paginateGradeRiskRows(
-  rows
-){
-
-  const sourceRows =
-    Array.isArray(rows)
-      ? rows
-      : [];
-
-
-  const pages =
-    [];
-
-
-  /* =========================================
-     หน้าแรก สูงสุด 20 คน
-     ========================================= */
-
-  const firstPageRows =
-    sourceRows.slice(
-      0,
-      20
-    );
-
-
-  if(firstPageRows.length){
-
-    pages.push({
-      pageNumber:
-        1,
-
-      rows:
-        firstPageRows,
-
-      isFirstPage:
-        true,
-
-      isLastPage:
-        sourceRows.length <= 20
-    });
-
-  }
-
-
-  /* =========================================
-     หน้าที่ 2 เป็นต้นไป สูงสุด 25 คนต่อหน้า
-     ========================================= */
-
-  let startIndex =
-    20;
-
-
-  let pageNumber =
-    2;
-
-
-  while(
-    startIndex <
-    sourceRows.length
-  ){
-
-    const pageRows =
-      sourceRows.slice(
-        startIndex,
-        startIndex + 25
-      );
-
-
-    pages.push({
-      pageNumber,
-
-      rows:
-        pageRows,
-
-      isFirstPage:
-        false,
-
-      isLastPage:
-        startIndex + 25 >=
-        sourceRows.length
-    });
-
-
-    startIndex +=
-      25;
-
-
-    pageNumber +=
-      1;
-
-  }
-
-
-  return pages;
-
-}
-
 async function exportGradeRiskPdf(
   groups,
   academicYear,
@@ -29511,50 +31083,16 @@ async function exportGradeRiskPdf(
       marginLeft -
       marginRight;
 
-    const reportPages =
-  groups.flatMap(
-    originalGroup => {
-
-      const pages =
-        paginateGradeRiskRows(
-          originalGroup.rows
-        );
-
-
-      return pages.map(
-        page => ({
-
-          group: {
-            ...originalGroup,
-
-            rows:
-              page.rows,
-
-            totalStudentCount:
-              originalGroup.rows.length
-          },
-
-          page
-
-        })
-      );
-
-    }
-  );
-
 
     /* =====================================================
        6. สร้างรายงานแยกตามชั้น / ห้อง
        ===================================================== */
 
-reportPages.forEach(
-  (
-    {
-      group,
-      page
-    },
-    index
-  ) => {
+    groups.forEach(
+      (
+        group,
+        index
+      ) => {
 
 
         /* =================================================
@@ -29577,12 +31115,6 @@ reportPages.forEach(
 
 let titleY =
   23;
-
-if(page.isFirstPage){
-
-  /* =================================================
-     หน้าแรก : หัวรายงานเต็ม
-     ================================================= */
 
 
 if(schoolLogoDataUrl){
@@ -29753,80 +31285,11 @@ y:
           }
         );
 
- }
 
-    else{
-
-  /* =================================================
-     หน้า 2 เป็นต้นไป
-     ================================================= */
-
-  drawThaiPdfText(
-    doc,
-    `หน้า ${page.pageNumber}`,
-    {
-      x:
-        marginLeft,
-
-      y:
-        20,
-
-      maxWidth:
-        contentWidth,
-
-      height:
-        6,
-
-      fontPx:
-        30,
-
-      weight:
-        '700',
-
-      color:
-        '#17324a',
-
-      align:
-        'center'
-    }
-  );
-
-
-  drawThaiPdfText(
-    doc,
-    `ปีการศึกษา ${academicYear}   ภาคเรียนที่ ${term}   ชั้น ${group.classLevel}/${group.room} (ต่อ)`,
-    {
-      x:
-        marginLeft,
-
-      y:
-        27,
-
-      maxWidth:
-        contentWidth,
-
-      height:
-        6,
-
-      fontPx:
-        28,
-
-      weight:
-        '400',
-
-      color:
-        '#556478',
-
-      align:
-        'center'
-    }
-  );
-
-}
         /* =================================================
            ครูที่ปรึกษา
            ================================================= */
-if(page.isFirstPage){
+
         const adviserNames =
           (group.advisers || [])
             .map(adviser => {
@@ -29915,7 +31378,7 @@ if(page.isFirstPage){
 
         drawThaiPdfText(
           doc,
-          `จำนวนนักเรียนที่ต้องติดตาม ${group.totalStudentCount} คน`,
+          `จำนวนนักเรียนที่ต้องติดตาม ${group.rows.length} คน`,
           {
 
             x:
@@ -29945,7 +31408,6 @@ if(page.isFirstPage){
 
           }
         );
-}
 
 
         /* =================================================
@@ -29958,10 +31420,8 @@ if(page.isFirstPage){
             group,
             {
 
-startY:
-  page.isFirstPage
-    ? 58
-    : 36,
+              startY:
+                58,
 
               marginLeft,
               marginRight
@@ -29969,64 +31429,24 @@ startY:
             }
           );
 
-    /* =================================================
-   ข้อความมีต่อหน้าถัดไป
-   ================================================= */
-
-if(!page.isLastPage){
-
-  drawThaiPdfText(
-    doc,
-    `มีต่อหน้า ${page.pageNumber + 1}`,
-    {
-      x:
-        marginLeft,
-
-      y:
-        tableFinalY + 2,
-
-      maxWidth:
-        contentWidth,
-
-      height:
-        6,
-
-      fontPx:
-        27,
-
-      weight:
-        '400',
-
-      color:
-        '#17324a',
-
-      align:
-        'right'
-    }
-  );
-
-}
-
 
         /* =================================================
            ลายเซ็นครูที่ปรึกษา
            ================================================= */
 
-if(page.isLastPage){
+        drawGradeRiskAdviserSignatures(
+          doc,
+          group,
+          {
 
-  drawGradeRiskAdviserSignatures(
-    doc,
-    group,
-    {
-      startY:
-        tableFinalY,
+            startY:
+              tableFinalY,
 
-      marginLeft,
-      marginRight
-    }
-  );
+            marginLeft,
+            marginRight
 
-}
+          }
+        );
 
       }
     );
@@ -42192,6 +43612,29 @@ el('adminLoginForm')
   setStatus('gradeManageStatus', 'โปรดเลือกปีการศึกษา/ภาคเรียน หรือระบุเงื่อนไขก่อนแสดงข้อมูล', 'info');
 });
 
+// =========================================
+// APP SETTINGS MENU
+// =========================================
+
+el('menuAppSettingsBtn').addEventListener('click', async () => {
+
+  // เปิดหน้า App Settings
+  setActivePage('appSettings');
+
+  // แสดงสถานะเดิมระหว่างรอข้อมูลล่าสุด
+  renderAppSettingMs();
+
+  // โหลดสถานะล่าสุดจาก Supabase
+  await loadMsReportSubmissionSetting();
+
+    // โหลดสถานะการแสดง/ซ่อนเมนูจาก Supabase
+  await loadMsReportVisibilitySetting();
+
+  // อัปเดต Badge และปุ่มในหน้าตั้งค่าระบบ
+  renderAppSettingMsVisibility();
+
+});
+
  el('emptysecSubManageBtn').addEventListener('click', () => setEmptysecSubPage('manage'));
   el('emptysecSubImportBtn').addEventListener('click', () => setEmptysecSubPage('import'));
 
@@ -42601,6 +44044,259 @@ if(el('msReportToggleLockBtn')){
 
       }
     );
+
+}
+
+/* =========================================================
+   APP SETTINGS : เปิด / ปิดรับรายงาน มส
+   ========================================================= */
+
+if(el('appSettingMsToggleLockBtn')){
+
+  el('appSettingMsToggleLockBtn')
+    .addEventListener('click', async () => {
+
+      await toggleMsReportSubmissionLock();
+
+    });
+
+}
+
+/* =========================================================
+   APP SETTINGS : แสดง/ซ่อนเมนูรายงาน มส
+   ========================================================= */
+
+if(el('appSettingMsVisibilityToggleBtn')){
+
+  el('appSettingMsVisibilityToggleBtn')
+    .addEventListener('click', async () => {
+
+      await toggleAppSettingMsVisibility();
+
+    });
+
+}
+
+/* =========================================================
+   APP SETTINGS : โหลดสถานะรายงาน มส ใหม่
+   ========================================================= */
+
+if(el('appSettingMsReloadBtn')){
+
+  el('appSettingMsReloadBtn')
+    .addEventListener('click', async () => {
+
+      await loadMsReportSubmissionSetting();
+
+    });
+
+}
+
+/* =========================================================
+   APP SETTINGS : บันทึกปีการศึกษาและภาคเรียน
+   ========================================================= */
+
+if(el('appSettingMsSavePeriodBtn')){
+
+  el('appSettingMsSavePeriodBtn')
+    .addEventListener('click', async () => {
+
+      await saveAppSettingMsPeriod();
+
+    });
+
+}
+
+/* =========================================================
+   REPORT MS MODAL : บันทึกปีการศึกษาและภาคเรียน
+   ========================================================= */
+
+if(el('msReportSettingSavePeriodBtn')){
+
+  el('msReportSettingSavePeriodBtn')
+    .addEventListener('click', async () => {
+
+      await saveAppSettingMsPeriod('modal');
+
+    });
+
+}
+
+/* =========================================================
+   REPORT MS : เปิด / ปิด Modal ตั้งค่ารอบรายงาน
+   ========================================================= */
+
+// เปิด Modal และโหลดค่าล่าสุดจาก Supabase
+if(el('msReportSettingOpenBtn')){
+
+  el('msReportSettingOpenBtn')
+    .addEventListener('click', async () => {
+
+      const modal = el('msReportSettingModal');
+
+      if(!modal) return;
+
+      modal.classList.add('show');
+
+      // ปิดการแก้ไขชั่วคราวระหว่างโหลดข้อมูล
+      const yearInput = el('msReportSettingYearInput');
+      const termInput = el('msReportSettingTermInput');
+      const saveBtn = el('msReportSettingSavePeriodBtn');
+      const lockBtn = el('msReportToggleLockBtn');
+
+      if(yearInput) yearInput.disabled = true;
+      if(termInput) termInput.disabled = true;
+      if(saveBtn) saveBtn.disabled = true;
+      if(lockBtn) lockBtn.disabled = true;
+
+      setStatus(
+        'msReportSettingPeriodStatus',
+        'กำลังโหลดการตั้งค่าล่าสุดจาก Supabase...',
+        'info'
+      );
+
+// โหลดการตั้งค่ารับรายงาน มส ล่าสุด
+await loadMsReportSubmissionSetting();
+
+// โหลดสถานะการแสดง/ซ่อนเมนูจาก Supabase
+await loadMsReportVisibilitySetting();
+
+    });
+
+}
+
+
+// ฟังก์ชันปิด Modal
+function closeMsReportSettingModal(){
+
+  const modal = el('msReportSettingModal');
+
+  if(!modal) return;
+
+  // ไม่อนุญาตให้ปิดระหว่างกำลังบันทึก
+if(
+  state.msReportPeriodSaving ||
+  state.msReportVisibilitySaving
+){
+  return;
+}
+
+  // คืนค่าปีการศึกษาและภาคเรียน
+  // ตามข้อมูลที่โหลดจาก Supabase ล่าสุด
+  const setting = state.msReportSubmissionSetting;
+
+  const yearInput = el('msReportSettingYearInput');
+  const termInput = el('msReportSettingTermInput');
+  const saveBtn = el('msReportSettingSavePeriodBtn');
+
+  if(yearInput){
+    yearInput.value =
+      setting?.academic_year != null
+        ? String(setting.academic_year)
+        : '';
+  }
+
+  if(termInput){
+    termInput.value =
+      setting?.term != null
+        ? String(setting.term)
+        : '';
+  }
+
+  // ไม่มีการเปลี่ยนแปลงค้างอยู่
+  if(saveBtn){
+    saveBtn.disabled = true;
+    saveBtn.textContent = '💾 บันทึกการตั้งค่า';
+  }
+
+  // =========================================
+// คืนค่าการแสดงเมนูตามข้อมูลล่าสุด
+// =========================================
+
+const visibilitySwitch =
+  el('msReportVisibilitySwitch');
+
+const visibilitySaveBtn =
+  el('msReportVisibilitySaveBtn');
+
+const originalVisible =
+  state.msReportVisibilitySetting?.visible;
+
+// คืนค่าสวิตช์
+if(visibilitySwitch){
+
+  visibilitySwitch.checked =
+    originalVisible === true;
+
+  visibilitySwitch.disabled =
+    typeof originalVisible !== 'boolean';
+
+}
+
+// ปิดปุ่มบันทึก
+if(visibilitySaveBtn){
+
+  visibilitySaveBtn.disabled = true;
+
+  visibilitySaveBtn.textContent =
+    '💾 บันทึกการแสดงเมนู';
+
+}
+
+// คืนข้อความสถานะ
+if(typeof originalVisible === 'boolean'){
+
+  setStatus(
+    'msReportVisibilityStatus',
+    originalVisible
+      ? 'ขณะนี้แสดงเมนูใน TeacherPR'
+      : 'ขณะนี้ซ่อนเมนูใน TeacherPR',
+    'success'
+  );
+
+}
+
+  // ปิด Modal
+  modal.classList.remove('show');
+
+}
+
+
+// ปิดด้วยปุ่ม X
+if(el('msReportSettingCloseBtn')){
+
+  el('msReportSettingCloseBtn')
+    .addEventListener(
+      'click',
+      closeMsReportSettingModal
+    );
+
+}
+
+
+// ปิดด้วยปุ่มยกเลิก
+if(el('msReportSettingCancelBtn')){
+
+  el('msReportSettingCancelBtn')
+    .addEventListener(
+      'click',
+      closeMsReportSettingModal
+    );
+
+}
+
+/* =========================================================
+   REPORT MS : บันทึกการแสดง / ซ่อนเมนู TeacherPR
+   ========================================================= */
+
+if(el('msReportVisibilitySaveBtn')){
+
+  el('msReportVisibilitySaveBtn')
+    .addEventListener('click', async () => {
+
+      await saveMsReportVisibilitySetting();
+
+    });
 
 }
 
