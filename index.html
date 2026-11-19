@@ -30040,128 +30040,167 @@ function getGradeRiskGroupAdvisers(
   term
 ){
 
-  const adviserRows =
+  const selectedYear =
+    String(academicYear || '').trim();
+
+  const selectedTerm =
+    String(term || '').trim();
+
+
+  // 1. ค้นหาข้อมูลครูที่ปรึกษาตามชั้น/ห้อง
+  // และปี/ภาคเรียนที่เลือก
+
+  let adviserRows =
     (state.teacherAdvisers || [])
+
       .filter(row =>
         row.is_active !== false
       )
-      .filter(row =>
-        String(row.academic_year) ===
-        String(academicYear)
-      )
-      .filter(row =>
-        String(row.term) ===
-        String(term)
-      )
+
       .filter(row =>
         String(row.class_level || '').trim() ===
         String(group.classLevel || '').trim()
       )
+
       .filter(row =>
         String(row.room || '').trim() ===
         String(group.room || '').trim()
+      )
+
+      .filter(row =>
+        !selectedYear ||
+        String(row.academic_year) === selectedYear
+      )
+
+      .filter(row =>
+        !selectedTerm ||
+        String(row.term) === selectedTerm
       );
 
 
-  adviserRows.sort(
-    (a, b) => {
-
-      const roleA =
-        String(
-          a.adviser_role || ''
-        ).trim();
-
-      const roleB =
-        String(
-          b.adviser_role || ''
-        ).trim();
+  if(!adviserRows.length){
+    return [];
+  }
 
 
-      if(
-        roleA === 'หลัก' &&
-        roleB !== 'หลัก'
-      ){
-        return -1;
-      }
+  // 2. เรียงปีการศึกษาและภาคเรียน
+  // ล่าสุดขึ้นก่อน
 
+  adviserRows.sort((a, b) => {
 
-      if(
-        roleB === 'หลัก' &&
-        roleA !== 'หลัก'
-      ){
-        return 1;
-      }
+    const yearDiff =
+      Number(b.academic_year) -
+      Number(a.academic_year);
 
-
-      return 0;
+    if(yearDiff !== 0){
+      return yearDiff;
     }
-  );
 
+    return Number(b.term) -
+           Number(a.term);
+
+  });
+
+
+  // 3. เลือกปีและเทอมล่าสุดที่มีข้อมูล
+  // สำหรับชั้น/ห้องนี้
+
+  const latestYear =
+    String(adviserRows[0].academic_year);
+
+  const latestTerm =
+    String(adviserRows[0].term);
+
+
+  adviserRows =
+    adviserRows.filter(row =>
+
+      String(row.academic_year) === latestYear &&
+
+      String(row.term) === latestTerm
+
+    );
+
+
+  // 4. เรียงครูที่ปรึกษาหลักก่อน
+
+  adviserRows.sort((a, b) => {
+
+    const roleA =
+      String(a.adviser_role || '').trim();
+
+    const roleB =
+      String(b.adviser_role || '').trim();
+
+    if(roleA === 'หลัก' && roleB !== 'หลัก'){
+      return -1;
+    }
+
+    if(roleB === 'หลัก' && roleA !== 'หลัก'){
+      return 1;
+    }
+
+    return 0;
+
+  });
+
+
+  // 5. เตรียมข้อมูลชื่อครูที่ปรึกษา
 
   const advisers = [];
 
-  const usedTeacherIds =
-    new Set();
+  const usedTeacherIds = new Set();
 
 
   adviserRows.forEach(row => {
 
     const teacher =
-      getTeacherById(
-        row.teacher_id
-      );
-
+      getTeacherById(row.teacher_id);
 
     if(!teacher){
       return;
     }
 
-
     const teacherId =
-      String(
-        teacher.id || ''
-      );
+      String(teacher.id || '');
 
-
-    if(
-      usedTeacherIds.has(
-        teacherId
-      )
-    ){
+    if(usedTeacherIds.has(teacherId)){
       return;
     }
 
-
-    usedTeacherIds.add(
-      teacherId
-    );
+    usedTeacherIds.add(teacherId);
 
 
-advisers.push({
+    advisers.push({
 
-  teacherId:
-    teacher.id,
+      teacherId:
+        teacher.id,
 
-  teacherCode:
-    teacher.teacher_code || '',
+      teacherCode:
+        teacher.teacher_code || '',
 
-  teacherPrefix:
-    String(
-      teacher.prefix || ''
-    ).trim(),
+      teacherPrefix:
+        String(teacher.prefix || '').trim(),
 
-  teacherName:
-    teacher.full_name || '',
+      teacherName:
+        teacher.full_name || '',
 
-  adviserRole:
-    row.adviser_role || ''
+      adviserRole:
+        row.adviser_role || '',
 
-});
+      academicYear:
+        latestYear,
+
+      term:
+        latestTerm
+
+    });
 
   });
 
 
   return advisers;
+
 }
 
 async function ensureSarabunCanvasReady(){
@@ -31538,13 +31577,23 @@ y:
            ปีการศึกษา / ภาคเรียน / ชั้น
            ================================================= */
 
-        const subtitle =
-          [
-            `ปีการศึกษา ${academicYear}`,
-            `ภาคเรียนที่ ${term}`,
-            `ชั้น ${group.classLevel}/${group.room}`
-          ]
-          .join('   ');
+const yearLabel =
+  String(academicYear || '').trim()
+    ? `ปีการศึกษา ${academicYear}`
+    : 'ทุกปีการศึกษา';
+
+const termLabel =
+  String(term || '').trim()
+    ? `ภาคเรียนที่ ${term}`
+    : 'ทุกภาคเรียน';
+
+const subtitle =
+  [
+    yearLabel,
+    termLabel,
+    `ชั้น ${group.classLevel}/${group.room}`
+  ]
+  .join('   ');
 
 
         drawThaiPdfText(
@@ -32339,30 +32388,7 @@ riskPrintBtn.addEventListener(
         ).trim();
 
 
-      // ต้องเลือกปีการศึกษา
-      if(!yearValue){
 
-        showToast(
-          'ยังพิมพ์รายงานไม่ได้',
-          'กรุณาเลือกปีการศึกษา',
-          'warning'
-        );
-
-        return;
-      }
-
-
-      // ต้องเลือกภาคเรียน
-      if(!termValue){
-
-        showToast(
-          'ยังพิมพ์รายงานไม่ได้',
-          'กรุณาเลือกภาคเรียน',
-          'warning'
-        );
-
-        return;
-      }
 
 
       const rows =
@@ -32380,6 +32406,33 @@ riskPrintBtn.addEventListener(
 
         return;
       }
+
+      // โหลดข้อมูลครูและครูที่ปรึกษาล่าสุด
+// ก่อนสร้างรายงาน PDF
+
+try {
+
+  await loadTeachers();
+
+  await loadTeacherAdvisers();
+
+} catch (err) {
+
+  console.error(
+    'โหลดข้อมูลครูที่ปรึกษาไม่สำเร็จ:',
+    err
+  );
+
+  showToast(
+    'พิมพ์รายงานไม่สำเร็จ',
+    err?.message ||
+      'ไม่สามารถโหลดข้อมูลครูที่ปรึกษาล่าสุดได้',
+    'error'
+  );
+
+  return;
+
+}
 
 
 const groups =
