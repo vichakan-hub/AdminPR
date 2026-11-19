@@ -3651,6 +3651,19 @@ body.app-booting #appView{
 
 
 
+
+  /* STEP156: Offering snapshot editor */
+  .offering-edit-grid{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,2fr);
+    gap:12px 14px;
+    margin-bottom:12px;
+  }
+  .offering-edit-grid .field{min-width:0;}
+  .offering-edit-grid .std{width:100%;min-width:0;}
+  @media(max-width:650px){
+    .offering-edit-grid{grid-template-columns:minmax(0,1fr);}
+  }
 </style>
 </head>
 <body class="app-booting">
@@ -8710,27 +8723,49 @@ body.app-booting #appView{
   </div>
 </div>
 
+  <!-- STEP156: Edit the yearly Offering snapshot, NOT the Subjects master. -->
   <div id="editModal" class="modal-backdrop">
     <div class="modal modal-lg">
-      <h3>แก้ไขรายการสอน</h3>
+      <h3>แก้ไขรายวิชาที่เปิดสอน (Offering)</h3>
       <p id="editSummary">-</p>
+      <p class="small" style="margin-top:-8px;">แก้ไขเฉพาะรายการสอนของปี/ภาคเรียนนี้ ไม่แก้ข้อมูลรายวิชาต้นแบบ (Subjects)</p>
 
-      <div class="teaching-row teaching-row-4" style="margin-bottom:0;">
+      <div class="offering-edit-grid">
         <div class="field">
-          <span class="label-in-form">หน่วยกิต</span>
-          <input id="editCredit" class="std" type="number" min="0" step="0.1">
+          <label class="label-in-form" for="editOfferingSubjectCode">รหัสวิชา</label>
+          <input id="editOfferingSubjectCode" class="std" type="text" autocomplete="off" spellcheck="false" maxlength="40">
         </div>
         <div class="field">
-          <span class="label-in-form">section_code</span>
-          <input id="editSectionCode" class="std" type="text">
+          <label class="label-in-form" for="editOfferingSubjectName">ชื่อรายวิชา</label>
+          <input id="editOfferingSubjectName" class="std" type="text" autocomplete="off" maxlength="300">
+        </div>
+        <div class="field">
+          <label class="label-in-form" for="editOfferingSubjectType">ประเภทวิชา</label>
+          <select id="editOfferingSubjectType" class="std">
+            <option value="พื้นฐาน">พื้นฐาน</option>
+            <option value="เพิ่มเติม">เพิ่มเติม</option>
+            <option value="กิจกรรม">กิจกรรม</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label-in-form" for="editOfferingLearningArea">กลุ่มสาระการเรียนรู้</label>
+          <select id="editOfferingLearningArea" class="std"></select>
+        </div>
+        <div class="field">
+          <label class="label-in-form" for="editCredit">หน่วยกิต</label>
+          <input id="editCredit" class="std" type="number" min="0" step="0.1" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label class="label-in-form" for="editSectionCode">section_code</label>
+          <input id="editSectionCode" class="std" type="text" autocomplete="off">
         </div>
       </div>
 
+      <p class="small" style="margin-top:8px;">หากแก้หน่วยกิตหรือประเภทวิชา ระบบจะคำนวณ GPA / GPAX และอันดับที่เกี่ยวข้องใหม่โดยอัตโนมัติ</p>
       <div class="actions">
-        <button class="btn-primary" id="confirmEditBtn">บันทึกการแก้ไข</button>
-        <button class="btn-secondary" id="cancelEditBtn">ยกเลิก</button>
+        <button class="btn-primary" id="confirmEditBtn" type="button">บันทึกการแก้ไข</button>
+        <button class="btn-secondary" id="cancelEditBtn" type="button">ยกเลิก</button>
       </div>
-
       <div id="editStatus" class="status info"></div>
     </div>
   </div>
@@ -23645,6 +23680,11 @@ const map = {
     return getLearningAreaFromCode(row?.subject_code || '') || row?.learning_area || '';
   }
 
+  // For Offering, the snapshot is authoritative even when its code implies another area.
+  function getOfferingLearningArea(row){
+    return String(row?.learning_area || getNormalizedLearningAreaBySubject(row) || '').trim();
+  }
+
   function getEducationLevelFromCode(code){
     const cleaned = normalizeSubjectCode(code);
     const digits = cleaned.replace(/^[A-Zก-ฮ]+/, '');
@@ -34374,9 +34414,10 @@ state.selectedStudentIds = (state.selectedStudentIds || []).filter(id => rows.so
     const reportingAreaSelect = el('reportFilterLearningArea');
 
     const areas = [...new Set(
-      (state.allSubjects || [])
-        .map(s => getNormalizedLearningAreaBySubject(s))
-        .filter(Boolean)
+      [
+        ...(state.allSubjects || []).map(s => getNormalizedLearningAreaBySubject(s)),
+        ...(state.offerings || []).map(o => getOfferingLearningArea(o))
+      ].filter(Boolean)
     )].sort((a,b) => {
       const diff = getLearningAreaOrder(a) - getLearningAreaOrder(b);
       if(diff !== 0) return diff;
@@ -34861,176 +34902,130 @@ async function saveStudentEdit(){
 }
 
 async function saveOfferingEdit(){
+  // STEP156: All Offering fields are saved atomically by the new session RPC.
+  const saveBtn = el('confirmEditBtn');
+  const cancelBtn = el('cancelEditBtn');
+  const originalSaveBtnText = saveBtn?.textContent || 'บันทึกการแก้ไข';
 
-  const saveBtn =
-    el('confirmEditBtn');
-
-  const originalSaveBtnText =
-    saveBtn?.textContent || 'บันทึก';
-
-    const cancelBtn =
-  el('cancelEditBtn');
-
-
-  /*
-   * ป้องกันการกดซ้ำ
-   */
-  if(saveBtn?.disabled){
-    return;
-  }
-
+  if(saveBtn?.disabled) return;
 
   try{
-    if(!state.editingId){
-      setStatus('editStatus', 'ไม่พบรายการสอนที่ต้องการแก้ไข', 'error');
-      return;
+    const original = state.editingOfferingOriginal;
+    if(!state.editingId || !original){
+      throw new Error('ไม่พบรายการสอนที่ต้องการแก้ไข กรุณาโหลดรายการใหม่');
     }
 
+    const subject_code = String(el('editOfferingSubjectCode').value || '').trim();
+    const subject_name = String(el('editOfferingSubjectName').value || '').trim();
+    const subject_type = String(el('editOfferingSubjectType').value || '').trim();
+    const learning_area = String(el('editOfferingLearningArea').value || '').trim();
     const credit = safeNumber(el('editCredit').value, null);
     const section_code = String(el('editSectionCode').value || '').trim();
 
-    if(credit === null){
-      setStatus('editStatus', 'กรุณากรอกหน่วยกิต', 'error');
-      return;
+    if(!subject_code || !subject_name || !subject_type || !learning_area){
+      throw new Error('กรุณากรอกรหัสวิชา ชื่อรายวิชา ประเภทวิชา และกลุ่มสาระให้ครบถ้วน');
+    }
+    if(credit === null || credit < 0){
+      throw new Error('กรุณากรอกหน่วยกิตเป็นตัวเลขตั้งแต่ 0 ขึ้นไป');
     }
     if(!section_code){
-      setStatus('editStatus', 'กรุณากรอก section_code', 'error');
+      throw new Error('กรุณากรอก section_code');
+    }
+
+    const changed =
+      subject_code !== String(original.subject_code || '').trim() ||
+      subject_name !== String(original.subject_name || '').trim() ||
+      subject_type !== String(original.subject_type || '').trim() ||
+      learning_area !== getOfferingLearningArea(original) ||
+      credit !== Number(original.credit) ||
+      section_code !== String(original.section_code || '').trim();
+
+    if(!changed){
+      setStatus('editStatus','ไม่มีข้อมูลเปลี่ยนแปลง','info');
       return;
     }
 
-    /*
- * ปิดปุ่มระหว่างบันทึก
- * ป้องกันการส่ง RPC ซ้ำ
- */
-if(saveBtn){
+    const affectsReports =
+      credit !== Number(original.credit) ||
+      subject_type !== String(original.subject_type || '').trim();
 
-  saveBtn.disabled = true;
+    const affectsSubjectDetails =
+      subject_code !== String(original.subject_code || '').trim() ||
+      subject_name !== String(original.subject_name || '').trim() ||
+      learning_area !== getOfferingLearningArea(original);
 
-  saveBtn.textContent =
-    'กำลังบันทึก...';
+    if(affectsReports || affectsSubjectDetails){
+      const warning = affectsReports
+        ? 'การเปลี่ยนหน่วยกิตหรือประเภทวิชาจะคำนวณ GPA / GPAX และอันดับที่เกี่ยวข้องใหม่'
+        : 'การเปลี่ยนข้อมูลรายวิชาจะซิงค์ไปยังผลการเรียนและ Cache ที่เกี่ยวข้อง';
+      if(!confirm(
+        `ยืนยันแก้ไข Offering ${original.subject_code || ''} ปี ${original.academic_year || '-'} ภาคเรียน ${original.term || '-'}?\n\n${warning}\nข้อมูล Subjects ต้นแบบจะไม่ถูกแก้ไข`
+      )) return;
+    }
 
-}
+    const token = String(state.adminSessionToken || '').trim();
+    if(!token){
+      throw new Error('ไม่พบ Admin Session Token กรุณาเข้าสู่ระบบใหม่');
+    }
 
-if(cancelBtn){
-  cancelBtn.disabled = true;
-}
+    if(saveBtn){
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'กำลังบันทึก...';
+    }
+    if(cancelBtn) cancelBtn.disabled = true;
 
     setStatus(
-  'editStatus',
-  'กำลังบันทึกข้อมูล หากมีการเปลี่ยนหน่วยกิต ระบบจะคำนวณ GPA / GPAX ใหม่ กรุณารอสักครู่...',
-  'info'
-);
+      'editStatus',
+      affectsReports
+        ? 'กำลังบันทึกและคำนวณ GPA / GPAX / อันดับ กรุณาอย่าปิดหน้าต่าง...'
+        : 'กำลังบันทึกและซิงค์ข้อมูลรายวิชา...',
+      'info'
+    );
 
-const token =
-  String(
-    state.adminSessionToken ||
-    ''
-  ).trim();
+    const {data: updateResult, error: updateError} = await supabaseClient.rpc(
+      'admin_update_subject_offering_full_session',
+      {
+        p_token: token,
+        p_subject_offering_id: state.editingId,
+        p_subject_code: subject_code,
+        p_subject_name: subject_name,
+        p_subject_type: subject_type,
+        p_learning_area: learning_area,
+        p_credit: credit,
+        p_section_code: section_code
+      }
+    );
 
-
-if(!token){
-  throw new Error(
-    'ไม่พบ Admin Session Token กรุณาเข้าสู่ระบบใหม่'
-  );
-}
-
-
-const {
-  data: updateResult,
-  error: updateError
-} =
-  await supabaseClient.rpc(
-    'admin_update_subject_offering_session',
-    {
-      p_token:
-        token,
-
-      p_subject_offering_id:
-        state.editingId,
-
-      p_credit:
-        credit,
-
-      p_section_code:
-        section_code
+    if(updateError) throw updateError;
+    if(!updateResult || updateResult.ok !== true){
+      throw new Error(updateResult?.message || 'ฐานข้อมูลไม่ยืนยันการแก้ไขรายการสอน');
     }
-  );
 
+    console.log('admin_update_subject_offering_full_session RESULT', updateResult);
 
-if(updateError){
-  throw updateError;
-}
-
-
-if(
-  !updateResult ||
-  updateResult.ok !== true
-){
-  throw new Error(
-    updateResult?.message ||
-    'ฐานข้อมูลไม่ยืนยันการแก้ไขรายการสอน'
-  );
-}
-
-
-console.log(
-  'admin_update_subject_offering_session RESULT',
-  updateResult
-);
+    state.editingId = null;
+    state.editingOfferingOriginal = null;
+    el('editModal').classList.remove('show');
 
     await loadOfferings();
     await loadReportingRows();
 
-    state.editingId = null;
-    el('editModal').classList.remove('show');
-    if(
-  updateResult.credit_changed === true &&
-  updateResult.gpax_refreshed === true
-){
-  showToast(
-    'บันทึกสำเร็จ',
-    'แก้ไขหน่วยกิตและคำนวณ GPA / GPAX ใหม่เรียบร้อยแล้ว',
-    'success'
-  );
-}else{
-  showToast(
-    'บันทึกสำเร็จ',
-    'แก้ไขรายการสอนเรียบร้อยแล้ว',
-    'success'
-  );
-}
-  }catch(err){
-
-    setStatus(
-      'editStatus',
-      err.message || 'บันทึกการแก้ไขรายการสอนไม่สำเร็จ',
-      'error'
-    );
-
     showToast(
-      'บันทึกไม่สำเร็จ',
-      err.message || 'เกิดข้อผิดพลาด',
-      'error'
+      'บันทึกสำเร็จ',
+      updateResult.gpax_recalculated === true
+        ? 'แก้ไข Offering พร้อมซิงค์ GPA / GPAX และอันดับเรียบร้อยแล้ว'
+        : 'แก้ไข Offering และซิงค์ข้อมูลรายวิชาที่เกี่ยวข้องเรียบร้อยแล้ว',
+      'success'
     );
-
+  }catch(err){
+    setStatus('editStatus',err.message || 'บันทึกรายการสอนไม่สำเร็จ','error');
+    showToast('บันทึกไม่สำเร็จ',err.message || 'เกิดข้อผิดพลาด','error');
   }finally{
-
-    /*
-     * เปิดปุ่มกลับเสมอ
-     * ไม่ว่าจะสำเร็จหรือเกิด Error
-     */
     if(saveBtn){
-
       saveBtn.disabled = false;
-
-      saveBtn.textContent =
-        originalSaveBtnText;
-
+      saveBtn.textContent = originalSaveBtnText;
     }
-    if(cancelBtn){
-  cancelBtn.disabled = false;
-}
-
+    if(cancelBtn) cancelBtn.disabled = false;
   }
 }
 
@@ -37598,6 +37593,7 @@ async function loadOfferings(){
     const data = await fetchAllSupabaseRows(baseQuery, 1000);
 
     state.offerings = data || [];
+    populateLearningAreaFilter();
     renderOfferingRows();
 
     setStatus(
@@ -37623,7 +37619,7 @@ async function loadOfferings(){
     return (state.offerings || [])
       .filter(row => !term || String(row.term) === term)
       .filter(row => !classLevel || String(row.class_level) === classLevel)
-      .filter(row => !learningArea || getNormalizedLearningAreaBySubject(row) === learningArea)
+      .filter(row => !learningArea || getOfferingLearningArea(row) === learningArea)
       .filter(row => !teacherId || String(row.teacher_id) === teacherId)
       .filter(row => !keyword || [row.subject_code, row.subject_name].join(' ').toLowerCase().includes(keyword))
       .sort((a,b) => {
@@ -37664,7 +37660,7 @@ async function loadOfferings(){
         <td>${escapeHtml(String(row.academic_year || '-'))} / ${escapeHtml(String(row.term || '-'))}</td>
         <td>${escapeHtml(row.class_level || '-')} / ${escapeHtml(String(row.room || '-'))}</td>
         <td>${escapeHtml(row.teacher_name || row.full_name || '-')}</td>
-        <td>${escapeHtml(getNormalizedLearningAreaBySubject(row) || '-')}</td>
+        <td>${escapeHtml(getOfferingLearningArea(row) || '-')}</td>
         <td>${escapeHtml(String(row.credit ?? '-'))}</td>
         <td>${escapeHtml(row.subject_type || '-')}</td>
         <td><span class="mono">${escapeHtml(row.section_code || '-')}</span></td>
@@ -37678,15 +37674,65 @@ async function loadOfferings(){
     `).join('');
 
     tbody.querySelectorAll('[data-offering-edit]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const row = (state.offerings || []).find(x => String(x.id || x.subject_offering_id) === String(btn.dataset.offeringEdit));
+      btn.addEventListener('click', async () => {
+        const row = (state.offerings || []).find(x =>
+          String(x.id || x.subject_offering_id) === String(btn.dataset.offeringEdit)
+        );
         if(!row) return;
-        state.editingId = row.id || row.subject_offering_id;
-        el('editSummary').textContent = `${row.subject_code || '-'} | ${row.subject_name || '-'} | ${row.class_level || '-'} ห้อง ${row.room || '-'}`;
-        el('editCredit').value = row.credit ?? '';
-        el('editSectionCode').value = row.section_code || '';
-        setStatus('editStatus','พร้อมแก้ไข','info');
+
+        const offeringId = row.id || row.subject_offering_id;
+        state.editingId = offeringId;
+        state.editingOfferingOriginal = null;
+        el('editSummary').textContent =
+          `${row.academic_year || '-'} / ภาคเรียน ${row.term || '-'} · ${row.class_level || '-'} ห้อง ${row.room || '-'} · ${row.teacher_name || row.full_name || 'ครูผู้สอน'}`;
+        setStatus('editStatus','กำลังโหลด Snapshot จาก Offering จริง...','info');
         el('editModal').classList.add('show');
+
+        try{
+          const token = String(state.adminSessionToken || '').trim();
+          if(!token) throw new Error('กรุณาเข้าสู่ระบบ AdminPR ใหม่');
+
+          // Read the authoritative Offering snapshot, not metadata from Subjects.
+          const {data, error} = await supabaseClient.rpc(
+            'admin_get_subject_offering_snapshot_session',
+            {p_token:token, p_subject_offering_id:offeringId}
+          );
+          if(error) throw error;
+          if(data?.ok !== true || !data.offering ||
+             String(data.offering.id) !== String(offeringId)){
+            throw new Error('ไม่สามารถโหลดข้อมูล Offering ล่าสุดได้');
+          }
+          if(String(state.editingId) !== String(offeringId)) return;
+
+          const actual = data.offering;
+          state.editingOfferingOriginal = actual;
+          el('editOfferingSubjectCode').value = actual.subject_code || '';
+          el('editOfferingSubjectName').value = actual.subject_name || '';
+
+          const typeSelect = el('editOfferingSubjectType');
+          const currentType = String(actual.subject_type || '').trim();
+          typeSelect.querySelectorAll('[data-historic-type]').forEach(x => x.remove());
+          if(currentType && !Array.from(typeSelect.options).some(x => x.value === currentType)){
+            const option = new Option(currentType, currentType);
+            option.dataset.historicType = 'true';
+            typeSelect.add(option);
+          }
+          typeSelect.value = currentType;
+
+          const areaSelect = el('editOfferingLearningArea');
+          const currentArea = getOfferingLearningArea(actual);
+          const areas = [...new Set([...LEARNING_AREA_ORDER, 'IS', currentArea].filter(Boolean))];
+          areaSelect.replaceChildren(...areas.map(area => new Option(area, area)));
+          areaSelect.value = currentArea;
+
+          el('editCredit').value = actual.credit ?? '';
+          el('editSectionCode').value = actual.section_code || '';
+          setStatus('editStatus','พร้อมแก้ไข Offering เฉพาะปีและภาคเรียนนี้','info');
+        }catch(err){
+          if(String(state.editingId) !== String(offeringId)) return;
+          setStatus('editStatus',err.message || 'โหลด Offering ไม่สำเร็จ','error');
+          showToast('โหลดข้อมูลไม่สำเร็จ',err.message || 'เกิดข้อผิดพลาด','error');
+        }
       });
     });
 
@@ -45532,6 +45578,7 @@ el('studentEditCancelBtn').addEventListener('click', closeStudentEditModal);
 el('confirmEditBtn').addEventListener('click', saveOfferingEdit);
 el('cancelEditBtn').addEventListener('click', () => {
   state.editingId = null;
+  state.editingOfferingOriginal = null;
   el('editModal').classList.remove('show');
 });
 
