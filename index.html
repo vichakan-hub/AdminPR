@@ -6533,8 +6533,82 @@ body.app-booting #appView{
 
 
   <!-- =========================
-       FILTER
+       ปีและภาคเรียนอ้างอิง
        ========================= -->
+
+  <div class="grade-manage-summary">
+
+    <div class="grade-manage-summary-title">
+      📅 ปีการศึกษาและภาคเรียนอ้างอิง
+    </div>
+
+    <div class="small" style="margin-bottom:12px;">
+      กำหนดรุ่นนักเรียนและช่วงเวลาสิ้นสุด
+      ของการนับผลการเรียนย้อนหลัง
+    </div>
+
+    <div style="
+      display:grid;
+      grid-template-columns:
+        repeat(auto-fit, minmax(180px, 1fr));
+      gap:12px;
+    ">
+
+      <div class="field">
+
+        <span class="label-in-form">
+          ปีการศึกษาอ้างอิง
+        </span>
+
+        <select
+          id="gradeRiskReferenceYear"
+          class="std"
+        >
+          <option value="2569" selected>2569</option>
+          <option value="2568">2568</option>
+          <option value="2567">2567</option>
+          <option value="2566">2566</option>
+        </select>
+
+      </div>
+
+      <div class="field">
+
+        <span class="label-in-form">
+          ภาคเรียนอ้างอิง
+        </span>
+
+        <select
+          id="gradeRiskReferenceTerm"
+          class="std"
+        >
+          <option value="1">ภาคเรียนที่ 1</option>
+          <option value="2" selected>ภาคเรียนที่ 2</option>
+        </select>
+
+      </div>
+
+    </div>
+
+    <div class="small" style="margin-top:10px;">
+      ℹ️ ระบบจะนับผลการเรียนไม่เกินปีและภาคเรียน
+      อ้างอิงที่เลือก และไม่นำรุ่นที่จบแล้วมาแสดง
+    </div>
+
+  </div>
+
+
+  <!-- =========================
+       ตัวกรองข้อมูลผลการเรียน
+       ========================= -->
+
+  <div class="small" style="
+    font-weight:700;
+    margin-bottom:10px;
+  ">
+    🔎 ตัวกรองข้อมูลผลการเรียน
+  </div>
+
   <div class="report-toolbar">
 
     <div class="field">
@@ -31587,13 +31661,35 @@ const termLabel =
     ? `ภาคเรียนที่ ${term}`
     : 'ทุกภาคเรียน';
 
-const subtitle =
-  [
-    yearLabel,
-    termLabel,
-    `ชั้น ${group.classLevel}/${group.room}`
-  ]
-  .join('   ');
+// ==========================================
+// รอบอ้างอิงและช่วงข้อมูลผลการเรียน
+// ==========================================
+
+// academicYear และ term
+// เป็นปี/ภาคเรียนอ้างอิงจากขั้นตอนที่ 13
+
+const filterYear = String(
+  el('gradeRiskYearFilter')?.value || ''
+).trim();
+
+const filterTerm = String(
+  el('gradeRiskTermFilter')?.value || ''
+).trim();
+
+const filterYearLabel = filterYear
+  ? `ปี ${filterYear}`
+  : 'ทุกปี';
+
+const filterTermLabel = filterTerm
+  ? `เทอม ${filterTerm}`
+  : 'ทุกภาคเรียน';
+
+// หัวรายงาน PDF
+const subtitle = [
+  `อ้างอิง: ${academicYear}/${term}`,
+  `ผลการเรียน: ${filterYearLabel} / ${filterTermLabel}`,
+  `ชั้น ${group.classLevel}/${group.room}`
+].join('  |  ');
 
 
         drawThaiPdfText(
@@ -32202,13 +32298,56 @@ async function loadGradeRiskRows(){
       ).trim();
 
 
+    // ==========================================
+    // ปีการศึกษาและภาคเรียนอ้างอิง
+    // ==========================================
+
+    const referenceYear =
+      Number(
+        el('gradeRiskReferenceYear')?.value
+      );
+
+    const referenceTerm =
+      Number(
+        el('gradeRiskReferenceTerm')?.value
+      );
+
+
+    // ตรวจสอบค่ารอบอ้างอิง
+
+    if(
+      !Number.isInteger(referenceYear) ||
+      referenceYear < 2500 ||
+      referenceYear > 2700 ||
+      ![1, 2].includes(referenceTerm)
+    ){
+      throw new Error(
+        'กรุณาเลือกปีการศึกษาและภาคเรียนอ้างอิงให้ถูกต้อง'
+      );
+    }
+
+
+    // ==========================================
+    // เรียก RPC รายงานตามรอบอ้างอิง
+    // ==========================================
+
     const { data, error } =
       await supabaseClient.rpc(
-        'admin_get_risk_students_session',
+        'admin_get_risk_students_reference_session',
         {
 
           p_token:
             token,
+
+          // รอบอ้างอิง
+
+          p_reference_year:
+            referenceYear,
+
+          p_reference_term:
+            referenceTerm,
+
+          // ตัวกรองข้อมูลผลการเรียนเดิม
 
           p_academic_year:
             yearValue
@@ -32439,13 +32578,42 @@ const groups =
   getGradeRiskPrintGroups();
 
 
+// ==========================================
+// ครูที่ปรึกษาตามปี/ภาคเรียนอ้างอิง
+// ==========================================
+
+const referenceYear = Number(
+  el('gradeRiskReferenceYear')?.value
+);
+
+const referenceTerm = Number(
+  el('gradeRiskReferenceTerm')?.value
+);
+
+if(
+  !Number.isInteger(referenceYear) ||
+  referenceYear < 2500 ||
+  referenceYear > 2700 ||
+  ![1, 2].includes(referenceTerm)
+){
+  showToast(
+    'พิมพ์รายงานไม่ได้',
+    'กรุณาเลือกปีการศึกษาและภาคเรียนอ้างอิง',
+    'warning'
+  );
+  return;
+}
+
+// เลือกครูที่ปรึกษาตามรอบอ้างอิง
+// ไม่ใช้ปีและภาคเรียนของตัวกรองผลการเรียน
+
 groups.forEach(group => {
 
   group.advisers =
     getGradeRiskGroupAdvisers(
       group,
-      yearValue,
-      termValue
+      referenceYear,
+      referenceTerm
     );
 
 });
@@ -32477,11 +32645,11 @@ console.log(
 
 try{
 
-  await exportGradeRiskPdf(
-    groups,
-    yearValue,
-    termValue
-  );
+await exportGradeRiskPdf(
+  groups,
+  referenceYear,
+  referenceTerm
+);
 
 }catch(err){
 
