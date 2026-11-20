@@ -32374,6 +32374,68 @@ async function loadGradeRiskRows(){
     }
 
 
+    // ==========================================
+// STEP 17B
+// ตรวจสอบว่าตัวกรองเปลี่ยนระหว่างโหลดหรือไม่
+// ==========================================
+
+const filterChangedDuringLoad =
+
+  String(
+    el('gradeRiskReferenceYear')?.value || ''
+  ).trim() !== String(referenceYear)
+
+  ||
+
+  String(
+    el('gradeRiskReferenceTerm')?.value || ''
+  ).trim() !== String(referenceTerm)
+
+  ||
+
+  String(
+    el('gradeRiskYearFilter')?.value || ''
+  ).trim() !== yearValue
+
+  ||
+
+  String(
+    el('gradeRiskTermFilter')?.value || ''
+  ).trim() !== termValue
+
+  ||
+
+  String(
+    el('gradeRiskClassFilter')?.value || ''
+  ).trim() !== classValue
+
+  ||
+
+  String(
+    el('gradeRiskRoomFilter')?.value || ''
+  ).trim() !== roomValue;
+
+
+// หากตัวกรองเปลี่ยนไปแล้ว
+// ห้ามนำผลลัพธ์จากคำขอเดิมมาแสดง
+
+if(filterChangedDuringLoad){
+
+  state.gradeRiskRows = [];
+
+  renderGradeRiskRows();
+  updateGradeRiskSummary();
+
+  setStatus(
+    'gradeRiskStatus',
+    'ตัวกรองเปลี่ยนระหว่างโหลด กรุณากดโหลดข้อมูลใหม่',
+    'warning'
+  );
+
+  return;
+
+}
+
     state.gradeRiskRows =
       Array.isArray(data)
         ? data
@@ -32425,6 +32487,47 @@ setStatus(
 
 
     state.gradeRiskRows = [];
+
+        // ==========================================
+    // ล้างตารางเมื่อโหลดข้อมูลไม่สำเร็จ
+    // ป้องกันข้อมูลจากรอบอ้างอิงเดิมค้างบนหน้าจอ
+    // ==========================================
+
+    const riskTbody =
+      el('gradeRiskTbody');
+
+    if(riskTbody){
+
+      riskTbody.innerHTML = `
+        <tr class="filter-empty-row">
+          <td colspan="12">
+
+            <div class="filter-empty-state">
+              <div class="filter-empty-card">
+
+                <div class="filter-empty-icon">
+                  ⚠️
+                </div>
+
+                <div class="filter-empty-title">
+                  โหลดข้อมูลไม่สำเร็จ
+                </div>
+
+                <div class="filter-empty-text">
+                  ไม่สามารถโหลดข้อมูลนักเรียน
+                  ตามรอบอ้างอิงที่เลือกได้
+                  <br>
+                  กรุณากดโหลดข้อมูลอีกครั้ง
+                </div>
+
+              </div>
+            </div>
+
+          </td>
+        </tr>
+      `;
+
+    }
 
 
     if(el('gradeRiskStudentCount')){
@@ -32506,6 +32609,51 @@ if(riskReloadBtn){
     loadGradeRiskRows
   );
 }
+
+// ==========================================
+// STEP 17A
+// ล้างข้อมูลเดิมเมื่อเปลี่ยนตัวกรอง RPC
+// ==========================================
+
+const gradeRiskQueryFilterIds = [
+  'gradeRiskReferenceYear',
+  'gradeRiskReferenceTerm',
+  'gradeRiskYearFilter',
+  'gradeRiskTermFilter',
+  'gradeRiskClassFilter',
+  'gradeRiskRoomFilter'
+];
+
+gradeRiskQueryFilterIds.forEach(id => {
+
+  const filterElement = el(id);
+
+  if(!filterElement){
+    return;
+  }
+
+  filterElement.addEventListener(
+    'change',
+    () => {
+
+      // ยกเลิกข้อมูลที่โหลดจากเงื่อนไขเดิม
+      state.gradeRiskRows = [];
+
+      // ล้างตารางและยอดสรุป
+      renderGradeRiskRows();
+      updateGradeRiskSummary();
+
+      // แจ้งให้โหลดข้อมูลใหม่ก่อนพิมพ์
+      setStatus(
+        'gradeRiskStatus',
+        'ตัวกรองเปลี่ยนแปลงแล้ว กรุณากดโหลดข้อมูลใหม่ก่อนพิมพ์รายงาน',
+        'warning'
+      );
+
+    }
+  );
+
+});
 
 const riskPrintBtn =
   el('gradeRiskPrintBtn');
