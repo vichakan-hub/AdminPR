@@ -30645,14 +30645,15 @@ function drawGradeRiskStudentTable(
     'center',
 
   cellPadding:{
-    top:1.2,
+    top:0.8,
     right:0.8,
-    bottom:1.2,
+    bottom:0.8,
     left:0.8
   },
 
+
   minCellHeight:
-    9,
+    8,
 
   overflow:
     'linebreak'
@@ -31849,46 +31850,133 @@ y:
         );
 
 
-        /* =================================================
-           ตารางรายชื่อนักเรียน
-           ================================================= */
-
-        const tableFinalY =
-          drawGradeRiskStudentTable(
-            doc,
-            group,
-            {
-
-              startY:
-                58,
-
-              marginLeft,
-              marginRight
-
-            }
-          );
 
 
-        /* =================================================
-           ลายเซ็นครูที่ปรึกษา
-           ================================================= */
+/* =================================================
+   STEP 18B.2
+   แบ่งหน้ารายชื่อนักเรียนทุก 20 คน
+   และวางลายเซ็นใต้ตารางหน้าสุดท้าย
+   ================================================= */
 
-        drawGradeRiskAdviserSignatures(
-          doc,
-          group,
-          {
+const MAX_ROWS_PER_PAGE = 20;
 
-            startY:
-              tableFinalY,
+const allStudentRows =
+  Array.isArray(group.rows)
+    ? group.rows
+    : [];
 
-            marginLeft,
-            marginRight
+let tableFinalY = 58;
 
-          }
-        );
 
+// แบ่งนักเรียนเป็นชุด ชุดละไม่เกิน 20 คน
+
+for(
+  let offset = 0;
+  offset < allStudentRows.length;
+  offset += MAX_ROWS_PER_PAGE
+){
+
+  const isContinuationPage =
+    offset > 0;
+
+
+  // เมื่อเกิน 20 คน ให้เริ่มหน้าใหม่
+
+  if(isContinuationPage){
+
+    doc.addPage(
+      'a4',
+      'portrait'
+    );
+
+
+    // หัวรายงานสำหรับหน้าต่อเนื่อง
+
+    drawThaiPdfText(
+      doc,
+      'แบบติดตามนักเรียนที่มีผลการเรียน 0 ร มส และ มผ (ต่อ)',
+      {
+        x: marginLeft,
+        y: 8,
+        maxWidth: contentWidth,
+        height: 7,
+        fontPx: 35,
+        weight: '700',
+        color: '#17324a',
+        align: 'center'
       }
     );
+
+
+    drawThaiPdfText(
+      doc,
+      `อ้างอิง: ${academicYear}/${term} | ชั้น ${group.classLevel}/${group.room}`,
+      {
+        x: marginLeft,
+        y: 16,
+        maxWidth: contentWidth,
+        height: 6,
+        fontPx: 30,
+        weight: '400',
+        color: '#556478',
+        align: 'center'
+      }
+    );
+
+  }
+
+
+  // ดึงรายชื่อนักเรียนเฉพาะของหน้านี้
+
+  const pageRows =
+    allStudentRows.slice(
+      offset,
+      offset + MAX_ROWS_PER_PAGE
+    );
+
+
+  const pageGroup = {
+    ...group,
+    rows: pageRows
+  };
+
+
+  // สร้างตารางในแต่ละหน้า
+
+  tableFinalY =
+    drawGradeRiskStudentTable(
+      doc,
+      pageGroup,
+      {
+        startY:
+          isContinuationPage
+            ? 27
+            : 58,
+
+        marginLeft,
+        marginRight
+      }
+    );
+
+}
+
+
+/* =================================================
+   ลายเซ็นครูที่ปรึกษา
+
+   วางเพียงครั้งเดียว
+   ใต้ตารางของหน้าสุดท้าย
+   ================================================= */
+
+drawGradeRiskAdviserSignatures(
+  doc,
+  group,
+  {
+    startY: tableFinalY,
+    marginLeft,
+    marginRight
+  }
+);
 
 
     /* =====================================================
