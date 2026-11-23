@@ -34364,20 +34364,42 @@ async function loadAcademicYears(){
       : [];
 }
 
-  async function loadSubjects(){
-    const {data,error} = await supabaseClient
-      .from('subjects')
-      .select('id, subject_code, subject_name, credit, learning_area, education_level, class_level, term, subject_type, sequence_no, is_active');
 
-    if(error) throw error;
+async function loadSubjects(){
 
-    state.allSubjects = (data || []).sort(compareSubjectsCustom);
-    refreshActiveSubjects();
-    populateLearningAreaFilter();
-    populateGradeManageLearningAreaFilter();
-    populateSubjects();
-    renderSubjectRows();
+  // 1. ตรวจสอบ Admin Session
+  const token = String(
+    state.adminSessionToken || ''
+  ).trim();
+
+  if(!token){
+    throw new Error(
+      'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+    );
   }
+
+  // 2. โหลดรายวิชาผ่าน RPC ที่ตรวจสอบสิทธิ์ Admin
+  const { data, error } = await supabaseClient.rpc(
+    'admin_get_subjects_session',
+    {
+      p_token: token
+    }
+  );
+
+  if(error) throw error;
+
+  // 3. จัดเก็บและเรียงข้อมูลรายวิชา
+  state.allSubjects = (data || []).sort(compareSubjectsCustom);
+
+  // 4. อัปเดตข้อมูลและหน้าจอเดิม
+  refreshActiveSubjects();
+  populateLearningAreaFilter();
+  populateGradeManageLearningAreaFilter();
+  populateSubjects();
+  renderSubjectRows();
+
+}
+
 
 
 
