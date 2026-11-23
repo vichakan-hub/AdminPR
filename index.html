@@ -34423,22 +34423,42 @@ populateReportTeacherFilter();
     clearTeacher();
   }
 
-  async function loadTeacherAdvisers(){
-    const {data,error} = await supabaseClient
-      .from('teacher_advisers')
-      .select('id, teacher_id, academic_year, term, class_level, room, adviser_role, is_active, note, created_at, updated_at')
-      .order('academic_year',{ascending:false})
-      .order('term',{ascending:true})
-      .order('class_level',{ascending:true})
-      .order('room',{ascending:true});
 
-    if(error) throw error;
+async function loadTeacherAdvisers(){
 
-    state.teacherAdvisers = data || [];
-    renderTeacherRows();
-    renderAdviserRows();
-    refreshTeacherStats();
+  // 1. ตรวจสอบ Admin Session
+  const token = String(
+    state.adminSessionToken || ''
+  ).trim();
+
+  if(!token){
+    throw new Error(
+      'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+    );
   }
+
+  // 2. โหลดข้อมูลครูที่ปรึกษาผ่าน RPC
+  const { data, error } = await supabaseClient.rpc(
+    'admin_get_teacher_advisers_session',
+    {
+      p_token: token
+    }
+  );
+
+  if(error) throw error;
+
+  // 3. จัดเก็บข้อมูลครูที่ปรึกษา
+  state.teacherAdvisers = Array.isArray(data)
+    ? data
+    : [];
+
+  // 4. อัปเดตหน้าจอเดิม
+  renderTeacherRows();
+  renderAdviserRows();
+  refreshTeacherStats();
+
+}
+
 
     /* =========================================================
    Student Master
@@ -35232,12 +35252,35 @@ function clearGradeManageTeacherFilter(){
 
     setStatus('subjectEditStatus', 'กำลังบันทึกการแก้ไข...', 'info');
 
-    const { error } = await supabaseClient
-      .from('subjects')
-      .update(payload)
-      .eq('id', state.subjectModalEditingId);
 
-    if(error) throw error;
+const token = String(
+  state.adminSessionToken || ''
+).trim();
+
+if(!token){
+  throw new Error(
+    'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+  );
+}
+
+// แก้ไขแม่แบบรายวิชาผ่าน RPC
+const { data: savedId, error } = await supabaseClient.rpc(
+  'admin_save_subject_session',
+  {
+    p_token: token,
+    p_subject_id: state.subjectModalEditingId,
+    p_payload: payload
+  }
+);
+
+if(error) throw error;
+
+if(!savedId){
+  throw new Error(
+    'ฐานข้อมูลไม่ยืนยันการแก้ไขรายวิชา'
+  );
+}
+
 
     await loadSubjects();
     await loadOfferings();
@@ -35566,24 +35609,53 @@ async function saveSubject(){
 
     setStatus('subjectFormStatus', 'กำลังบันทึกรายวิชา...', 'info');
 
-    if(state.subjectEditingId){
-      const { error } = await supabaseClient
-        .from('subjects')
-        .update(payload)
-        .eq('id', state.subjectEditingId);
 
-      if(error) throw error;
+const token = String(
+  state.adminSessionToken || ''
+).trim();
 
-      showToast('บันทึกสำเร็จ', 'แก้ไขรายวิชาเรียบร้อยแล้ว', 'success');
-    }else{
-      const { error } = await supabaseClient
-        .from('subjects')
-        .insert([payload]);
+if(!token){
+  throw new Error(
+    'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+  );
+}
 
-      if(error) throw error;
+const isEditing = Boolean(state.subjectEditingId);
 
-      showToast('บันทึกสำเร็จ', 'เพิ่มรายวิชาเรียบร้อยแล้ว', 'success');
-    }
+// บันทึกผ่าน RPC ที่ตรวจสอบ Admin Session
+const { data: savedId, error } = await supabaseClient.rpc(
+  'admin_save_subject_session',
+  {
+    p_token: token,
+    p_subject_id: isEditing
+      ? state.subjectEditingId
+      : null,
+    p_payload: payload
+  }
+);
+
+if(error) throw error;
+
+if(!savedId){
+  throw new Error(
+    'ฐานข้อมูลไม่ยืนยันการบันทึกรายวิชา'
+  );
+}
+
+if(isEditing){
+  showToast(
+    'บันทึกสำเร็จ',
+    'แก้ไขรายวิชาเรียบร้อยแล้ว',
+    'success'
+  );
+}else{
+  showToast(
+    'บันทึกสำเร็จ',
+    'เพิ่มรายวิชาเรียบร้อยแล้ว',
+    'success'
+  );
+}
+
 
     await loadSubjects();
     await loadOfferings();
@@ -37487,19 +37559,89 @@ if(plan.scope === 'school'){
       });
     });
 
-    tbody.querySelectorAll('[data-subject-delete]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if(!confirm('ยืนยันลบรายวิชานี้ใช่หรือไม่')) return;
-        try{
-          const { error } = await supabaseClient.from('subjects').delete().eq('id', btn.dataset.subjectDelete);
-          if(error) throw error;
-          await loadSubjects();
-          showToast('ลบสำเร็จ', 'ลบรายวิชาเรียบร้อยแล้ว', 'success');
-        }catch(err){
-          showToast('ลบไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+
+tbody.querySelectorAll('[data-subject-delete]').forEach(btn => {
+
+  btn.addEventListener('click', async () => {
+
+    const subjectId = btn.dataset.subjectDelete;
+
+    if(!subjectId){
+      showToast('ลบไม่สำเร็จ', 'ไม่พบรหัสรายวิชา', 'error');
+      return;
+    }
+
+    if(!confirm(
+      'ยืนยันลบรายวิชานี้ใช่หรือไม่?\n\n' +
+      'ระบบจะไม่อนุญาตให้ลบรายวิชาที่มีประวัติการเปิดสอน ' +
+      'ผลการเรียน หรือคำร้องสอบแก้ตัว'
+    )){
+      return;
+    }
+
+    const originalDisabled = btn.disabled;
+
+    try{
+
+      // 1. ตรวจสอบ Admin Session
+      const token = String(
+        state.adminSessionToken || ''
+      ).trim();
+
+      if(!token){
+        throw new Error(
+          'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+        );
+      }
+
+      btn.disabled = true;
+
+      // 2. ลบผ่าน RPC ที่ตรวจสอบสิทธิ์
+      const { data, error } = await supabaseClient.rpc(
+        'admin_delete_subject_session',
+        {
+          p_token: token,
+          p_subject_id: subjectId
         }
-      });
-    });
+      );
+
+      if(error) throw error;
+
+      if(data !== true){
+        throw new Error(
+          'ฐานข้อมูลไม่ยืนยันการลบรายวิชา'
+        );
+      }
+
+      // 3. โหลดข้อมูลใหม่
+      await loadSubjects();
+
+      showToast(
+        'ลบสำเร็จ',
+        'ลบรายวิชาเรียบร้อยแล้ว',
+        'success'
+      );
+
+    }catch(err){
+
+      showToast(
+        'ลบไม่สำเร็จ',
+        err.message || 'เกิดข้อผิดพลาด',
+        'error'
+      );
+
+    }finally{
+
+      if(btn.isConnected){
+        btn.disabled = originalDisabled;
+      }
+
+    }
+
+  });
+
+});
+
 
     setStatus('subjectListStatus', `พบ ${rows.length} รายการ`, 'success');
   }
