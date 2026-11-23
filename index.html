@@ -35796,11 +35796,35 @@ if(isEditing){
       note: note || null
     };
 
-    const { error } = await supabaseClient
-      .from('teacher_advisers')
-      .insert([payload]);
 
-    if(error) throw error;
+const token = String(
+  state.adminSessionToken || ''
+).trim();
+
+if(!token){
+  throw new Error(
+    'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+  );
+}
+
+// เพิ่มข้อมูลครูที่ปรึกษาผ่าน RPC
+const { data: savedId, error } = await supabaseClient.rpc(
+  'admin_save_teacher_adviser_session',
+  {
+    p_token: token,
+    p_adviser_id: null,
+    p_payload: payload
+  }
+);
+
+if(error) throw error;
+
+if(!savedId){
+  throw new Error(
+    'ฐานข้อมูลไม่ยืนยันการเพิ่มข้อมูลครูที่ปรึกษา'
+  );
+}
+
 
 const savedAcademicYear = String(academic_year);
 const savedTerm = String(term);
@@ -35875,12 +35899,35 @@ async function saveAdviserEdit(){
       note: note || null
     };
 
-    const { error } = await supabaseClient
-      .from('teacher_advisers')
-      .update(payload)
-      .eq('id', state.adviserEditingId);
 
-    if(error) throw error;
+const token = String(
+  state.adminSessionToken || ''
+).trim();
+
+if(!token){
+  throw new Error(
+    'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+  );
+}
+
+// แก้ไขข้อมูลครูที่ปรึกษาผ่าน RPC
+const { data: savedId, error } = await supabaseClient.rpc(
+  'admin_save_teacher_adviser_session',
+  {
+    p_token: token,
+    p_adviser_id: state.adviserEditingId,
+    p_payload: payload
+  }
+);
+
+if(error) throw error;
+
+if(!savedId){
+  throw new Error(
+    'ฐานข้อมูลไม่ยืนยันการแก้ไขข้อมูลครูที่ปรึกษา'
+  );
+}
+
 
     await loadTeacherAdvisers();
     closeAdviserEditModal();
