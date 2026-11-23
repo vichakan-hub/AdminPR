@@ -30653,7 +30653,7 @@ cellPadding:{
 
 
   minCellHeight:
-    7.5,
+    7.2,
 
   overflow:
     'linebreak'
@@ -31068,27 +31068,25 @@ function drawGradeRiskAdviserSignatures(
     );
 
 
-  const rowHeight =
-    25;
-
+  // ความสูงพื้นที่ลายเซ็นต่อแถว
+  // ข้อความจริงใช้ประมาณ 15 มม.
+  const rowHeight = 18;
 
   const requiredHeight =
-    rowCount *
-    rowHeight;
+    rowCount * rowHeight;
 
-
-  let cursorY =
-    startY + 10;
+  // เว้นจากขอบตารางเพียง 4 มม.
+  let cursorY = startY + 4;
 
 
   /*
    * ถ้าพื้นที่ใต้ตารางไม่พอ
    * เปิดหน้าใหม่สำหรับลายเซ็น
    */
-  if(
+   if(
     cursorY +
     requiredHeight >
-    pageHeight - 15
+    pageHeight - 8
   ){
 
     doc.addPage(
