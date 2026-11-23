@@ -27585,14 +27585,29 @@ async function fetchTransferOfferingMap(rows = []){
     return resultMap;
   }
 
-  const { data, error } = await supabaseClient
-    .from('v_subject_offerings')
-    .select('*')
-    .eq('academic_year', year)
-    .eq('term', term)
-    .eq('class_level', classLevel)
-    .eq('room', room)
-    .in('subject_code', subjectCodes);
+
+const offeringSessionToken = String(
+  state.adminSessionToken || ''
+).trim();
+
+if(!offeringSessionToken){
+  throw new Error(
+    'Admin Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+  );
+}
+
+const { data, error } = await supabaseClient.rpc(
+  'admin_get_subject_offerings_session',
+  {
+    p_token: offeringSessionToken
+  }
+)
+.eq('academic_year', year)
+.eq('term', term)
+.eq('class_level', classLevel)
+.eq('room', room)
+.in('subject_code', subjectCodes);
+
 
   if(error) throw error;
 
@@ -37907,19 +37922,102 @@ tbody
       });
     });
 
-    tbody.querySelectorAll('[data-adviser-delete]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if(!confirm('ยืนยันลบรายการครูที่ปรึกษานี้ใช่หรือไม่')) return;
-        try{
-          const { error } = await supabaseClient.from('teacher_advisers').delete().eq('id', btn.dataset.adviserDelete);
-          if(error) throw error;
-          await loadTeacherAdvisers();
-          showToast('ลบสำเร็จ', 'ลบรายการครูที่ปรึกษาเรียบร้อยแล้ว', 'success');
-        }catch(err){
-          showToast('ลบไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด', 'error');
+
+tbody.querySelectorAll('[data-adviser-delete]').forEach(btn => {
+
+  btn.addEventListener('click', async () => {
+
+    const adviserId = btn.dataset.adviserDelete;
+
+    if(!adviserId){
+      showToast(
+        'ลบไม่สำเร็จ',
+        'ไม่พบรหัสรายการครูที่ปรึกษา',
+        'error'
+      );
+      return;
+    }
+
+    // แสดงรายละเอียดรายการก่อนลบ
+    const adviser = (state.teacherAdvisers || [])
+      .find(row => String(row.id) === String(adviserId));
+
+    const detail = adviser
+      ? `ปี ${adviser.academic_year} เทอม ${adviser.term}\n` +
+        `${adviser.class_level} ห้อง ${adviser.room}\n`
+      : '';
+
+    if(!confirm(
+      'ยืนยันลบรายการครูที่ปรึกษานี้ใช่หรือไม่?\n\n' +
+      detail +
+      '\nการลบอาจทำให้ครูไม่สามารถเข้าถึงข้อมูลห้องนี้ใน TeacherPR ได้'
+    )){
+      return;
+    }
+
+    const originalDisabled = btn.disabled;
+
+    try{
+
+      // 1. ตรวจสอบ Admin Session
+      const token = String(
+        state.adminSessionToken || ''
+      ).trim();
+
+      if(!token){
+        throw new Error(
+          'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+        );
+      }
+
+      btn.disabled = true;
+
+      // 2. ลบผ่าน RPC ที่ตรวจสอบสิทธิ์ Admin
+      const { data, error } = await supabaseClient.rpc(
+        'admin_delete_teacher_adviser_session',
+        {
+          p_token: token,
+          p_adviser_id: adviserId
         }
-      });
-    });
+      );
+
+      if(error) throw error;
+
+      if(data !== true){
+        throw new Error(
+          'ฐานข้อมูลไม่ยืนยันการลบข้อมูลครูที่ปรึกษา'
+        );
+      }
+
+      // 3. โหลดข้อมูลใหม่
+      await loadTeacherAdvisers();
+
+      showToast(
+        'ลบสำเร็จ',
+        'ลบข้อมูลครูที่ปรึกษาเรียบร้อยแล้ว',
+        'success'
+      );
+
+    }catch(err){
+
+      showToast(
+        'ลบไม่สำเร็จ',
+        err.message || 'เกิดข้อผิดพลาด',
+        'error'
+      );
+
+    }finally{
+
+      if(btn.isConnected){
+        btn.disabled = originalDisabled;
+      }
+
+    }
+
+  });
+
+});
+
 
     setStatus('adviserListStatus', `พบ ${rows.length} รายการ`, 'success');
   }
@@ -38237,10 +38335,24 @@ async function loadOfferings(){
   try{
     setStatus('listStatus','กำลังโหลดรายการลงทะเบียนการสอน...','info');
 
+
+    const offeringSessionToken = String(
+      state.adminSessionToken || ''
+    ).trim();
+
+    if(!offeringSessionToken){
+      throw new Error(
+        'Admin Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+    }
+
     let baseQuery = () => {
-      let query = supabaseClient
-        .from('v_subject_offerings')
-        .select('*')
+      let query = supabaseClient.rpc(
+        'admin_get_subject_offerings_session',
+        {
+          p_token: offeringSessionToken
+        }
+      )
         .order('academic_year', { ascending:false })
         .order('term', { ascending:true })
         .order('class_level', { ascending:true })
@@ -38255,6 +38367,7 @@ async function loadOfferings(){
 
       return query;
     };
+
 
     const data = await fetchAllSupabaseRows(baseQuery, 1000);
 
