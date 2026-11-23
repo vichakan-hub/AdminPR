@@ -39049,14 +39049,29 @@ async function loadReportingRows(){
   const teacherId = el('reportFilterTeacher').value.trim();
   const keyword = normalizeName(el('reportFilterKeyword').value || '').trim().toLowerCase();
 
+
+  const offeringSessionToken = String(
+    state.adminSessionToken || ''
+  ).trim();
+
+  if(!offeringSessionToken){
+    throw new Error(
+      'Admin Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+    );
+  }
+
   const pageSize = 1000;
   let from = 0;
   let allRows = [];
 
   while(true){
-    let query = supabaseClient
-      .from('v_subject_offerings')
-      .select('*')
+    let query = supabaseClient.rpc(
+      'admin_get_subject_offerings_session',
+      {
+        p_token: offeringSessionToken
+      }
+    )
+
       .order('academic_year',{ascending:false})
       .order('term',{ascending:true})
       .order('class_level',{ascending:true})
@@ -39941,23 +39956,36 @@ async function loadMidtermReportingRows(){
        1. โหลดรายการสอนที่ควรต้องรายงาน
        ===================================================== */
 
+  
+    const offeringSessionToken = String(
+      state.adminSessionToken || ''
+    ).trim();
+
+    if(!offeringSessionToken){
+      throw new Error(
+        'Admin Session หมดอายุ กรุณาเข้าสู่ระบบใหม่'
+      );
+    }
+
     const pageSize = 1000;
 
     let offeringFrom = 0;
 
     let offeringRows = [];
 
-
     while(true){
 
-let query =
-  supabaseClient
-    .from('v_subject_offerings')
-    .select('*')
-    .eq(
-      'is_active',
-      true
-    )
+      let query = supabaseClient.rpc(
+        'admin_get_subject_offerings_session',
+        {
+          p_token: offeringSessionToken
+        }
+      )
+      .eq(
+        'is_active',
+        true
+      )
+
     .order(
       'academic_year',
       { ascending:false }
